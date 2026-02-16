@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social Studies Quiz — Chapters 5 &amp; 6</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f0f4ff; color: #222; line-height: 1.5; min-height: 100vh; }
+.container { max-width: 720px; margin: 0 auto; padding: 16px; }
+h1 { text-align: center; color: #1a3a6b; margin-bottom: 8px; font-size: 1.6rem; }
+h2 { color: #1a3a6b; margin: 16px 0 8px; font-size: 1.3rem; }
+h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
+.subtitle { text-align: center; color: #555; margin-bottom: 20px; font-size: 0.95rem; }
+
+/* Buttons */
+.btn { display: inline-block; padding: 12px 24px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600; transition: background 0.2s, transform 0.1s; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: #2a5aa0; color: #fff; }
+.btn-primary:hover { background: #1a3a6b; }
+.btn-success { background: #28a745; color: #fff; }
+.btn-success:hover { background: #1e7e34; }
+.btn-warning { background: #f0ad4e; color: #222; }
+.btn-warning:hover { background: #d9972a; }
+.btn-danger { background: #dc3545; color: #fff; }
+.btn-danger:hover { background: #a71d2a; }
+.btn-sm { padding: 8px 16px; font-size: 0.9rem; }
+.btn-block { display: block; width: 100%; margin-top: 12px; }
+
+/* Sections */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* Nav bar */
+.nav { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+.nav .btn { flex: 1; min-width: 100px; text-align: center; }
+
+/* Word bank */
+.word-bank { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: #e8eef7; border-radius: 8px; margin-bottom: 16px; justify-content: center; }
+.word-chip { background: #2a5aa0; color: #fff; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: background 0.2s, opacity 0.2s; user-select: none; }
+.word-chip:hover { background: #1a3a6b; }
+.word-chip.used { opacity: 0.3; pointer-events: none; }
+
+/* Vocab question */
+.vocab-q { background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.vocab-q .definition { margin-bottom: 8px; font-size: 1rem; }
+.vocab-q .answer-slot { display: inline-block; min-width: 140px; padding: 6px 12px; border: 2px dashed #aaa; border-radius: 6px; text-align: center; cursor: pointer; font-weight: 600; color: #2a5aa0; background: #f8f9ff; min-height: 34px; vertical-align: middle; }
+.vocab-q .answer-slot.filled { border-color: #2a5aa0; background: #e0e8f5; }
+.vocab-q .answer-slot.correct { border-color: #28a745; background: #d4edda; color: #155724; }
+.vocab-q .answer-slot.wrong { border-color: #dc3545; background: #f8d7da; color: #721c24; }
+
+/* MC question */
+.mc-q { background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.mc-q .question-text { font-weight: 600; margin-bottom: 10px; font-size: 1rem; }
+.mc-q label { display: block; padding: 10px 14px; margin-bottom: 6px; border-radius: 6px; cursor: pointer; border: 2px solid #ddd; transition: border-color 0.2s, background 0.2s; font-size: 0.95rem; }
+.mc-q label:hover { border-color: #2a5aa0; background: #f0f4ff; }
+.mc-q input[type="radio"] { margin-right: 8px; transform: scale(1.2); vertical-align: middle; }
+.mc-q label.correct { border-color: #28a745; background: #d4edda; }
+.mc-q label.wrong { border-color: #dc3545; background: #f8d7da; }
+
+/* Score */
+.score-box { text-align: center; padding: 24px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0; }
+.score-box .big-score { font-size: 3rem; font-weight: 700; color: #1a3a6b; }
+.score-box .score-label { font-size: 1.1rem; color: #555; }
+.score-box .encouragement { font-size: 1.2rem; margin-top: 8px; font-weight: 600; }
+
+/* Parent mode */
+.parent-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; overflow-y: auto; }
+.parent-overlay.active { display: block; }
+.parent-panel { max-width: 720px; margin: 20px auto; background: #fff; border-radius: 12px; padding: 20px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; }
+.parent-panel .edit-group { overflow: hidden; }
+.parent-panel h2 { color: #333; }
+.parent-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.parent-tabs .btn { flex: 1; }
+.parent-tabs .btn.active-tab { background: #1a3a6b; color: #fff; }
+.answer-key-item { padding: 10px; border-bottom: 1px solid #eee; }
+.answer-key-item:last-child { border-bottom: none; }
+.answer-key-item .term { font-weight: 700; color: #2a5aa0; }
+.answer-key-item .correct-answer { color: #28a745; font-weight: 600; }
+
+/* Edit form */
+.edit-group { background: #f8f9ff; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+.edit-group label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.85rem; color: #555; }
+.edit-group input, .edit-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; margin-bottom: 8px; font-family: inherit; }
+.edit-group textarea { resize: vertical; min-height: 60px; }
+.edit-group .radio-correct { margin-right: 4px; }
+
+/* Password modal */
+.pw-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+.pw-modal.active { display: flex; }
+.pw-box { background: #fff; border-radius: 12px; padding: 24px; text-align: center; width: 300px; }
+.pw-box input { width: 100%; padding: 10px; border: 2px solid #ccc; border-radius: 6px; font-size: 1rem; margin: 12px 0; text-align: center; }
+.pw-box .error { color: #dc3545; font-size: 0.85rem; display: none; }
+
+/* Progress bar */
+.progress-bar { width: 100%; height: 8px; background: #ddd; border-radius: 4px; margin-bottom: 16px; }
+.progress-bar .fill { height: 100%; background: #2a5aa0; border-radius: 4px; transition: width 0.3s; }
+
+/* Responsive */
+@media (max-width: 480px) {
+  .container { padding: 10px; }
+  h1 { font-size: 1.3rem; }
+  .btn { padding: 10px 16px; font-size: 0.9rem; }
+  .word-chip { font-size: 0.8rem; padding: 5px 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>📚 Social Studies Quiz</h1>
+  <p class="subtitle">Chapters 5 &amp; 6 — Colonial America</p>
+
+  <!-- Navigation -->
+  <div class="nav">
+    <button class="btn btn-primary" onclick="showScreen('home')">🏠 Home</button>
+    <button class="btn btn-primary" onclick="showScreen('vocab')">📖 Vocabulary</button>
+    <button class="btn btn-primary" onclick="showScreen('mc')">✏️ Multiple Choice</button>
+    <button class="btn btn-warning" onclick="openParentMode()">🔒 Parent</button>
+  </div>
+
+  <!-- Home Screen -->
+  <div id="home" class="screen active">
+    <div class="score-box">
+      <p class="score-label">Welcome!</p>
+      <p style="margin-top:8px;">Choose a section to start studying.</p>
+      <div id="home-progress" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- Vocabulary Section -->
+  <div id="vocab" class="screen">
+    <h2>📖 Vocabulary — Fill in the Blank</h2>
+    <p style="margin-bottom:12px; color:#555;">Click a word from the word bank, then click the blank where it belongs. Click a filled blank to clear it.</p>
+    <div class="progress-bar"><div class="fill" id="vocab-progress"></div></div>
+    <div class="word-bank" id="word-bank"></div>
+    <div id="vocab-questions"></div>
+    <button class="btn btn-success btn-block" id="vocab-submit" onclick="submitVocab()">Check My Answers</button>
+    <div id="vocab-results" style="display:none;"></div>
+  </div>
+
+  <!-- Multiple Choice Section -->
+  <div id="mc" class="screen">
+    <h2>✏️ Multiple Choice</h2>
+    <p style="margin-bottom:12px; color:#555;">Choose the best answer for each question.</p>
+    <div class="progress-bar"><div class="fill" id="mc-progress"></div></div>
+    <div id="mc-questions"></div>
+    <button class="btn btn-success btn-block" id="mc-submit" onclick="submitMC()">Check My Answers</button>
+    <div id="mc-results" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Password Modal -->
+<div class="pw-modal" id="pw-modal">
+  <div class="pw-box">
+    <h3>🔒 Parent Mode</h3>
+    <p>Enter the password:</p>
+    <input type="password" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkPassword()">
+    <p class="error" id="pw-error">Incorrect password. Try again.</p>
+    <button class="btn btn-primary" onclick="checkPassword()">Enter</button>
+    <button class="btn btn-sm" style="margin-top:8px;" onclick="closePasswordModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- Parent Overlay -->
+<div class="parent-overlay" id="parent-overlay">
+  <div class="parent-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h2>🔑 Parent Mode</h2>
+      <button class="btn btn-sm btn-danger" onclick="closeParentMode()">✕ Close</button>
+    </div>
+    <div class="parent-tabs">
+      <button class="btn btn-sm btn-primary active-tab" id="tab-answers" onclick="showParentTab('answers')">Answer Key</button>
+      <button class="btn btn-sm btn-primary" id="tab-edit" onclick="showParentTab('edit')">Edit Questions</button>
+    </div>
+    <div id="parent-answers"></div>
+    <div id="parent-edit" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const DEFAULT_VOCAB = [
+  { term: "Charter", definition: "An official document from a king or queen that gave permission to start a colony" },
+  { term: "Indentured Servant", definition: "A person who agreed to work for someone for a certain number of years in exchange for passage to America" },
+  { term: "Roanoke Island", definition: "The English colony that disappeared, located off the coast of present-day North Carolina" },
+  { term: "Almanac", definition: "A book published each year with facts, weather predictions, and useful information" },
+  { term: "Pilgrim", definition: "A person who traveled to Plymouth, Massachusetts in 1620 to find religious freedom" },
+  { term: "Persecution", definition: "Being treated cruelly or unfairly because of your beliefs or who you are" },
+  { term: "Debtor", definition: "A person who owes money to someone else" },
+  { term: "Apprentice", definition: "A young person who learned a trade or skill by working with an experienced worker" },
+  { term: "Artisan", definition: "A skilled worker who makes things by hand, such as a blacksmith or carpenter" },
+  { term: "Squanto", definition: "A Native American who helped the Pilgrims survive by teaching them how to grow crops and catch fish" },
+  { term: "Cash Crop", definition: "A crop that is grown to be sold for profit rather than to be used by the farmer" },
+  { term: "John Smith", definition: "The leader of the Jamestown colony who made a rule that settlers must work to eat" },
+  { term: "Mayflower Compact", definition: "An agreement signed by the Pilgrims that set up rules and a government for their colony" },
+  { term: "William Penn", definition: "The founder of Pennsylvania who believed in religious freedom and fair treatment of Native Americans" },
+  { term: "Puritans", definition: "A group of people who wanted to purify the Church of England and settled in Massachusetts Bay" },
+  { term: "Francis Drake", definition: "An English sea captain who sailed around the world and helped defeat the Spanish Armada" },
+  { term: "Proprietor", definition: "A person who was given ownership of a colony by the king or queen" },
+  { term: "Town Common", definition: "An open area in the center of a colonial town where animals could graze and people gathered" },
+  { term: "James Oglethorpe", definition: "The founder of the colony of Georgia, which was created as a place for debtors to start over" },
+  { term: "Elizabeth Lucas Pinckney", definition: "A young woman in South Carolina who successfully grew indigo as a cash crop" }
+];
+
+const DEFAULT_MC = [
+  {
+    question: "Why did the Pilgrims choose to leave their homeland?",
+    choices: [
+      "They wanted religious freedom and were being persecuted for their beliefs",
+      "They wanted to find gold in the New World",
+      "They were looking for better farmland in a warmer climate",
+      "They wanted to open a chain of restaurants"
+    ],
+    correct: 0
+  },
+  {
+    question: "Why did the Pilgrims go to Plymouth?",
+    choices: [
+      "Their ship was blown off course and they landed there by accident",
+      "The king ordered them to settle there",
+      "They heard there was gold buried at Plymouth",
+      "They wanted to be closer to Disney World"
+    ],
+    correct: 0
+  },
+  {
+    question: "What group helped the Pilgrims survive at Plymouth?",
+    choices: [
+      "The Wampanoag people, including Squanto",
+      "Spanish explorers who lived nearby",
+      "French fur traders who shared their supplies",
+      "A group of friendly dolphins"
+    ],
+    correct: 0
+  },
+  {
+    question: "What was the disadvantage of being an apprentice?",
+    choices: [
+      "You were not paid wages and had to work for many years",
+      "You could only work on Sundays",
+      "You had to buy your own tools and supplies",
+      "You had to wear a funny hat every day"
+    ],
+    correct: 0
+  },
+  {
+    question: "Why were the Middle Colonies called the 'breadbasket of the colonies'?",
+    choices: [
+      "They grew large amounts of wheat and grain crops",
+      "They were shaped like a basket on the map",
+      "They made the best bread from corn grown in Virginia",
+      "They invented the sandwich"
+    ],
+    correct: 0
+  },
+  {
+    question: "What type of school did children attend in the colonies?",
+    choices: [
+      "Dame schools, run by women in their homes",
+      "Large public schools with hundreds of students",
+      "Schools aboard ships in the harbor",
+      "Online schools using the internet"
+    ],
+    correct: 0
+  },
+  {
+    question: "What was the most popular book in the 13 Colonies?",
+    choices: [
+      "The New England Primer",
+      "The Declaration of Independence",
+      "A book of maps by Christopher Columbus",
+      "Harry Potter and the Sorcerer's Stone"
+    ],
+    correct: 0
+  },
+  {
+    question: "What is Benjamin Franklin best known for?",
+    choices: [
+      "He was an inventor, writer, and founded the first public library and fire department",
+      "He was the first president of the United States",
+      "He discovered America by sailing across the Atlantic Ocean",
+      "He invented the smartphone"
+    ],
+    correct: 0
+  },
+  {
+    question: "How did enslaved people resist slavery?",
+    choices: [
+      "By breaking tools, working slowly, running away, and keeping their culture alive",
+      "By writing letters to the king asking for their freedom",
+      "By refusing to eat any food given to them",
+      "By hiding in outer space"
+    ],
+    correct: 0
+  },
+  {
+    question: "What was the mystery surrounding Roanoke Island?",
+    choices: [
+      "All the colonists disappeared and no one knows what happened to them",
+      "The island sank into the ocean overnight",
+      "The colonists found a huge amount of gold and moved away",
+      "A dragon was spotted flying over the island"
+    ],
+    correct: 0
+  },
+  {
+    question: "What was the nickname for Roanoke Island?",
+    choices: [
+      "The Lost Colony",
+      "The Golden Island",
+      "The Pilgrim's Paradise",
+      "The Island of Misfit Toys"
+    ],
+    correct: 0
+  },
+  {
+    question: "The winter at Jamestown was called this:",
+    choices: [
+      "The Starving Time",
+      "The Great Freeze",
+      "The Long Winter of Peace",
+      "The Time of Free Pizza"
+    ],
+    correct: 0
+  },
+  {
+    question: "What crop brought wealth to Jamestown and who brought it?",
+    choices: [
+      "Tobacco, brought by John Rolfe",
+      "Cotton, brought by John Smith",
+      "Corn, brought by Squanto",
+      "Pineapple, brought by SpongeBob"
+    ],
+    correct: 0
+  },
+  {
+    question: "What is the main reason women were NOT among the first settlers of Jamestown?",
+    choices: [
+      "The colony was set up as a business venture and only men were sent to find gold and profit",
+      "Women were not allowed on ships at that time",
+      "Women did not want to leave England because of the weather",
+      "Women were too busy inventing the internet"
+    ],
+    correct: 0
+  },
+  {
+    question: "How long was the Pilgrims' feast (the first Thanksgiving)?",
+    choices: [
+      "Three days",
+      "One week",
+      "Just one afternoon",
+      "An entire month"
+    ],
+    correct: 0
+  },
+  {
+    question: "Who was Sarah Hale and why was she important?",
+    choices: [
+      "She convinced President Lincoln to make Thanksgiving a national holiday",
+      "She was the first woman to sail to America on the Mayflower",
+      "She started the first school for girls in the colonies",
+      "She invented the turkey sandwich"
+    ],
+    correct: 0
+  },
+  {
+    question: "Why did people go into town in the New England and Middle Colonies?",
+    choices: [
+      "To go to church, trade goods, and attend town meetings",
+      "To watch movies at the town theater",
+      "To pick up their mail from the post office",
+      "To ride roller coasters at the town fair"
+    ],
+    correct: 0
+  }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+const STORAGE_KEY = "socialtest_progress";
+const DATA_KEY = "socialtest_data";
+
+let vocabData, mcData;
+let vocabAnswers = {};   // { qIndex: "term" }
+let mcAnswers = {};      // { qIndex: choiceIndex }
+let vocabResults = null; // { qIndex: true/false } after grading
+let mcResults = null;
+let vocabRetryOnly = []; // indices to retry
+let mcRetryOnly = [];
+let selectedWord = null;
+
+function loadData() {
+  const saved = localStorage.getItem(DATA_KEY);
+  if (saved) {
+    const d = JSON.parse(saved);
+    vocabData = d.vocab || DEFAULT_VOCAB;
+    mcData = d.mc || DEFAULT_MC;
+  } else {
+    vocabData = JSON.parse(JSON.stringify(DEFAULT_VOCAB));
+    mcData = JSON.parse(JSON.stringify(DEFAULT_MC));
+  }
+}
+
+function saveData() {
+  localStorage.setItem(DATA_KEY, JSON.stringify({ vocab: vocabData, mc: mcData }));
+}
+
+function loadProgress() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const p = JSON.parse(saved);
+    vocabAnswers = p.vocabAnswers || {};
+    mcAnswers = p.mcAnswers || {};
+    vocabResults = p.vocabResults || null;
+    mcResults = p.mcResults || null;
+    vocabRetryOnly = p.vocabRetryOnly || [];
+    mcRetryOnly = p.mcRetryOnly || [];
+  }
+}
+
+function saveProgress() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    vocabAnswers, mcAnswers, vocabResults, mcResults, vocabRetryOnly, mcRetryOnly
+  }));
+}
+
+// ============================================================
+// SCREENS
+// ============================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'vocab') renderVocab();
+  if (id === 'mc') renderMC();
+  if (id === 'home') renderHome();
+}
+
+function renderHome() {
+  const el = document.getElementById('home-progress');
+  let html = '';
+  if (vocabResults) {
+    const correct = Object.values(vocabResults).filter(v => v).length;
+    const total = Object.keys(vocabResults).length;
+    html += `<p>📖 Vocabulary: <strong>${correct}/${total}</strong></p>`;
+  }
+  if (mcResults) {
+    const correct = Object.values(mcResults).filter(v => v).length;
+    const total = Object.keys(mcResults).length;
+    html += `<p>✏️ Multiple Choice: <strong>${correct}/${total}</strong></p>`;
+  }
+  if (!vocabResults && !mcResults) {
+    html = '<p style="color:#888;">No scores yet. Pick a section and start studying!</p>';
+  }
+  el.innerHTML = html;
+}
+
+// ============================================================
+// VOCABULARY
+// ============================================================
+function renderVocab() {
+  const activeIndices = vocabRetryOnly.length > 0 ? vocabRetryOnly : vocabData.map((_, i) => i);
+  const bankEl = document.getElementById('word-bank');
+  const qEl = document.getElementById('vocab-questions');
+
+  // Shuffle word bank
+  const words = activeIndices.map(i => vocabData[i].term);
+  const shuffled = [...words].sort(() => Math.random() - 0.5);
+
+  bankEl.innerHTML = shuffled.map(w => {
+    const used = Object.values(vocabAnswers).includes(w);
+    return `<span class="word-chip ${used ? 'used' : ''}" onclick="selectWord(this, '${w.replace(/'/g, "\\'")}')">${w}</span>`;
+  }).join('');
+
+  qEl.innerHTML = activeIndices.map((qi, dispI) => {
+    const v = vocabData[qi];
+    const answer = vocabAnswers[qi] || '';
+    let slotClass = 'answer-slot';
+    if (answer) slotClass += ' filled';
+    if (vocabResults && vocabResults[qi] === true) slotClass += ' correct';
+    else if (vocabResults && vocabResults[qi] === false) slotClass += ' wrong';
+
+    return `<div class="vocab-q">
+      <div class="definition">${dispI + 1}. ${v.definition}</div>
+      <span class="${slotClass}" onclick="clickSlot(${qi})" id="slot-${qi}">${answer || 'click to fill'}</span>
+      ${vocabResults && vocabResults[qi] === false ? `<span style="color:#28a745; margin-left:8px; font-size:0.85rem;">Answer: ${v.term}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  updateVocabProgress(activeIndices);
+  document.getElementById('vocab-submit').style.display = vocabResults ? 'none' : 'block';
+}
+
+function selectWord(el, word) {
+  document.querySelectorAll('.word-chip').forEach(c => c.style.outline = '');
+  if (selectedWord === word) { selectedWord = null; return; }
+  selectedWord = word;
+  el.style.outline = '3px solid #f0ad4e';
+}
+
+function clickSlot(qi) {
+  if (vocabResults) return;
+  const slot = document.getElementById('slot-' + qi);
+
+  // If slot is filled, clear it
+  if (vocabAnswers[qi]) {
+    const oldWord = vocabAnswers[qi];
+    delete vocabAnswers[qi];
+    slot.textContent = 'click to fill';
+    slot.classList.remove('filled');
+    // un-use the chip
+    document.querySelectorAll('.word-chip').forEach(c => {
+      if (c.textContent === oldWord) c.classList.remove('used');
+    });
+    saveProgress();
+    updateVocabProgress(vocabRetryOnly.length > 0 ? vocabRetryOnly : vocabData.map((_, i) => i));
+    return;
+  }
+
+  // If a word is selected, place it
+  if (selectedWord) {
+    vocabAnswers[qi] = selectedWord;
+    slot.textContent = selectedWord;
+    slot.classList.add('filled');
+    document.querySelectorAll('.word-chip').forEach(c => {
+      if (c.textContent === selectedWord) c.classList.add('used');
+    });
+    selectedWord = null;
+    document.querySelectorAll('.word-chip').forEach(c => c.style.outline = '');
+    saveProgress();
+    updateVocabProgress(vocabRetryOnly.length > 0 ? vocabRetryOnly : vocabData.map((_, i) => i));
+  }
+}
+
+function updateVocabProgress(activeIndices) {
+  const filled = activeIndices.filter(i => vocabAnswers[i]).length;
+  const pct = (filled / activeIndices.length) * 100;
+  document.getElementById('vocab-progress').style.width = pct + '%';
+}
+
+function submitVocab() {
+  const activeIndices = vocabRetryOnly.length > 0 ? vocabRetryOnly : vocabData.map((_, i) => i);
+  // Check all answered
+  const unanswered = activeIndices.filter(i => !vocabAnswers[i]);
+  if (unanswered.length > 0) {
+    alert(`You still have ${unanswered.length} blank(s). Fill them all in before checking!`);
+    return;
+  }
+
+  vocabResults = {};
+  activeIndices.forEach(i => {
+    vocabResults[i] = vocabAnswers[i] === vocabData[i].term;
+  });
+  saveProgress();
+
+  const correct = Object.values(vocabResults).filter(v => v).length;
+  const total = activeIndices.length;
+  const wrong = activeIndices.filter(i => !vocabResults[i]);
+
+  let html = `<div class="score-box">
+    <div class="big-score">${correct}/${total}</div>
+    <div class="score-label">Vocabulary Score</div>
+    <div class="encouragement">${getEncouragement(correct, total)}</div>
+  </div>`;
+
+  if (wrong.length > 0) {
+    html += `<button class="btn btn-warning btn-block" onclick="retryVocab([${wrong.join(',')}])">🔄 Retry Wrong Answers (${wrong.length})</button>`;
+  }
+  html += `<button class="btn btn-primary btn-block" onclick="resetVocab()">Start Over</button>`;
+
+  document.getElementById('vocab-results').innerHTML = html;
+  document.getElementById('vocab-results').style.display = 'block';
+  renderVocab();
+}
+
+function retryVocab(indices) {
+  vocabRetryOnly = indices;
+  vocabResults = null;
+  indices.forEach(i => delete vocabAnswers[i]);
+  document.getElementById('vocab-results').style.display = 'none';
+  saveProgress();
+  renderVocab();
+}
+
+function resetVocab() {
+  vocabRetryOnly = [];
+  vocabResults = null;
+  vocabAnswers = {};
+  document.getElementById('vocab-results').style.display = 'none';
+  saveProgress();
+  renderVocab();
+}
+
+// ============================================================
+// MULTIPLE CHOICE
+// ============================================================
+function renderMC() {
+  const activeIndices = mcRetryOnly.length > 0 ? mcRetryOnly : mcData.map((_, i) => i);
+  const qEl = document.getElementById('mc-questions');
+
+  qEl.innerHTML = activeIndices.map((qi, dispI) => {
+    const q = mcData[qi];
+    return `<div class="mc-q">
+      <div class="question-text">${dispI + 1}. ${q.question}</div>
+      ${q.choices.map((c, ci) => {
+        const checked = mcAnswers[qi] === ci ? 'checked' : '';
+        let labelClass = '';
+        if (mcResults && mcResults[qi] !== undefined) {
+          if (ci === q.correct) labelClass = 'correct';
+          else if (mcAnswers[qi] === ci && ci !== q.correct) labelClass = 'wrong';
+        }
+        return `<label class="${labelClass}">
+          <input type="radio" name="mc-${qi}" value="${ci}" ${checked} ${mcResults ? 'disabled' : ''} onchange="mcSelect(${qi}, ${ci})">
+          ${c}
+        </label>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+
+  updateMCProgress(activeIndices);
+  document.getElementById('mc-submit').style.display = mcResults ? 'none' : 'block';
+}
+
+function mcSelect(qi, ci) {
+  mcAnswers[qi] = ci;
+  saveProgress();
+  updateMCProgress(mcRetryOnly.length > 0 ? mcRetryOnly : mcData.map((_, i) => i));
+}
+
+function updateMCProgress(activeIndices) {
+  const answered = activeIndices.filter(i => mcAnswers[i] !== undefined).length;
+  const pct = (answered / activeIndices.length) * 100;
+  document.getElementById('mc-progress').style.width = pct + '%';
+}
+
+function submitMC() {
+  const activeIndices = mcRetryOnly.length > 0 ? mcRetryOnly : mcData.map((_, i) => i);
+  const unanswered = activeIndices.filter(i => mcAnswers[i] === undefined);
+  if (unanswered.length > 0) {
+    alert(`You still have ${unanswered.length} question(s) unanswered. Answer them all before checking!`);
+    return;
+  }
+
+  mcResults = {};
+  activeIndices.forEach(i => {
+    mcResults[i] = mcAnswers[i] === mcData[i].correct;
+  });
+  saveProgress();
+
+  const correct = Object.values(mcResults).filter(v => v).length;
+  const total = activeIndices.length;
+  const wrong = activeIndices.filter(i => !mcResults[i]);
+
+  let html = `<div class="score-box">
+    <div class="big-score">${correct}/${total}</div>
+    <div class="score-label">Multiple Choice Score</div>
+    <div class="encouragement">${getEncouragement(correct, total)}</div>
+  </div>`;
+
+  if (wrong.length > 0) {
+    html += `<button class="btn btn-warning btn-block" onclick="retryMC([${wrong.join(',')}])">🔄 Retry Wrong Answers (${wrong.length})</button>`;
+  }
+  html += `<button class="btn btn-primary btn-block" onclick="resetMC()">Start Over</button>`;
+
+  document.getElementById('mc-results').innerHTML = html;
+  document.getElementById('mc-results').style.display = 'block';
+  renderMC();
+}
+
+function retryMC(indices) {
+  mcRetryOnly = indices;
+  mcResults = null;
+  indices.forEach(i => delete mcAnswers[i]);
+  document.getElementById('mc-results').style.display = 'none';
+  saveProgress();
+  renderMC();
+}
+
+function resetMC() {
+  mcRetryOnly = [];
+  mcResults = null;
+  mcAnswers = {};
+  document.getElementById('mc-results').style.display = 'none';
+  saveProgress();
+  renderMC();
+}
+
+// ============================================================
+// ENCOURAGEMENT
+// ============================================================
+function getEncouragement(correct, total) {
+  const pct = correct / total;
+  if (pct === 1) return "🌟 Perfect score! Amazing job!";
+  if (pct >= 0.9) return "🎉 So close to perfect! Great work!";
+  if (pct >= 0.7) return "👍 Good job! Keep studying!";
+  if (pct >= 0.5) return "💪 Not bad! Try the ones you missed!";
+  return "📚 Keep practicing, you'll get there!";
+}
+
+// ============================================================
+// PARENT MODE
+// ============================================================
+function openParentMode() {
+  document.getElementById('pw-modal').classList.add('active');
+  document.getElementById('pw-input').value = '';
+  document.getElementById('pw-error').style.display = 'none';
+  document.getElementById('pw-input').focus();
+}
+
+function closePasswordModal() {
+  document.getElementById('pw-modal').classList.remove('active');
+}
+
+function checkPassword() {
+  const pw = document.getElementById('pw-input').value;
+  if (pw === 'dad') {
+    closePasswordModal();
+    document.getElementById('parent-overlay').classList.add('active');
+    showParentTab('answers');
+  } else {
+    document.getElementById('pw-error').style.display = 'block';
+  }
+}
+
+function closeParentMode() {
+  document.getElementById('parent-overlay').classList.remove('active');
+}
+
+function showParentTab(tab) {
+  document.getElementById('tab-answers').classList.toggle('active-tab', tab === 'answers');
+  document.getElementById('tab-edit').classList.toggle('active-tab', tab === 'edit');
+  document.getElementById('parent-answers').style.display = tab === 'answers' ? 'block' : 'none';
+  document.getElementById('parent-edit').style.display = tab === 'edit' ? 'block' : 'none';
+  if (tab === 'answers') renderAnswerKey();
+  if (tab === 'edit') renderEditPanel();
+}
+
+function renderAnswerKey() {
+  let html = '<h3>📖 Vocabulary Answers</h3>';
+  vocabData.forEach((v, i) => {
+    html += `<div class="answer-key-item"><span class="term">${v.term}</span> — ${v.definition}</div>`;
+  });
+  html += '<h3 style="margin-top:20px;">✏️ Multiple Choice Answers</h3>';
+  mcData.forEach((q, i) => {
+    html += `<div class="answer-key-item">
+      <strong>${i + 1}. ${q.question}</strong><br>
+      <span class="correct-answer">✓ ${q.choices[q.correct]}</span>
+    </div>`;
+  });
+  document.getElementById('parent-answers').innerHTML = html;
+}
+
+function renderEditPanel() {
+  let html = '<h3>📖 Edit Vocabulary</h3>';
+  vocabData.forEach((v, i) => {
+    html += `<div class="edit-group">
+      <label>Term</label>
+      <input type="text" value="${esc(v.term)}" onchange="editVocab(${i}, 'term', this.value)">
+      <label>Definition</label>
+      <textarea onchange="editVocab(${i}, 'definition', this.value)">${esc(v.definition)}</textarea>
+    </div>`;
+  });
+
+  html += '<h3 style="margin-top:20px;">✏️ Edit Multiple Choice</h3>';
+  mcData.forEach((q, i) => {
+    html += `<div class="edit-group">
+      <label>Question ${i + 1}</label>
+      <input type="text" value="${esc(q.question)}" onchange="editMC(${i}, 'question', this.value)">`;
+    q.choices.forEach((c, ci) => {
+      const isCorrect = ci === q.correct;
+      html += `<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; width:100%;">
+        <input type="radio" name="edit-correct-${i}" class="radio-correct" style="flex-shrink:0; width:18px; height:18px;" ${isCorrect ? 'checked' : ''} onchange="editMC(${i}, 'correct', ${ci})">
+        <input type="text" value="${esc(c)}" onchange="editMCChoice(${i}, ${ci}, this.value)" style="flex:1; min-width:0;">
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  html += `<button class="btn btn-danger btn-block" style="margin-top:16px;" onclick="resetToDefaults()">🔄 Reset All to Defaults</button>`;
+  document.getElementById('parent-edit').innerHTML = html;
+}
+
+function editVocab(i, field, value) {
+  vocabData[i][field] = value;
+  saveData();
+}
+
+function editMC(i, field, value) {
+  if (field === 'correct') mcData[i].correct = value;
+  else mcData[i][field] = value;
+  saveData();
+}
+
+function editMCChoice(qi, ci, value) {
+  mcData[qi].choices[ci] = value;
+  saveData();
+}
+
+function resetToDefaults() {
+  if (confirm('This will reset all questions to the original defaults and clear saved progress. Are you sure?')) {
+    localStorage.removeItem(DATA_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+    vocabData = JSON.parse(JSON.stringify(DEFAULT_VOCAB));
+    mcData = JSON.parse(JSON.stringify(DEFAULT_MC));
+    vocabAnswers = {};
+    mcAnswers = {};
+    vocabResults = null;
+    mcResults = null;
+    vocabRetryOnly = [];
+    mcRetryOnly = [];
+    renderEditPanel();
+    renderAnswerKey();
+  }
+}
+
+function esc(str) {
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadData();
+loadProgress();
+renderHome();
+</script>
+</body>
+</html>
