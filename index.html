@@ -142,10 +142,9 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
   <!-- Multiple Choice Section -->
   <div id="mc" class="screen">
     <h2>✏️ Multiple Choice</h2>
-    <p style="margin-bottom:12px; color:#555;">Choose the best answer for each question.</p>
+    <p style="margin-bottom:12px; color:#555;">Choose the best answer, then click Submit.</p>
     <div class="progress-bar"><div class="fill" id="mc-progress"></div></div>
     <div id="mc-questions"></div>
-    <button class="btn btn-success btn-block" id="mc-submit" onclick="submitMC()">Check My Answers</button>
     <div id="mc-results" style="display:none;"></div>
   </div>
 </div>
@@ -388,10 +387,11 @@ let vocabData, mcData;
 let vocabAnswers = {};   // { qIndex: "term" }
 let mcAnswers = {};      // { qIndex: choiceIndex }
 let vocabResults = null; // { qIndex: true/false } after grading
-let mcResults = null;
+let mcResults = null;    // { qIndex: true/false } after each submit
 let vocabRetryOnly = []; // indices to retry
 let mcRetryOnly = [];
 let selectedWord = null;
+let mcCurrentQ = 0;      // current question index within active set
 
 function loadData() {
   const saved = localStorage.getItem(DATA_KEY);
@@ -419,12 +419,13 @@ function loadProgress() {
     mcResults = p.mcResults || null;
     vocabRetryOnly = p.vocabRetryOnly || [];
     mcRetryOnly = p.mcRetryOnly || [];
+    mcCurrentQ = p.mcCurrentQ || 0;
   }
 }
 
 function saveProgress() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    vocabAnswers, mcAnswers, vocabResults, mcResults, vocabRetryOnly, mcRetryOnly
+    vocabAnswers, mcAnswers, vocabResults, mcResults, vocabRetryOnly, mcRetryOnly, mcCurrentQ
   }));
 }
 
@@ -597,62 +598,95 @@ function resetVocab() {
 // ============================================================
 // MULTIPLE CHOICE
 // ============================================================
+function getActiveMCIndices() {
+  return mcRetryOnly.length > 0 ? mcRetryOnly : mcData.map((_, i) => i);
+}
+
 function renderMC() {
-  const activeIndices = mcRetryOnly.length > 0 ? mcRetryOnly : mcData.map((_, i) => i);
+  const activeIndices = getActiveMCIndices();
   const qEl = document.getElementById('mc-questions');
+  const resultsEl = document.getElementById('mc-results');
 
-  qEl.innerHTML = activeIndices.map((qi, dispI) => {
-    const q = mcData[qi];
-    return `<div class="mc-q">
-      <div class="question-text">${dispI + 1}. ${q.question}</div>
-      ${q.choices.map((c, ci) => {
-        const checked = mcAnswers[qi] === ci ? 'checked' : '';
-        let labelClass = '';
-        if (mcResults && mcResults[qi] !== undefined) {
-          if (ci === q.correct) labelClass = 'correct';
-          else if (mcAnswers[qi] === ci && ci !== q.correct) labelClass = 'wrong';
-        }
-        return `<label class="${labelClass}">
-          <input type="radio" name="mc-${qi}" value="${ci}" ${checked} ${mcResults ? 'disabled' : ''} onchange="mcSelect(${qi}, ${ci})">
-          ${c}
-        </label>`;
-      }).join('')}
-    </div>`;
-  }).join('');
+  // If all questions answered, show final score
+  if (mcCurrentQ >= activeIndices.length) {
+    qEl.innerHTML = '';
+    showMCFinalScore();
+    return;
+  }
 
+  resultsEl.style.display = 'none';
+  const qi = activeIndices[mcCurrentQ];
+  const q = mcData[qi];
+  const submitted = mcResults && mcResults[qi] !== undefined;
+  const selectedChoice = mcAnswers[qi];
+
+  let html = `<div class="mc-q">
+    <div class="question-text" style="margin-bottom:4px;">Question ${mcCurrentQ + 1} of ${activeIndices.length}</div>
+    <div class="question-text">${q.question}</div>
+    ${q.choices.map((c, ci) => {
+      const checked = selectedChoice === ci ? 'checked' : '';
+      let labelClass = '';
+      if (submitted) {
+        if (ci === q.correct) labelClass = 'correct';
+        else if (selectedChoice === ci && ci !== q.correct) labelClass = 'wrong';
+      }
+      return `<label class="${labelClass}">
+        <input type="radio" name="mc-${qi}" value="${ci}" ${checked} ${submitted ? 'disabled' : ''} onchange="mcSelect(${qi}, ${ci})">
+        ${c}
+      </label>`;
+    }).join('')}`;
+
+  if (submitted) {
+    const isCorrect = mcResults[qi];
+    if (isCorrect) {
+      html += `<div style="margin-top:12px; padding:10px; background:#d4edda; border-radius:6px; color:#155724; font-weight:600;">✅ Correct! Great job!</div>`;
+    } else {
+      html += `<div style="margin-top:12px; padding:10px; background:#f8d7da; border-radius:6px; color:#721c24; font-weight:600;">❌ Not quite. The correct answer is: <em>${q.choices[q.correct]}</em></div>`;
+    }
+    html += `<button class="btn btn-primary btn-block" onclick="mcNext()">Next →</button>`;
+  } else {
+    html += `<button class="btn btn-success btn-block" onclick="mcSubmitOne()">Submit Answer</button>`;
+  }
+
+  html += `</div>`;
+  qEl.innerHTML = html;
   updateMCProgress(activeIndices);
-  document.getElementById('mc-submit').style.display = mcResults ? 'none' : 'block';
 }
 
 function mcSelect(qi, ci) {
   mcAnswers[qi] = ci;
   saveProgress();
-  updateMCProgress(mcRetryOnly.length > 0 ? mcRetryOnly : mcData.map((_, i) => i));
+}
+
+function mcSubmitOne() {
+  const activeIndices = getActiveMCIndices();
+  const qi = activeIndices[mcCurrentQ];
+  if (mcAnswers[qi] === undefined) {
+    alert('Please select an answer first!');
+    return;
+  }
+  if (!mcResults) mcResults = {};
+  mcResults[qi] = mcAnswers[qi] === mcData[qi].correct;
+  saveProgress();
+  renderMC();
+}
+
+function mcNext() {
+  mcCurrentQ++;
+  saveProgress();
+  renderMC();
 }
 
 function updateMCProgress(activeIndices) {
-  const answered = activeIndices.filter(i => mcAnswers[i] !== undefined).length;
-  const pct = (answered / activeIndices.length) * 100;
+  const pct = (mcCurrentQ / activeIndices.length) * 100;
   document.getElementById('mc-progress').style.width = pct + '%';
 }
 
-function submitMC() {
-  const activeIndices = mcRetryOnly.length > 0 ? mcRetryOnly : mcData.map((_, i) => i);
-  const unanswered = activeIndices.filter(i => mcAnswers[i] === undefined);
-  if (unanswered.length > 0) {
-    alert(`You still have ${unanswered.length} question(s) unanswered. Answer them all before checking!`);
-    return;
-  }
-
-  mcResults = {};
-  activeIndices.forEach(i => {
-    mcResults[i] = mcAnswers[i] === mcData[i].correct;
-  });
-  saveProgress();
-
-  const correct = Object.values(mcResults).filter(v => v).length;
+function showMCFinalScore() {
+  const activeIndices = getActiveMCIndices();
+  const correct = activeIndices.filter(i => mcResults && mcResults[i]).length;
   const total = activeIndices.length;
-  const wrong = activeIndices.filter(i => !mcResults[i]);
+  const wrong = activeIndices.filter(i => mcResults && !mcResults[i]);
 
   let html = `<div class="score-box">
     <div class="big-score">${correct}/${total}</div>
@@ -667,12 +701,14 @@ function submitMC() {
 
   document.getElementById('mc-results').innerHTML = html;
   document.getElementById('mc-results').style.display = 'block';
-  renderMC();
+  updateMCProgress(activeIndices);
+  document.getElementById('mc-progress').style.width = '100%';
 }
 
 function retryMC(indices) {
   mcRetryOnly = indices;
   mcResults = null;
+  mcCurrentQ = 0;
   indices.forEach(i => delete mcAnswers[i]);
   document.getElementById('mc-results').style.display = 'none';
   saveProgress();
@@ -683,6 +719,7 @@ function resetMC() {
   mcRetryOnly = [];
   mcResults = null;
   mcAnswers = {};
+  mcCurrentQ = 0;
   document.getElementById('mc-results').style.display = 'none';
   saveProgress();
   renderMC();
