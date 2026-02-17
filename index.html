@@ -473,7 +473,7 @@ function renderVocab() {
 
   bankEl.innerHTML = shuffled.map(w => {
     const used = Object.values(vocabAnswers).includes(w);
-    return `<span class="word-chip ${used ? 'used' : ''}" onclick="selectWord(this, '${w.replace(/'/g, "\\'")}')">${w}</span>`;
+    return `<span class="word-chip ${used ? 'used' : ''}" onclick="selectWord(this, '${esc(w).replace(/'/g, "\\'")}')">${esc(w)}</span>`;
   }).join('');
 
   qEl.innerHTML = activeIndices.map((qi, dispI) => {
@@ -485,9 +485,9 @@ function renderVocab() {
     else if (vocabResults && vocabResults[qi] === false) slotClass += ' wrong';
 
     return `<div class="vocab-q">
-      <div class="definition">${dispI + 1}. ${v.definition}</div>
-      <span class="${slotClass}" onclick="clickSlot(${qi})" id="slot-${qi}">${answer || 'click to fill'}</span>
-      ${vocabResults && vocabResults[qi] === false ? `<span style="color:#28a745; margin-left:8px; font-size:0.85rem;">Answer: ${v.term}</span>` : ''}
+      <div class="definition">${dispI + 1}. ${esc(v.definition)}</div>
+      <span class="${slotClass}" onclick="clickSlot(${qi})" id="slot-${qi}">${esc(answer) || 'click to fill'}</span>
+      ${vocabResults && vocabResults[qi] === false ? `<span style="color:#28a745; margin-left:8px; font-size:0.85rem;">Answer: ${esc(v.term)}</span>` : ''}
     </div>`;
   }).join('');
 
@@ -622,7 +622,7 @@ function renderMC() {
 
   let html = `<div class="mc-q">
     <div class="question-text" style="margin-bottom:4px;">Question ${mcCurrentQ + 1} of ${activeIndices.length}</div>
-    <div class="question-text">${q.question}</div>
+    <div class="question-text">${esc(q.question)}</div>
     ${q.choices.map((c, ci) => {
       const checked = selectedChoice === ci ? 'checked' : '';
       let labelClass = '';
@@ -632,7 +632,7 @@ function renderMC() {
       }
       return `<label class="${labelClass}">
         <input type="radio" name="mc-${qi}" value="${ci}" ${checked} ${submitted ? 'disabled' : ''} onchange="mcSelect(${qi}, ${ci})">
-        ${c}
+        ${esc(c)}
       </label>`;
     }).join('')}`;
 
@@ -641,7 +641,7 @@ function renderMC() {
     if (isCorrect) {
       html += `<div style="margin-top:12px; padding:10px; background:#d4edda; border-radius:6px; color:#155724; font-weight:600;">✅ Correct! Great job!</div>`;
     } else {
-      html += `<div style="margin-top:12px; padding:10px; background:#f8d7da; border-radius:6px; color:#721c24; font-weight:600;">❌ Not quite. The correct answer is: <em>${q.choices[q.correct]}</em></div>`;
+      html += `<div style="margin-top:12px; padding:10px; background:#f8d7da; border-radius:6px; color:#721c24; font-weight:600;">❌ Not quite. The correct answer is: <em>${esc(q.choices[q.correct])}</em></div>`;
     }
     html += `<button class="btn btn-primary btn-block" onclick="mcNext()">Next →</button>`;
   } else {
@@ -751,15 +751,25 @@ function closePasswordModal() {
   document.getElementById('pw-modal').classList.remove('active');
 }
 
+const PARENT_PW_HASH = '6fe8ecbc1deafa51c2ecf088cf364eba1ceba9032ffbe2621e771b90ea93153d';
+
+async function hashPassword(pw) {
+  const data = new TextEncoder().encode(pw);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 function checkPassword() {
   const pw = document.getElementById('pw-input').value;
-  if (pw === 'dad') {
-    closePasswordModal();
-    document.getElementById('parent-overlay').classList.add('active');
-    showParentTab('answers');
-  } else {
-    document.getElementById('pw-error').style.display = 'block';
-  }
+  hashPassword(pw).then(hash => {
+    if (hash === PARENT_PW_HASH) {
+      closePasswordModal();
+      document.getElementById('parent-overlay').classList.add('active');
+      showParentTab('answers');
+    } else {
+      document.getElementById('pw-error').style.display = 'block';
+    }
+  });
 }
 
 function closeParentMode() {
@@ -778,13 +788,13 @@ function showParentTab(tab) {
 function renderAnswerKey() {
   let html = '<h3>📖 Vocabulary Answers</h3>';
   vocabData.forEach((v, i) => {
-    html += `<div class="answer-key-item"><span class="term">${v.term}</span> — ${v.definition}</div>`;
+    html += `<div class="answer-key-item"><span class="term">${esc(v.term)}</span> — ${esc(v.definition)}</div>`;
   });
   html += '<h3 style="margin-top:20px;">✏️ Multiple Choice Answers</h3>';
   mcData.forEach((q, i) => {
     html += `<div class="answer-key-item">
-      <strong>${i + 1}. ${q.question}</strong><br>
-      <span class="correct-answer">✓ ${q.choices[q.correct]}</span>
+      <strong>${i + 1}. ${esc(q.question)}</strong><br>
+      <span class="correct-answer">✓ ${esc(q.choices[q.correct])}</span>
     </div>`;
   });
   document.getElementById('parent-answers').innerHTML = html;
