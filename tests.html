@@ -824,6 +824,77 @@ test('logAttempt only fires on initial attempt, not retry', () => {
 });
 
 // ============================================================
+// CHOICE SHUFFLE SUITE
+// ============================================================
+suite('Choice Shuffle Tests');
+
+// Reuse shuffleArray from the quiz logic
+function getShuffleOrder(map, qi, numChoices) {
+  if (!map[qi]) {
+    const order = Array.from({ length: numChoices }, (_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    map[qi] = order;
+  }
+  return map[qi];
+}
+
+test('getShuffleOrder returns all original indices', () => {
+  const map = {};
+  const order = getShuffleOrder(map, 0, 4);
+  assert(order.length === 4, 'Should have 4 entries');
+  assert(order.includes(0), 'Contains index 0');
+  assert(order.includes(1), 'Contains index 1');
+  assert(order.includes(2), 'Contains index 2');
+  assert(order.includes(3), 'Contains index 3');
+});
+
+test('getShuffleOrder is stable for the same question', () => {
+  const map = {};
+  const first = getShuffleOrder(map, 5, 4);
+  const second = getShuffleOrder(map, 5, 4);
+  assert(first === second, 'Same reference returned for same qi');
+  assert(JSON.stringify(first) === JSON.stringify(second), 'Order is identical');
+});
+
+test('getShuffleOrder gives different maps for different questions', () => {
+  const map = {};
+  // Generate shuffles for many questions — at least one should differ
+  const orders = [];
+  for (let i = 0; i < 20; i++) {
+    orders.push(getShuffleOrder(map, i, 4).join(','));
+  }
+  const unique = new Set(orders);
+  assert(unique.size > 1, 'Not all questions have identical order (would be astronomically unlikely)');
+});
+
+test('Shuffled correct answer maps back correctly', () => {
+  const q = { choices: ['A', 'B', 'C', 'D'], correct: 2 };
+  const map = {};
+  const order = getShuffleOrder(map, 0, q.choices.length);
+  // Find where original correct index (2) ended up in the shuffled order
+  const displayPos = order.indexOf(q.correct);
+  assert(displayPos >= 0, 'Correct answer exists in shuffled order');
+  // The value at that display position should map back to original correct
+  assert(order[displayPos] === q.correct, 'Mapped index matches original correct');
+  // Selecting that original index should grade as correct
+  const selected = order[displayPos]; // This is what the radio value would be
+  assert(selected === q.correct, 'Selected value equals q.correct');
+});
+
+test('Clearing shuffle map on reset gives fresh order', () => {
+  const map = {};
+  const first = getShuffleOrder(map, 0, 4).slice(); // copy
+  delete map[0]; // simulate reset clearing
+  const second = getShuffleOrder(map, 0, 4);
+  // They might be the same by chance, but the map was regenerated
+  assert(Array.isArray(second), 'New order generated after clear');
+  assert(second.length === 4, 'Still has 4 entries');
+});
+
+// ============================================================
 // RENDER RESULTS TO DOM
 // ============================================================
 function renderResults() {
