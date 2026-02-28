@@ -26,6 +26,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .btn-danger:hover { background: #a71d2a; }
 .btn-sm { padding: 8px 16px; font-size: 0.9rem; }
 .btn-block { display: block; width: 100%; margin-top: 12px; }
+.save-toast { position: fixed; bottom: 24px; right: 24px; background: #28a745; color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
 
 /* Sections */
 .screen { display: none; }
@@ -253,6 +254,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     <div id="parent-gamequiz" style="display:none;"></div>
   </div>
 </div>
+<div id="save-toast" class="save-toast">✅ Saved</div>
 
 <script>
 // ============================================================
@@ -582,6 +584,17 @@ function loadData() {
 
 function saveData() {
   localStorage.setItem(DATA_KEY, JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData }));
+  showSaveToast();
+}
+
+/** Show a brief "✅ Saved" toast in the corner (parent mode feedback). */
+let _saveToastTimer = null;
+function showSaveToast() {
+  const el = document.getElementById('save-toast');
+  if (!el) return;
+  el.style.opacity = '1';
+  clearTimeout(_saveToastTimer);
+  _saveToastTimer = setTimeout(() => { el.style.opacity = '0'; }, 1500);
 }
 
 function loadProgress() {
