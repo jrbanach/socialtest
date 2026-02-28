@@ -63,12 +63,13 @@ Students choose before starting:
 
 ### Battle Gamification
 - Canvas-drawn characters: capybara knight (left) vs dragon (right) on a sky/grass field
-- **Correct answer** → hero attacks dragon (3 animation types: slash, bash, charge)
-- **Wrong answer** → dragon attacks hero (3 types: fire breath, lunge, bite)
+- **Correct answer** → hero charges all the way to dragon, sword swing, comic "POW!" starburst on impact (~1.3s animation)
+- **Wrong answer** → dragon advances ~35%, shoots Bowser-style fireballs that travel to hero, comic "POW!" on impact (~1.7s animation)
 - **Zelda-style hearts** (5 hearts, half-heart granularity) — hero HP scales to 30% threshold
-- **Hero defeated** when >30% wrong → option to restart or continue
-- **Victory animation** when all correct (hero bounces, dragon falls, sparkles)
+- **Hero defeated** when >30% wrong → slumped pose with cartoon X-eyes, option to restart or continue
+- **Victory animation** (~1.8s) — dragon falls over with X-eyes, hero does a bounce-and-sway dance with sparkle stars
 - Battle fully resets on retry
+- All animations tuned for readability at kid-friendly pace
 
 ### Parent Mode
 - **Answer Key** tab now includes Game Quiz answers (vocab + definition sub-sections)
@@ -95,7 +96,8 @@ Students choose before starting:
 socialtest/
 ├── index.html              # The entire quiz app (vocab, MC, and Game Quiz)
 ├── tests.html              # Unit tests (43 tests, open in browser to run)
-├── WORKLOG.md              # This file
+├── README.md               # Project overview and setup instructions
+├── WORKLOG.md              # This file — detailed work & decision log
 ├── staticwebapp.config.json # Security headers (CSP, X-Frame-Options)
 └── .github/
     └── workflows/          # Azure SWA deploy workflow (auto-generated)
