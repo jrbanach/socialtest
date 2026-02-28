@@ -26,6 +26,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .btn-danger:hover { background: #a71d2a; }
 .btn-sm { padding: 8px 16px; font-size: 0.9rem; }
 .btn-block { display: block; width: 100%; margin-top: 12px; }
+.save-toast { position: fixed; bottom: 24px; right: 24px; background: #28a745; color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
 
 /* Sections */
 .screen { display: none; }
@@ -157,9 +158,11 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
   <!-- Home Screen -->
   <div id="home" class="screen active">
     <div class="score-box">
+      <div id="player-greeting"></div>
       <p class="score-label">Welcome!</p>
       <p style="margin-top:8px;">Choose a section to start studying.</p>
       <div id="home-progress" style="margin-top:16px;"></div>
+      <div id="high-scores" style="margin-top:8px;"></div>
     </div>
   </div>
 
@@ -247,12 +250,27 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
       <button class="btn btn-sm btn-primary active-tab" id="tab-answers" onclick="showParentTab('answers')">Answer Key</button>
       <button class="btn btn-sm btn-primary" id="tab-edit" onclick="showParentTab('edit')">Edit Questions</button>
       <button class="btn btn-sm btn-primary" id="tab-gamequiz" onclick="showParentTab('gamequiz')">Edit Game Quiz</button>
+      <button class="btn btn-sm btn-primary" id="tab-history" onclick="showParentTab('history')">📊 History</button>
     </div>
     <div id="parent-answers"></div>
     <div id="parent-edit" style="display:none;"></div>
     <div id="parent-gamequiz" style="display:none;"></div>
+    <div id="parent-history" style="display:none;"></div>
   </div>
 </div>
+<!-- Player Welcome Modal --><!-- UAT test marker -->
+<div class="pw-modal" id="player-modal">
+  <div class="pw-box" style="max-width: 380px;">
+    <h3>👋 Welcome!</h3>
+    <div id="player-welcome-content">
+      <p>Are you a new or returning player?</p>
+      <button class="btn btn-primary" style="width:100%; margin-bottom:8px;" onclick="showPlayerNameEntry(true)">🆕 I'm New</button>
+      <button class="btn btn-primary" style="width:100%;" onclick="showPlayerNameEntry(false)">🔄 I've Played Before</button>
+    </div>
+  </div>
+</div>
+
+<div id="save-toast" class="save-toast">✅ Saved</div>
 
 <script>
 // ============================================================
@@ -543,6 +561,7 @@ const DEFAULT_JEOPARDY = [
 // ============================================================
 const STORAGE_KEY = "socialtest_progress";
 const DATA_KEY = "socialtest_data";
+const API_URL = "https://socialtest-api.azurewebsites.net/api";
 
 let vocabData, mcData, jeopardyData;
 let vocabAnswers = {};   // { qIndex: "term" }
@@ -566,7 +585,31 @@ let heroMaxHP = 10;        // max half-hearts (recalculated per session)
 let heroDefeated = false;  // true when HP hits 0
 let battleAnimating = false; // true during attack/hurt animations
 
-function loadData() {
+// --- Player identity ---
+let playerId = null;
+let playerName = null;
+
+// --- Save-in-flight guard (prevents stale reads during saves) ---
+let saveInFlight = false;
+
+/**
+ * Load quiz data: API → localStorage → DEFAULT.
+ * Uses cache:no-store to avoid stale browser cache (kids-schedule lesson).
+ */
+async function loadData() {
+  try {
+    const r = await fetch(API_URL + '/questions', { cache: 'no-store' });
+    if (r.ok) {
+      const d = await r.json();
+      vocabData = d.vocab || DEFAULT_VOCAB;
+      mcData = d.mc || DEFAULT_MC;
+      jeopardyData = d.jeopardy || DEFAULT_JEOPARDY;
+      // Write-through: keep localStorage fresh
+      localStorage.setItem(DATA_KEY, JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData }));
+      return;
+    }
+  } catch (e) { /* offline — fall through */ }
+  // Fallback: localStorage
   const saved = localStorage.getItem(DATA_KEY);
   if (saved) {
     const d = JSON.parse(saved);
@@ -580,8 +623,38 @@ function loadData() {
   }
 }
 
-function saveData() {
-  localStorage.setItem(DATA_KEY, JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData }));
+/**
+ * Save quiz data: localStorage first (instant), then API (async).
+ * Shows toast in parent mode on success/failure.
+ */
+async function saveData() {
+  const payload = { vocab: vocabData, mc: mcData, jeopardy: jeopardyData };
+  localStorage.setItem(DATA_KEY, JSON.stringify(payload));
+  saveInFlight = true;
+  try {
+    const r = await fetch(API_URL + '/questions', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    showSaveToast('✅ Saved');
+  } catch (e) {
+    showSaveToast('⚠ Saved locally');
+  } finally {
+    saveInFlight = false;
+  }
+}
+
+/** Show a brief toast in the corner (parent mode feedback). */
+let _saveToastTimer = null;
+function showSaveToast(msg) {
+  const el = document.getElementById('save-toast');
+  if (!el) return;
+  el.textContent = msg || '✅ Saved';
+  el.style.opacity = '1';
+  clearTimeout(_saveToastTimer);
+  _saveToastTimer = setTimeout(() => { el.style.opacity = '0'; }, 1500);
 }
 
 function loadProgress() {
@@ -768,6 +841,8 @@ function submitVocab() {
   document.getElementById('vocab-results').innerHTML = html;
   document.getElementById('vocab-results').style.display = 'block';
   renderVocab();
+  // Log attempt if not a retry
+  if (vocabRetryOnly.length === 0) logAttempt('vocab', null, correct, total, 0);
 }
 
 function retryVocab(indices) {
@@ -896,6 +971,8 @@ function showMCFinalScore() {
   document.getElementById('mc-results').style.display = 'block';
   updateMCProgress(activeIndices);
   document.getElementById('mc-progress').style.width = '100%';
+  // Log attempt if not a retry
+  if (mcRetryOnly.length === 0) logAttempt('mc', null, correct, total, 0);
 }
 
 function retryMC(indices) {
@@ -1157,6 +1234,8 @@ function showGameFinalScore() {
   document.getElementById('game-results').style.display = 'block';
   updateGameProgress(indices);
   document.getElementById('game-progress').style.width = '100%';
+  // Log attempt if not a retry
+  if (gameRetryOnly.length === 0) logAttempt('gamequiz', questionOrder, correct, total, 0);
 }
 
 /**
@@ -1898,12 +1977,15 @@ function showParentTab(tab) {
   document.getElementById('tab-answers').classList.toggle('active-tab', tab === 'answers');
   document.getElementById('tab-edit').classList.toggle('active-tab', tab === 'edit');
   document.getElementById('tab-gamequiz').classList.toggle('active-tab', tab === 'gamequiz');
+  document.getElementById('tab-history').classList.toggle('active-tab', tab === 'history');
   document.getElementById('parent-answers').style.display = tab === 'answers' ? 'block' : 'none';
   document.getElementById('parent-edit').style.display = tab === 'edit' ? 'block' : 'none';
   document.getElementById('parent-gamequiz').style.display = tab === 'gamequiz' ? 'block' : 'none';
+  document.getElementById('parent-history').style.display = tab === 'history' ? 'block' : 'none';
   if (tab === 'answers') renderAnswerKey();
   if (tab === 'edit') renderEditPanel();
   if (tab === 'gamequiz') renderGameQuizEditPanel();
+  if (tab === 'history') renderHistoryPanel();
 }
 
 function renderAnswerKey() {
@@ -2073,11 +2155,248 @@ function esc(str) {
 }
 
 // ============================================================
+// PLAYER IDENTITY
+// ============================================================
+
+/** Check localStorage for returning player, else show welcome modal. */
+function initPlayer() {
+  playerId = localStorage.getItem('socialtest_playerId');
+  playerName = localStorage.getItem('socialtest_playerName');
+  if (playerId && playerName) {
+    showPlayerGreeting();
+  } else {
+    document.getElementById('player-modal').classList.add('active');
+  }
+}
+
+/** Show the name entry form (new or returning). */
+function showPlayerNameEntry(isNew) {
+  const el = document.getElementById('player-welcome-content');
+  el.innerHTML = `
+    <p>${isNew ? 'What\'s your name?' : 'Enter your name and we\'ll look you up:'}</p>
+    <input type="text" id="player-name-input" placeholder="Your name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:1rem; margin-bottom:10px;"
+      onkeydown="if(event.key==='Enter')${isNew ? 'createPlayer()' : 'findPlayer()'}">
+    <div id="player-feedback" style="display:none; padding:8px; border-radius:6px; margin-bottom:10px; font-size:0.9rem;"></div>
+    <button class="btn btn-primary" style="width:100%;" onclick="${isNew ? 'createPlayer()' : 'findPlayer()'}">
+      ${isNew ? '🎮 Start Playing!' : '🔍 Find Me'}
+    </button>
+    <button class="btn btn-sm" style="margin-top:8px; width:100%;" onclick="resetPlayerModal()">← Back</button>
+  `;
+  setTimeout(() => document.getElementById('player-name-input').focus(), 100);
+}
+
+/** Reset the player modal to initial state. */
+function resetPlayerModal() {
+  document.getElementById('player-welcome-content').innerHTML = `
+    <p>Are you a new or returning player?</p>
+    <button class="btn btn-primary" style="width:100%; margin-bottom:8px;" onclick="showPlayerNameEntry(true)">🆕 I'm New</button>
+    <button class="btn btn-primary" style="width:100%;" onclick="showPlayerNameEntry(false)">🔄 I've Played Before</button>
+  `;
+}
+
+/** Create a new player via API. */
+async function createPlayer() {
+  const name = document.getElementById('player-name-input').value.trim();
+  if (!name) { alert('Please enter your name!'); return; }
+  try {
+    const r = await fetch(API_URL + '/players', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (r.ok) {
+      const p = await r.json();
+      playerId = p.id;
+      playerName = p.name;
+    } else throw new Error();
+  } catch {
+    // Offline: generate local id
+    playerId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    playerName = name;
+  }
+  localStorage.setItem('socialtest_playerId', playerId);
+  localStorage.setItem('socialtest_playerName', playerName);
+  document.getElementById('player-modal').classList.remove('active');
+  showPlayerGreeting();
+}
+
+/** Find a returning player by name. */
+async function findPlayer() {
+  const name = document.getElementById('player-name-input').value.trim();
+  if (!name) { alert('Please enter your name!'); return; }
+  const fb = document.getElementById('player-feedback');
+  try {
+    const r = await fetch(API_URL + '/players', { cache: 'no-store' });
+    if (!r.ok) throw new Error();
+    const players = await r.json();
+    // Case-insensitive fuzzy match
+    const match = players.find(p => p.name.toLowerCase() === name.toLowerCase());
+    if (match) {
+      fb.style.display = 'block';
+      fb.style.background = '#d4edda';
+      fb.style.color = '#155724';
+      fb.innerHTML = `Found you! Welcome back, <strong>${esc(match.name)}</strong>!`;
+      playerId = match.id;
+      playerName = match.name;
+      localStorage.setItem('socialtest_playerId', playerId);
+      localStorage.setItem('socialtest_playerName', playerName);
+      setTimeout(() => {
+        document.getElementById('player-modal').classList.remove('active');
+        showPlayerGreeting();
+      }, 1200);
+      return;
+    }
+    // No match
+    fb.style.display = 'block';
+    fb.style.background = '#fff3cd';
+    fb.style.color = '#856404';
+    fb.innerHTML = `Couldn't find "<strong>${esc(name)}</strong>" in our records. Would you like to create a new player?
+      <br><button class="btn btn-primary btn-sm" style="margin-top:6px;" onclick="createPlayer()">Yes, create me!</button>`;
+  } catch {
+    // Offline fallback
+    fb.style.display = 'block';
+    fb.style.background = '#fff3cd';
+    fb.style.color = '#856404';
+    fb.innerHTML = 'Couldn\'t reach the server. Creating a local player instead.';
+    setTimeout(() => createPlayer(), 1000);
+  }
+}
+
+/** Show a greeting on the home screen. */
+function showPlayerGreeting() {
+  const el = document.getElementById('player-greeting');
+  if (el && playerName) {
+    el.innerHTML = `<p style="font-weight:600; color:#2a5aa0;">👋 Hi, ${esc(playerName)}! <button class="btn btn-sm" style="font-size:0.75rem; padding:2px 8px;" onclick="changePlayer()">Not you?</button></p>`;
+  }
+}
+
+/** Allow switching players. */
+function changePlayer() {
+  localStorage.removeItem('socialtest_playerId');
+  localStorage.removeItem('socialtest_playerName');
+  playerId = null;
+  playerName = null;
+  document.getElementById('player-greeting').innerHTML = '';
+  resetPlayerModal();
+  document.getElementById('player-modal').classList.add('active');
+}
+
+// ============================================================
+// HISTORY — log quiz attempts and display high scores
+// ============================================================
+
+/** Record a quiz attempt to API + localStorage. */
+async function logAttempt(section, mode, score, total, duration) {
+  const record = {
+    playerId: playerId || 'anonymous',
+    playerName: playerName || 'Anonymous',
+    section,
+    mode: mode || null,
+    score,
+    total,
+    percentage: Math.round((score / total) * 100),
+    timestamp: new Date().toISOString(),
+    duration: duration || 0,
+  };
+  // Save locally
+  const local = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
+  local.push(record);
+  localStorage.setItem('socialtest_history', JSON.stringify(local));
+  // Save to API (fire and forget, no feedback to player)
+  try {
+    await fetch(API_URL + '/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record),
+    });
+  } catch { /* silent */ }
+}
+
+/** Render history panel in parent mode. */
+async function renderHistoryPanel() {
+  const el = document.getElementById('parent-history');
+  el.innerHTML = '<p style="color:#888;">Loading history...</p>';
+  let history = [];
+  try {
+    const r = await fetch(API_URL + '/history', { cache: 'no-store' });
+    if (r.ok) history = await r.json();
+    else throw new Error();
+  } catch {
+    history = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
+  }
+  if (history.length === 0) {
+    el.innerHTML = '<p style="color:#888;">No quiz attempts recorded yet.</p>';
+    return;
+  }
+  // Sort newest first
+  history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  // Build high scores per section
+  const sections = ['vocab', 'mc', 'gamequiz'];
+  const sectionNames = { vocab: '📖 Vocabulary', mc: '✏️ Multiple Choice', gamequiz: '🎮 Game Quiz' };
+  let html = '<h3>🏆 High Scores</h3>';
+  sections.forEach(s => {
+    const sectionHistory = history.filter(h => h.section === s);
+    if (sectionHistory.length === 0) return;
+    const best = sectionHistory.reduce((a, b) => a.percentage >= b.percentage ? a : b);
+    html += `<div class="answer-key-item"><span class="term">${sectionNames[s]}</span> — Best: <strong>${best.score}/${best.total} (${best.percentage}%)</strong> by ${esc(best.playerName)}</div>`;
+  });
+  html += '<h3 style="margin-top:20px;">📋 Recent Attempts</h3>';
+  html += '<div style="max-height:400px; overflow-y:auto;">';
+  history.slice(0, 50).forEach(h => {
+    const date = new Date(h.timestamp).toLocaleDateString();
+    const time = new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    html += `<div class="answer-key-item" style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <strong>${esc(h.playerName)}</strong> — ${sectionNames[h.section] || h.section}
+        ${h.mode ? `<span style="color:#888; font-size:0.8rem;">(${h.mode})</span>` : ''}
+      </div>
+      <div style="text-align:right;">
+        <strong>${h.score}/${h.total}</strong> <span style="color:#888;">(${h.percentage}%)</span>
+        <div style="font-size:0.75rem; color:#999;">${date} ${time}</div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+/** Render high scores on the home screen. */
+async function renderHighScores() {
+  const el = document.getElementById('high-scores');
+  if (!el) return;
+  let history = [];
+  try {
+    const r = await fetch(API_URL + '/history', { cache: 'no-store' });
+    if (r.ok) history = await r.json();
+    else throw new Error();
+  } catch {
+    history = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
+  }
+  if (history.length === 0) { el.innerHTML = ''; return; }
+  const sections = { vocab: '📖 Vocab', mc: '✏️ MC', gamequiz: '🎮 Game' };
+  let html = '<h3 style="margin-top:16px; font-size:1rem; color:#2a5aa0;">🏆 High Scores</h3>';
+  let hasScores = false;
+  Object.entries(sections).forEach(([key, label]) => {
+    const best = history.filter(h => h.section === key).sort((a, b) => b.percentage - a.percentage)[0];
+    if (best) {
+      hasScores = true;
+      html += `<p style="margin:2px 0;">${label}: <strong>${best.score}/${best.total} (${best.percentage}%)</strong> — ${esc(best.playerName)}</p>`;
+    }
+  });
+  el.innerHTML = hasScores ? html : '';
+}
+
+// ============================================================
 // INIT
 // ============================================================
-loadData();
-loadProgress();
-renderHome();
+(async function init() {
+  await loadData();
+  loadProgress();
+  renderHome();
+  initPlayer();
+  renderHighScores();
+})();
 </script>
 </body>
 </html>
+

@@ -1,13 +1,15 @@
 # Social Studies Quiz — Work & Decision Log
 
 ## Project Overview
-A mobile-friendly study quiz for 5th grade social studies (Chapters 5 & 6 — Colonial America). Built as a standalone HTML file deployed to Azure Static Web Apps.
+A mobile-friendly study quiz for 5th grade social studies (Chapters 5 & 6 — Colonial America). Built as a standalone HTML file deployed to Azure Static Web Apps with Azure Blob Storage backend for cross-device persistence.
 
 ## Key Decisions
 
 ### Architecture
 - **Single HTML file** — no server, no build step, no dependencies. All HTML/CSS/JS inline in `index.html`.
-- **localStorage** for persistence — saves quiz progress and any parent edits across browser sessions (per device).
+- **Azure Blob Storage** for cross-device persistence — quiz data, player profiles, and attempt history stored in cloud.
+- **Azure Functions** (Node.js 20, Consumption plan) as API proxy — keeps storage credentials server-side.
+- **localStorage as write-through cache** — instant local writes, async API sync. Works offline.
 - **Standalone deployment** — Azure Static Web App (free tier), auto-deploys on push to `main`.
 
 ### Content Source
@@ -85,20 +87,77 @@ Students choose before starting:
 - All user-facing strings sanitized with `esc()` for XSS prevention
 
 ### Testing
-- `tests.html` — 43 unit tests run in-browser (no dependencies)
+- `tests.html` — 63 unit tests run in-browser (no dependencies)
   - **Quiz Logic Suite**: data integrity (37 questions, 4 choices each, valid indices), shuffle correctness, mode filtering (vocab/defs/all/random), scoring, XSS sanitization
   - **Battle Logic Suite**: HP calculations (30% threshold), heart rendering (full/half/empty), defeat conditions, battle reset, damage mechanics
+  - **Restart Suite**: section isolation, mid-quiz restart, HP recalculation, confirm dialog mapping
+  - **Persistence & Player Suite**: localStorage read/write, edit-save-refresh cycle, saveInFlight guard, player CRUD, history records, retry-logging logic
 - Open `tests.html` in a browser to see green/red results
 - Tests are development-only (not deployed to Azure)
+
+## Azure Backend (Issue #6)
+
+### Infrastructure
+- **Resource Group:** `socialtest-rg` (eastus2)
+- **Storage Account:** `socialtestdata` — Blob container `quiz-data` (private access)
+- **Blobs:** `questions.json`, `history.json`, `players.json`
+- **Function App:** `socialtest-api` (Consumption plan, Node.js 20, Linux)
+- **CORS:** Configured for `https://happy-bay-052c8580f.4.azurestaticapps.net`, `http://localhost`, `http://127.0.0.1`, `null` (file://)
+
+### API Endpoints
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/api/questions` | Read quiz questions from blob |
+| PUT | `/api/questions` | Save updated questions to blob |
+| GET | `/api/history` | Read all attempt history |
+| POST | `/api/history` | Append a new attempt record |
+| GET | `/api/players` | Read player registry |
+| POST | `/api/players` | Register a new player |
+
+### Player Identity System
+- On first visit, user chooses "New" or "Returning" player
+- New players enter name → POST to API → UUID assigned
+- Returning players enter name → fuzzy match against registry
+- Player ID/name stored in localStorage for subsequent visits
+- "Not you?" button to switch players
+
+### History & High Scores
+- Every quiz completion (not retries) logs an attempt record
+- Record includes: playerId, playerName, section, mode, score, total, percentage, timestamp
+- Parent mode has "📊 History" tab showing high scores per section + recent attempts
+- Home screen shows high scores summary
+
+### Cache & Race Condition Handling
+Lessons applied from `kids-schedule` project (commit `ca4f447`):
+1. `{ cache: 'no-store' }` on all fetch calls — prevents browser caching stale blob data
+2. `saveInFlight` guard — blocks background refresh during save to prevent stale overwrites
+3. localStorage as write-through cache — write locally first (instant), then sync to API
+4. Save toast shows "✅ Saved" or "⚠ Saved locally" in parent mode only
+
+### Security
+- Storage connection string in Azure Function app settings only (never in client code)
+- All blob access proxied through Azure Functions (no SAS tokens in HTML)
+- CSP updated: `connect-src 'self' https://socialtest-api.azurewebsites.net`
+- No authentication on endpoints (family use, low risk)
 
 ## File Structure
 ```
 socialtest/
-├── index.html              # The entire quiz app (vocab, MC, and Game Quiz)
-├── tests.html              # Unit tests (43 tests, open in browser to run)
+├── index.html              # The entire quiz app (vocab, MC, Game Quiz, player system)
+├── tests.html              # Unit tests (63 tests, open in browser to run)
 ├── README.md               # Project overview and setup instructions
 ├── WORKLOG.md              # This file — detailed work & decision log
 ├── staticwebapp.config.json # Security headers (CSP, X-Frame-Options)
+├── api/                    # Azure Functions backend
+│   ├── host.json           # Functions v2 host config
+│   ├── package.json        # Node.js dependencies (@azure/storage-blob)
+│   ├── local.settings.json # Local dev settings (empty connection string)
+│   └── src/
+│       ├── blobHelper.js   # Shared blob read/write helper
+│       └── functions/
+│           ├── questions.js # GET/PUT /api/questions
+│           ├── history.js  # GET/POST /api/history
+│           └── players.js  # GET/POST /api/players
 └── .github/
     └── workflows/          # Azure SWA deploy workflow (auto-generated)
 ```
