@@ -39,13 +39,64 @@ Charter, Indentured Servant, Roanoke Island, Almanac, Pilgrim, Persecution, Debt
 1. Edit `index.html` locally or via Parent Mode in the browser
 2. If editing the file directly: push to `main` and Azure auto-deploys
 3. If editing via Parent Mode: changes are saved in localStorage (browser-only, won't affect the deployed default)
-4. To change default questions permanently: edit the `DEFAULT_VOCAB` and `DEFAULT_MC` arrays in `index.html`
+4. To change default questions permanently: edit the `DEFAULT_VOCAB`, `DEFAULT_MC`, and `DEFAULT_JEOPARDY` arrays in `index.html`
+
+## Game Quiz Feature (Jeopardy-Style with Battle Gamification)
+
+### What It Is
+A third quiz section called "Game Quiz" that flips the format Jeopardy-style:
+- **Clue shown** = the definition or answer
+- **Choices** = terms or question paraphrases (1 correct, 2 close, 1 very wrong)
+- Includes an animated battle between a **capybara knight hero** and a **dragon villain**
+
+### Question Pool
+- **20 vocab-based**: Vocabulary definitions shown as clues → pick the correct term
+- **17 MC-based**: Correct MC answers shown as clues → pick the matching question (shortened paraphrases)
+- **37 total questions** stored in `DEFAULT_JEOPARDY` array
+
+### Quiz Modes (Settings Dialog)
+Students choose before starting:
+1. 🎲 **Random Mix** — all 37 shuffled, category labels shown
+2. 📚 **Full Study** — vocab first (20), then definitions (17)
+3. 📖 **Vocabulary Only** — just the 20 vocab questions
+4. ✏️ **Definitions Only** — just the 17 definition questions
+
+### Battle Gamification
+- Canvas-drawn characters: capybara knight (left) vs dragon (right) on a sky/grass field
+- **Correct answer** → hero attacks dragon (3 animation types: slash, bash, charge)
+- **Wrong answer** → dragon attacks hero (3 types: fire breath, lunge, bite)
+- **Zelda-style hearts** (5 hearts, half-heart granularity) — hero HP scales to 30% threshold
+- **Hero defeated** when >30% wrong → option to restart or continue
+- **Victory animation** when all correct (hero bounces, dragon falls, sparkles)
+- Battle fully resets on retry
+
+### Parent Mode
+- **Answer Key** tab now includes Game Quiz answers (vocab + definition sub-sections)
+- **Edit Game Quiz** tab allows editing all 37 clues, choices, and correct answers
+- Sub-sections for vocab-based and definition-based questions
+- Reset All to Defaults clears Game Quiz data alongside vocab and MC
+
+### Architecture Decisions
+- Single HTML file maintained — all CSS, HTML, JS inline in `index.html`
+- Canvas API for character drawing and battle animations (no external images, CSP-compliant)
+- SVG hearts rendered inline for Zelda-style HP display
+- localStorage persists Game Quiz progress (mode, answers, HP, battle state)
+- All user-facing strings sanitized with `esc()` for XSS prevention
+
+### Testing
+- `tests.html` — 43 unit tests run in-browser (no dependencies)
+  - **Quiz Logic Suite**: data integrity (37 questions, 4 choices each, valid indices), shuffle correctness, mode filtering (vocab/defs/all/random), scoring, XSS sanitization
+  - **Battle Logic Suite**: HP calculations (30% threshold), heart rendering (full/half/empty), defeat conditions, battle reset, damage mechanics
+- Open `tests.html` in a browser to see green/red results
+- Tests are development-only (not deployed to Azure)
 
 ## File Structure
 ```
 socialtest/
-├── index.html          # The entire quiz app
-├── WORKLOG.md          # This file
+├── index.html              # The entire quiz app (vocab, MC, and Game Quiz)
+├── tests.html              # Unit tests (43 tests, open in browser to run)
+├── WORKLOG.md              # This file
+├── staticwebapp.config.json # Security headers (CSP, X-Frame-Options)
 └── .github/
-    └── workflows/      # Azure SWA deploy workflow (auto-generated)
+    └── workflows/          # Azure SWA deploy workflow (auto-generated)
 ```

@@ -103,6 +103,40 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
   .btn { padding: 10px 16px; font-size: 0.9rem; }
   .word-chip { font-size: 0.8rem; padding: 5px 10px; }
 }
+
+/* Game Quiz - Battle Strip */
+.battle-strip { position: relative; width: 100%; height: 140px; margin-bottom: 12px; border-radius: 8px; overflow: hidden; }
+.battle-strip canvas { display: block; width: 100%; height: 140px; }
+
+/* Hearts (Zelda-style) */
+.hearts-bar { display: flex; gap: 3px; justify-content: center; margin-bottom: 8px; align-items: center; }
+.heart-icon { width: 22px; height: 20px; display: inline-block; }
+.heart-icon svg { width: 100%; height: 100%; }
+
+/* Jeopardy clue card */
+.jeopardy-clue { background: #1a237e; color: #ffd54f; border-radius: 12px; padding: 18px 20px; text-align: center; font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); line-height: 1.5; border: 3px solid #ffd54f; }
+.jeopardy-clue .clue-label { font-size: 0.75rem; color: #90caf9; font-weight: 400; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; display: block; }
+
+/* Game settings dialog */
+.game-settings { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.game-settings h3 { color: #1a3a6b; margin-bottom: 4px; text-align: center; }
+.mode-btn { display: block; width: 100%; padding: 14px 16px; margin-bottom: 8px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9ff; cursor: pointer; font-size: 1rem; font-weight: 600; transition: border-color 0.2s, background 0.2s; text-align: left; font-family: inherit; }
+.mode-btn:hover { border-color: #2a5aa0; background: #e8eef7; }
+.mode-btn:last-child { margin-bottom: 0; }
+
+/* Battle result overlay */
+.battle-result { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); border-radius: 8px; z-index: 10; pointer-events: none; }
+.battle-result span { font-size: 1.3rem; font-weight: 700; padding: 8px 18px; border-radius: 8px; }
+.battle-result .victory-text { background: #ffd54f; color: #1a3a6b; }
+.battle-result .defeat-text { background: #f8d7da; color: #721c24; }
+
+/* Game quiz MC choices reuse mc-q styles */
+.game-q { background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.game-q label { display: block; padding: 10px 14px; margin-bottom: 6px; border-radius: 6px; cursor: pointer; border: 2px solid #ddd; transition: border-color 0.2s, background 0.2s; font-size: 0.95rem; }
+.game-q label:hover { border-color: #2a5aa0; background: #f0f4ff; }
+.game-q input[type="radio"] { margin-right: 8px; transform: scale(1.2); vertical-align: middle; }
+.game-q label.correct { border-color: #28a745; background: #d4edda; }
+.game-q label.wrong { border-color: #dc3545; background: #f8d7da; }
 </style>
 </head>
 <body>
@@ -116,6 +150,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     <button class="btn btn-primary" onclick="showScreen('home')">🏠 Home</button>
     <button class="btn btn-primary" onclick="showScreen('vocab')">📖 Vocabulary</button>
     <button class="btn btn-primary" onclick="showScreen('mc')">✏️ Multiple Choice</button>
+    <button class="btn btn-primary" onclick="showScreen('gamequiz')">🎮 Game Quiz</button>
     <button class="btn btn-warning" onclick="openParentMode()">🔒 Parent</button>
   </div>
 
@@ -147,6 +182,46 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     <div id="mc-questions"></div>
     <div id="mc-results" style="display:none;"></div>
   </div>
+
+  <!-- Game Quiz Section -->
+  <div id="gamequiz" class="screen">
+    <h2>🎮 Game Quiz — Capybara Battle</h2>
+    <p style="margin-bottom:12px; color:#555;">The answer is shown — pick the right term or question!</p>
+
+    <!-- Settings dialog (shown before starting) -->
+    <div id="game-settings" class="game-settings">
+      <h3>⚔️ Choose Your Challenge</h3>
+      <p style="color:#555; margin-bottom:16px;">Help Sir Capybara defeat the dragon!</p>
+      <button class="mode-btn" onclick="startGameQuiz('random')">
+        <span>🎲 Random Mix</span>
+        <div style="font-size:0.8rem; font-weight:400; color:#666; margin-top:4px;">All questions shuffled with category labels</div>
+      </button>
+      <button class="mode-btn" onclick="startGameQuiz('all')">
+        <span>📚 Full Study</span>
+        <div style="font-size:0.8rem; font-weight:400; color:#666; margin-top:4px;">Vocabulary terms first, then definitions</div>
+      </button>
+      <button class="mode-btn" onclick="startGameQuiz('vocab')">
+        <span>📖 Vocabulary Only</span>
+        <div style="font-size:0.8rem; font-weight:400; color:#666; margin-top:4px;">20 vocabulary term questions</div>
+      </button>
+      <button class="mode-btn" onclick="startGameQuiz('defs')">
+        <span>✏️ Definitions Only</span>
+        <div style="font-size:0.8rem; font-weight:400; color:#666; margin-top:4px;">17 definition questions</div>
+      </button>
+    </div>
+
+    <!-- Active quiz area (hidden until mode selected) -->
+    <div id="game-active" style="display:none;">
+      <div class="progress-bar"><div class="fill" id="game-progress"></div></div>
+      <div class="hearts-bar" id="hearts-bar"></div>
+      <div class="battle-strip" id="battle-strip">
+        <canvas id="battle-canvas"></canvas>
+      </div>
+      <div id="game-questions"></div>
+      <div id="game-results" style="display:none;"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Password Modal -->
@@ -171,9 +246,11 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     <div class="parent-tabs">
       <button class="btn btn-sm btn-primary active-tab" id="tab-answers" onclick="showParentTab('answers')">Answer Key</button>
       <button class="btn btn-sm btn-primary" id="tab-edit" onclick="showParentTab('edit')">Edit Questions</button>
+      <button class="btn btn-sm btn-primary" id="tab-gamequiz" onclick="showParentTab('gamequiz')">Edit Game Quiz</button>
     </div>
     <div id="parent-answers"></div>
     <div id="parent-edit" style="display:none;"></div>
+    <div id="parent-gamequiz" style="display:none;"></div>
   </div>
 </div>
 
@@ -378,12 +455,96 @@ const DEFAULT_MC = [
 ];
 
 // ============================================================
-// STATE
+// JEOPARDY DATA — 37 questions (20 vocab-based + 17 MC-based)
+// Each: { question: clue shown to student,
+//         choices: [4 answer options], correct: index 0-3,
+//         category: "vocab" | "mc" }
+// Vocab: definition shown → pick the correct term
+// MC: correct answer shown → pick the matching question (short paraphrase)
+// ============================================================
+const DEFAULT_JEOPARDY = [
+  // ---- VOCAB-BASED (20): definition → pick the term ----
+  { question: "An official document from a king or queen that gave permission to start a colony",
+    choices: ["Mayflower Compact", "Charter", "Proprietor", "Squanto"], correct: 1, category: "vocab" },
+  { question: "A person who agreed to work for someone for a certain number of years in exchange for passage to America",
+    choices: ["Apprentice", "Debtor", "Indentured Servant", "Town Common"], correct: 2, category: "vocab" },
+  { question: "The English colony that disappeared, located off the coast of present-day North Carolina",
+    choices: ["Roanoke Island", "Almanac", "Mayflower Compact", "Persecution"], correct: 0, category: "vocab" },
+  { question: "A book published each year with facts, weather predictions, and useful information",
+    choices: ["Charter", "Cash Crop", "Mayflower Compact", "Almanac"], correct: 3, category: "vocab" },
+  { question: "A person who traveled to Plymouth, Massachusetts in 1620 to find religious freedom",
+    choices: ["Puritans", "Pilgrim", "Indentured Servant", "Almanac"], correct: 1, category: "vocab" },
+  { question: "Being treated cruelly or unfairly because of your beliefs or who you are",
+    choices: ["Town Common", "Indentured Servant", "Persecution", "Debtor"], correct: 2, category: "vocab" },
+  { question: "A person who owes money to someone else",
+    choices: ["Debtor", "Francis Drake", "Indentured Servant", "Apprentice"], correct: 0, category: "vocab" },
+  { question: "A young person who learned a trade or skill by working with an experienced worker",
+    choices: ["Artisan", "Roanoke Island", "Indentured Servant", "Apprentice"], correct: 3, category: "vocab" },
+  { question: "A skilled worker who makes things by hand, such as a blacksmith or carpenter",
+    choices: ["Mayflower Compact", "Artisan", "Apprentice", "Proprietor"], correct: 1, category: "vocab" },
+  { question: "A Native American who helped the Pilgrims survive by teaching them how to grow crops and catch fish",
+    choices: ["John Smith", "William Penn", "Squanto", "Charter"], correct: 2, category: "vocab" },
+  { question: "A crop that is grown to be sold for profit rather than to be used by the farmer",
+    choices: ["Cash Crop", "Francis Drake", "Almanac", "Town Common"], correct: 0, category: "vocab" },
+  { question: "The leader of the Jamestown colony who made a rule that settlers must work to eat",
+    choices: ["William Penn", "James Oglethorpe", "Almanac", "John Smith"], correct: 3, category: "vocab" },
+  { question: "An agreement signed by the Pilgrims that set up rules and a government for their colony",
+    choices: ["Squanto", "Mayflower Compact", "Charter", "Town Common"], correct: 1, category: "vocab" },
+  { question: "The founder of Pennsylvania who believed in religious freedom and fair treatment of Native Americans",
+    choices: ["James Oglethorpe", "John Smith", "William Penn", "Cash Crop"], correct: 2, category: "vocab" },
+  { question: "A group of people who wanted to purify the Church of England and settled in Massachusetts Bay",
+    choices: ["Puritans", "Artisan", "Pilgrim", "Persecution"], correct: 0, category: "vocab" },
+  { question: "An English sea captain who sailed around the world and helped defeat the Spanish Armada",
+    choices: ["John Smith", "William Penn", "Apprentice", "Francis Drake"], correct: 3, category: "vocab" },
+  { question: "A person who was given ownership of a colony by the king or queen",
+    choices: ["Charter", "Proprietor", "Squanto", "William Penn"], correct: 1, category: "vocab" },
+  { question: "An open area in the center of a colonial town where animals could graze and people gathered",
+    choices: ["Francis Drake", "Charter", "Town Common", "Proprietor"], correct: 2, category: "vocab" },
+  { question: "The founder of the colony of Georgia, which was created as a place for debtors to start over",
+    choices: ["James Oglethorpe", "Almanac", "William Penn", "John Smith"], correct: 0, category: "vocab" },
+  { question: "A young woman in South Carolina who successfully grew indigo as a cash crop",
+    choices: ["James Oglethorpe", "Mayflower Compact", "William Penn", "Elizabeth Lucas Pinckney"], correct: 3, category: "vocab" },
+  // ---- MC-BASED (17): correct answer shown → pick the matching question ----
+  { question: "They wanted religious freedom and were being persecuted for their beliefs",
+    choices: ["Why Pilgrims went to Plymouth", "Why Pilgrims left home", "Most popular colonial book", "How enslaved people resisted"], correct: 1, category: "mc" },
+  { question: "Their ship was blown off course and they landed there by accident",
+    choices: ["Why Pilgrims left home", "Jamestown's profitable crop", "Why Pilgrims went to Plymouth", "Who helped Pilgrims survive"], correct: 2, category: "mc" },
+  { question: "The Wampanoag people, including Squanto",
+    choices: ["Who helped Pilgrims survive", "Why the 'breadbasket colonies'", "Why Pilgrims went to Plymouth", "Length of first Thanksgiving"], correct: 0, category: "mc" },
+  { question: "You were not paid wages and had to work for many years",
+    choices: ["How enslaved people resisted", "Roanoke Island's nickname", "Why no women in early Jamestown", "Disadvantage of being an apprentice"], correct: 3, category: "mc" },
+  { question: "They grew large amounts of wheat and grain crops",
+    choices: ["Jamestown's profitable crop", "Why the 'breadbasket colonies'", "Mystery of Roanoke Island", "Why colonists went to town"], correct: 1, category: "mc" },
+  { question: "Dame schools, run by women in their homes",
+    choices: ["Jamestown's harsh winter", "Most popular colonial book", "Colonial children's schools", "Benjamin Franklin's fame"], correct: 2, category: "mc" },
+  { question: "The New England Primer",
+    choices: ["Colonial children's schools", "Most popular colonial book", "Length of first Thanksgiving", "Benjamin Franklin's fame"], correct: 1, category: "mc" },
+  { question: "He was an inventor, writer, and founded the first public library and fire department",
+    choices: ["Who was Sarah Hale", "Most popular colonial book", "Benjamin Franklin's fame", "Disadvantage of being an apprentice"], correct: 2, category: "mc" },
+  { question: "By breaking tools, working slowly, running away, and keeping their culture alive",
+    choices: ["How enslaved people resisted", "Roanoke Island's nickname", "Disadvantage of being an apprentice", "Why no women in early Jamestown"], correct: 0, category: "mc" },
+  { question: "All the colonists disappeared and no one knows what happened to them",
+    choices: ["Roanoke Island's nickname", "Jamestown's harsh winter", "Why the 'breadbasket colonies'", "Mystery of Roanoke Island"], correct: 3, category: "mc" },
+  { question: "The Lost Colony",
+    choices: ["Mystery of Roanoke Island", "Roanoke Island's nickname", "Benjamin Franklin's fame", "Jamestown's harsh winter"], correct: 1, category: "mc" },
+  { question: "The Starving Time",
+    choices: ["Colonial children's schools", "Mystery of Roanoke Island", "Jamestown's harsh winter", "Jamestown's profitable crop"], correct: 2, category: "mc" },
+  { question: "Tobacco, brought by John Rolfe",
+    choices: ["Jamestown's profitable crop", "Who helped Pilgrims survive", "Why the 'breadbasket colonies'", "Jamestown's harsh winter"], correct: 0, category: "mc" },
+  { question: "The colony was set up as a business venture and only men were sent to find gold and profit",
+    choices: ["Jamestown's profitable crop", "Length of first Thanksgiving", "Disadvantage of being an apprentice", "Why no women in early Jamestown"], correct: 3, category: "mc" },
+  { question: "Three days",
+    choices: ["Who helped Pilgrims survive", "Length of first Thanksgiving", "Jamestown's profitable crop", "Why Pilgrims went to Plymouth"], correct: 1, category: "mc" },
+  { question: "She convinced President Lincoln to make Thanksgiving a national holiday",
+    choices: ["Benjamin Franklin's fame", "Why the 'breadbasket colonies'", "Who was Sarah Hale", "Length of first Thanksgiving"], correct: 2, category: "mc" },
+  { question: "To go to church, trade goods, and attend town meetings",
+    choices: ["Why colonists went to town", "Mystery of Roanoke Island", "Why the 'breadbasket colonies'", "Colonial children's schools"], correct: 0, category: "mc" }
+];
 // ============================================================
 const STORAGE_KEY = "socialtest_progress";
 const DATA_KEY = "socialtest_data";
 
-let vocabData, mcData;
+let vocabData, mcData, jeopardyData;
 let vocabAnswers = {};   // { qIndex: "term" }
 let mcAnswers = {};      // { qIndex: choiceIndex }
 let vocabResults = null; // { qIndex: true/false } after grading
@@ -393,20 +554,34 @@ let mcRetryOnly = [];
 let selectedWord = null;
 let mcCurrentQ = 0;      // current question index within active set
 
+// --- Game Quiz (Jeopardy) state ---
+let gameAnswers = {};      // { qIndex: choiceIndex } — selected answers
+let gameResults = null;    // { qIndex: true/false } — graded results per question
+let gameRetryOnly = [];    // indices to retry on wrong answers
+let gameCurrentQ = 0;      // current question index within active question set
+let gameMode = null;       // "random" | "all" | "vocab" | "defs" — chosen quiz mode
+let gameActiveIndices = []; // ordered indices into jeopardyData for current session
+let heroHP = 10;           // half-hearts remaining (max 10 = 5 full hearts)
+let heroMaxHP = 10;        // max half-hearts (recalculated per session)
+let heroDefeated = false;  // true when HP hits 0
+let battleAnimating = false; // true during attack/hurt animations
+
 function loadData() {
   const saved = localStorage.getItem(DATA_KEY);
   if (saved) {
     const d = JSON.parse(saved);
     vocabData = d.vocab || DEFAULT_VOCAB;
     mcData = d.mc || DEFAULT_MC;
+    jeopardyData = d.jeopardy || DEFAULT_JEOPARDY;
   } else {
     vocabData = JSON.parse(JSON.stringify(DEFAULT_VOCAB));
     mcData = JSON.parse(JSON.stringify(DEFAULT_MC));
+    jeopardyData = JSON.parse(JSON.stringify(DEFAULT_JEOPARDY));
   }
 }
 
 function saveData() {
-  localStorage.setItem(DATA_KEY, JSON.stringify({ vocab: vocabData, mc: mcData }));
+  localStorage.setItem(DATA_KEY, JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData }));
 }
 
 function loadProgress() {
@@ -420,12 +595,24 @@ function loadProgress() {
     vocabRetryOnly = p.vocabRetryOnly || [];
     mcRetryOnly = p.mcRetryOnly || [];
     mcCurrentQ = p.mcCurrentQ || 0;
+    // Game Quiz state
+    gameAnswers = p.gameAnswers || {};
+    gameResults = p.gameResults || null;
+    gameRetryOnly = p.gameRetryOnly || [];
+    gameCurrentQ = p.gameCurrentQ || 0;
+    gameMode = p.gameMode || null;
+    gameActiveIndices = p.gameActiveIndices || [];
+    heroHP = p.heroHP !== undefined ? p.heroHP : 10;
+    heroMaxHP = p.heroMaxHP || 10;
+    heroDefeated = p.heroDefeated || false;
   }
 }
 
 function saveProgress() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    vocabAnswers, mcAnswers, vocabResults, mcResults, vocabRetryOnly, mcRetryOnly, mcCurrentQ
+    vocabAnswers, mcAnswers, vocabResults, mcResults, vocabRetryOnly, mcRetryOnly, mcCurrentQ,
+    gameAnswers, gameResults, gameRetryOnly, gameCurrentQ, gameMode, gameActiveIndices,
+    heroHP, heroMaxHP, heroDefeated
   }));
 }
 
@@ -438,6 +625,7 @@ function showScreen(id) {
   if (id === 'vocab') renderVocab();
   if (id === 'mc') renderMC();
   if (id === 'home') renderHome();
+  if (id === 'gamequiz') renderGameQuiz();
 }
 
 function renderHome() {
@@ -453,7 +641,12 @@ function renderHome() {
     const total = Object.keys(mcResults).length;
     html += `<p>✏️ Multiple Choice: <strong>${correct}/${total}</strong></p>`;
   }
-  if (!vocabResults && !mcResults) {
+  if (gameResults) {
+    const correct = Object.values(gameResults).filter(v => v).length;
+    const total = Object.keys(gameResults).length;
+    html += `<p>🎮 Game Quiz: <strong>${correct}/${total}</strong></p>`;
+  }
+  if (!vocabResults && !mcResults && !gameResults) {
     html = '<p style="color:#888;">No scores yet. Pick a section and start studying!</p>';
   }
   el.innerHTML = html;
@@ -726,7 +919,932 @@ function resetMC() {
 }
 
 // ============================================================
-// ENCOURAGEMENT
+// GAME QUIZ — Jeopardy-style with Battle Gamification
+// ============================================================
+
+/**
+ * Render the Game Quiz screen. Shows settings dialog if no active game,
+ * otherwise renders current question with battle strip.
+ */
+function renderGameQuiz() {
+  const settingsEl = document.getElementById('game-settings');
+  const activeEl = document.getElementById('game-active');
+
+  // If no game mode selected or no active indices, show settings
+  if (!gameMode || gameActiveIndices.length === 0) {
+    settingsEl.style.display = 'block';
+    activeEl.style.display = 'none';
+    return;
+  }
+
+  settingsEl.style.display = 'none';
+  activeEl.style.display = 'block';
+  renderHearts();
+  renderBattleCanvas();
+  renderGameQuestion();
+}
+
+/**
+ * Start a new Game Quiz session with the given mode.
+ * @param {string} mode - "random" | "all" | "vocab" | "defs"
+ */
+function startGameQuiz(mode) {
+  gameMode = mode;
+  gameAnswers = {};
+  gameResults = null;
+  gameRetryOnly = [];
+  gameCurrentQ = 0;
+  heroDefeated = false;
+
+  // Build the active question indices based on mode
+  gameActiveIndices = buildGameIndices(mode);
+
+  // Calculate HP: 5 full hearts = 10 half-hearts, hero dies at >30% wrong
+  const maxWrong = Math.ceil(gameActiveIndices.length * 0.3);
+  heroMaxHP = maxWrong;  // 1 HP per wrong answer allowed
+  heroHP = heroMaxHP;
+
+  saveProgress();
+  renderGameQuiz();
+}
+
+/**
+ * Build ordered array of jeopardyData indices based on quiz mode.
+ * @param {string} mode - "random" | "all" | "vocab" | "defs"
+ * @returns {number[]} indices into jeopardyData
+ */
+function buildGameIndices(mode) {
+  const vocabIdx = [], mcIdx = [];
+  jeopardyData.forEach((q, i) => {
+    if (q.category === 'vocab') vocabIdx.push(i);
+    else mcIdx.push(i);
+  });
+
+  switch (mode) {
+    case 'vocab': return shuffleArray([...vocabIdx]);
+    case 'defs':  return shuffleArray([...mcIdx]);
+    case 'all':   return [...vocabIdx, ...mcIdx]; // vocab first, then MC (not shuffled)
+    case 'random':
+    default:      return shuffleArray([...vocabIdx, ...mcIdx]);
+  }
+}
+
+/**
+ * Fisher-Yates shuffle — returns a new shuffled copy.
+ * @param {any[]} arr
+ * @returns {any[]} shuffled array
+ */
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * Render the current Game Quiz question (one at a time, like MC).
+ */
+function renderGameQuestion() {
+  const qEl = document.getElementById('game-questions');
+  const resultsEl = document.getElementById('game-results');
+  const indices = gameRetryOnly.length > 0 ? gameRetryOnly : gameActiveIndices;
+
+  // All questions answered → show final score
+  if (gameCurrentQ >= indices.length) {
+    qEl.innerHTML = '';
+    showGameFinalScore();
+    return;
+  }
+
+  resultsEl.style.display = 'none';
+  const qi = indices[gameCurrentQ];
+  const q = jeopardyData[qi];
+  const submitted = gameResults && gameResults[qi] !== undefined;
+  const selectedChoice = gameAnswers[qi];
+
+  // Category label for "random" mode
+  const catLabel = gameMode === 'random'
+    ? `<span class="clue-label">${q.category === 'vocab' ? '📖 Vocabulary' : '✏️ Definition'}</span>`
+    : '';
+
+  let html = `<div class="game-q">
+    <div class="jeopardy-clue">
+      ${catLabel}
+      ${esc(q.question)}
+    </div>
+    <div style="font-size:0.85rem; color:#555; margin-bottom:8px;">Question ${gameCurrentQ + 1} of ${indices.length}</div>
+    ${q.choices.map((c, ci) => {
+      const checked = selectedChoice === ci ? 'checked' : '';
+      let labelClass = '';
+      if (submitted) {
+        if (ci === q.correct) labelClass = 'correct';
+        else if (selectedChoice === ci && ci !== q.correct) labelClass = 'wrong';
+      }
+      return `<label class="${labelClass}">
+        <input type="radio" name="game-${qi}" value="${ci}" ${checked} ${submitted ? 'disabled' : ''} onchange="gameSelect(${qi}, ${ci})">
+        ${esc(c)}
+      </label>`;
+    }).join('')}`;
+
+  if (submitted) {
+    const isCorrect = gameResults[qi];
+    if (isCorrect) {
+      html += `<div style="margin-top:12px; padding:10px; background:#d4edda; border-radius:6px; color:#155724; font-weight:600;">✅ Correct! Great job!</div>`;
+    } else {
+      html += `<div style="margin-top:12px; padding:10px; background:#f8d7da; border-radius:6px; color:#721c24; font-weight:600;">❌ Not quite. The correct answer is: <em>${esc(q.choices[q.correct])}</em></div>`;
+    }
+    // Show defeat message if hero just died
+    if (heroDefeated && heroHP <= 0) {
+      html += `<div style="margin-top:12px; padding:12px; background:#fff3cd; border-radius:6px; color:#856404; font-weight:600; text-align:center;">
+        💀 Sir Capybara has been defeated!<br>
+        <button class="btn btn-warning btn-sm" style="margin-top:8px; margin-right:8px;" onclick="resetGameQuiz()">🔄 Restart</button>
+        <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="gameContinueAfterDefeat()">Keep Going →</button>
+      </div>`;
+    } else {
+      html += `<button class="btn btn-primary btn-block" onclick="gameNext()">Next →</button>`;
+    }
+  } else {
+    html += `<button class="btn btn-success btn-block" onclick="gameSubmitOne()">Submit Answer</button>`;
+  }
+
+  html += `</div>`;
+  qEl.innerHTML = html;
+  updateGameProgress(indices);
+}
+
+/** Store the selected answer for a Game Quiz question. */
+function gameSelect(qi, ci) {
+  gameAnswers[qi] = ci;
+  saveProgress();
+}
+
+/** Submit the current Game Quiz answer — grade it, update HP, trigger battle animation. */
+function gameSubmitOne() {
+  const indices = gameRetryOnly.length > 0 ? gameRetryOnly : gameActiveIndices;
+  const qi = indices[gameCurrentQ];
+  if (gameAnswers[qi] === undefined) {
+    alert('Please select an answer first!');
+    return;
+  }
+  if (!gameResults) gameResults = {};
+  const isCorrect = gameAnswers[qi] === jeopardyData[qi].correct;
+  gameResults[qi] = isCorrect;
+
+  if (isCorrect) {
+    triggerBattleAnimation('hero-attack');
+  } else {
+    // Wrong answer: reduce HP, check defeat
+    heroHP = Math.max(0, heroHP - 1);
+    if (heroHP <= 0) heroDefeated = true;
+    triggerBattleAnimation('dragon-attack');
+  }
+
+  saveProgress();
+  renderHearts();
+  renderGameQuestion();
+}
+
+/** Advance to the next Game Quiz question. */
+function gameNext() {
+  gameCurrentQ++;
+  saveProgress();
+  renderBattleCanvas(); // reset to idle poses
+  renderGameQuestion();
+}
+
+/** Continue playing after hero defeat (student chose to keep going). */
+function gameContinueAfterDefeat() {
+  gameCurrentQ++;
+  saveProgress();
+  renderBattleCanvas();
+  renderGameQuestion();
+}
+
+/** Update the Game Quiz progress bar. */
+function updateGameProgress(indices) {
+  const pct = (gameCurrentQ / indices.length) * 100;
+  document.getElementById('game-progress').style.width = pct + '%';
+}
+
+/** Show final score for the Game Quiz with retry/reset options. */
+function showGameFinalScore() {
+  const indices = gameRetryOnly.length > 0 ? gameRetryOnly : gameActiveIndices;
+  const correct = indices.filter(i => gameResults && gameResults[i]).length;
+  const total = indices.length;
+  const wrong = indices.filter(i => gameResults && !gameResults[i]);
+
+  // Victory or defeat final state
+  if (wrong.length === 0) {
+    triggerBattleAnimation('victory');
+  }
+
+  let html = `<div class="score-box">
+    <div class="big-score">${correct}/${total}</div>
+    <div class="score-label">Game Quiz Score</div>
+    <div class="encouragement">${getEncouragement(correct, total)}</div>
+    ${!heroDefeated && wrong.length === 0 ? '<div style="margin-top:8px; font-size:1.1rem;">⚔️🎉 Sir Capybara is victorious! The dragon is defeated!</div>' : ''}
+    ${heroDefeated ? '<div style="margin-top:8px; font-size:1.1rem;">💀 Sir Capybara fought bravely but fell in battle.</div>' : ''}
+  </div>`;
+
+  if (wrong.length > 0) {
+    html += `<button class="btn btn-warning btn-block" onclick="retryGameQuiz([${wrong.join(',')}])">🔄 Retry Wrong Answers (${wrong.length})</button>`;
+  }
+  html += `<button class="btn btn-primary btn-block" onclick="resetGameQuiz()">Start Over</button>`;
+
+  document.getElementById('game-results').innerHTML = html;
+  document.getElementById('game-results').style.display = 'block';
+  updateGameProgress(indices);
+  document.getElementById('game-progress').style.width = '100%';
+}
+
+/**
+ * Retry only the wrong Game Quiz answers (battle resets for fresh fight).
+ * @param {number[]} indices - jeopardyData indices to retry
+ */
+function retryGameQuiz(indices) {
+  gameRetryOnly = indices;
+  gameResults = null;
+  gameCurrentQ = 0;
+  indices.forEach(i => delete gameAnswers[i]);
+  // Battle resets for retry
+  const maxWrong = Math.ceil(indices.length * 0.3);
+  heroMaxHP = Math.max(maxWrong, 1);
+  heroHP = heroMaxHP;
+  heroDefeated = false;
+  document.getElementById('game-results').style.display = 'none';
+  saveProgress();
+  renderGameQuiz();
+}
+
+/** Reset the entire Game Quiz back to mode selection. */
+function resetGameQuiz() {
+  gameRetryOnly = [];
+  gameResults = null;
+  gameAnswers = {};
+  gameCurrentQ = 0;
+  gameMode = null;
+  gameActiveIndices = [];
+  heroHP = 10;
+  heroMaxHP = 10;
+  heroDefeated = false;
+  document.getElementById('game-results').style.display = 'none';
+  saveProgress();
+  renderGameQuiz();
+}
+
+// ============================================================
+// BATTLE — Canvas Drawing & Animation
+// The battle strip shows a capybara knight (hero, left) vs a
+// dragon (villain, right) on a grassy field with sky background.
+// ============================================================
+
+/** Render the Zelda-style heart meter above the battle strip. */
+function renderHearts() {
+  const bar = document.getElementById('hearts-bar');
+  if (!bar) return;
+
+  // Normalize HP to 10 half-hearts (5 full hearts) for display
+  const displayMax = 10; // 5 full hearts × 2 half-hearts
+  const ratio = heroHP / heroMaxHP;
+  const halfHeartsRemaining = Math.round(ratio * displayMax);
+
+  let html = '';
+  for (let i = 0; i < 5; i++) {
+    const halfIdx = i * 2;
+    const leftHalf = halfIdx < halfHeartsRemaining;
+    const rightHalf = (halfIdx + 1) < halfHeartsRemaining;
+
+    if (leftHalf && rightHalf) {
+      // Full heart
+      html += `<span class="heart-icon" title="Full heart">
+        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#e74c3c"/></svg>
+      </span>`;
+    } else if (leftHalf) {
+      // Half heart (left filled, right empty)
+      html += `<span class="heart-icon" title="Half heart">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#555"/>
+          <clipPath id="half${i}"><rect x="0" y="0" width="12" height="24"/></clipPath>
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#e74c3c" clip-path="url(#half${i})"/>
+        </svg>
+      </span>`;
+    } else {
+      // Empty heart
+      html += `<span class="heart-icon" title="Empty heart">
+        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#555"/></svg>
+      </span>`;
+    }
+  }
+  bar.innerHTML = html;
+}
+
+/**
+ * Render the battle scene on the canvas: sky, grass, capybara knight, dragon.
+ * Call after any state change (answer submitted, animation complete, etc.)
+ */
+function renderBattleCanvas() {
+  const canvas = document.getElementById('battle-canvas');
+  if (!canvas) return;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width || 600;
+  const h = 140;
+  canvas.width = w * 2;    // 2x for retina
+  canvas.height = h * 2;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  // Background: sky gradient + grass
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, 95);
+  skyGrad.addColorStop(0, '#87CEEB');
+  skyGrad.addColorStop(1, '#b3e0f2');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, 95);
+  const grassGrad = ctx.createLinearGradient(0, 95, 0, h);
+  grassGrad.addColorStop(0, '#5cb85c');
+  grassGrad.addColorStop(1, '#3a7d34');
+  ctx.fillStyle = grassGrad;
+  ctx.fillRect(0, 95, w, h - 95);
+
+  // Draw characters
+  drawCapybaraKnight(ctx, 70, 55);
+  drawDragon(ctx, w - 90, 45);
+}
+
+/**
+ * Draw the capybara knight hero at position (cx, cy).
+ * cx, cy is the center of the body.
+ */
+function drawCapybaraKnight(ctx, cx, cy) {
+  ctx.save();
+
+  // If defeated: slumped pose (tilted, lowered) instead of full rotation
+  if (heroDefeated && heroHP <= 0) {
+    ctx.globalAlpha = 0.85;
+    ctx.translate(cx, cy + 10);
+    ctx.rotate(0.4); // slight tilt, not full rotation
+    ctx.translate(-cx, -(cy + 10));
+  }
+
+  // Cape (behind body)
+  ctx.fillStyle = '#c41e3a';
+  ctx.beginPath();
+  ctx.moveTo(cx - 12, cy - 5);
+  ctx.quadraticCurveTo(cx - 28, cy + 20, cx - 15, cy + 35);
+  ctx.lineTo(cx - 8, cy);
+  ctx.closePath();
+  ctx.fill();
+
+  // Body (brown oval)
+  ctx.fillStyle = '#a07830';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 12, 18, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs
+  ctx.fillStyle = '#8b6914';
+  ctx.fillRect(cx - 12, cy + 22, 7, 12);
+  ctx.fillRect(cx + 5, cy + 22, 7, 12);
+  // Feet
+  ctx.fillStyle = '#5a3e0a';
+  ctx.fillRect(cx - 13, cy + 32, 9, 3);
+  ctx.fillRect(cx + 4, cy + 32, 9, 3);
+
+  // Head (brown circle)
+  ctx.fillStyle = '#b08830';
+  ctx.beginPath();
+  ctx.arc(cx, cy - 10, 14, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ears
+  ctx.fillStyle = '#8b6914';
+  ctx.beginPath();
+  ctx.ellipse(cx - 10, cy - 22, 5, 4, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 10, cy - 22, 5, 4, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // Inner ear
+  ctx.fillStyle = '#d4a05a';
+  ctx.beginPath();
+  ctx.ellipse(cx - 10, cy - 22, 3, 2.5, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 10, cy - 22, 3, 2.5, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eyes — X-eyes when defeated, normal otherwise
+  if (heroDefeated && heroHP <= 0) {
+    drawXEyes(ctx, cx, cy - 12, 4);
+  } else {
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(cx - 5, cy - 12, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 5, cy - 12, 2.5, 0, Math.PI * 2); ctx.fill();
+    // Eye shine
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(cx - 4, cy - 13, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 6, cy - 13, 1, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Nose
+  ctx.fillStyle = '#5a3e0a';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 5, 4, 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Helmet (gray arc over head)
+  ctx.fillStyle = '#888';
+  ctx.beginPath();
+  ctx.moveTo(cx - 14, cy - 8);
+  ctx.quadraticCurveTo(cx, cy - 32, cx + 14, cy - 8);
+  ctx.lineTo(cx + 16, cy - 6);
+  ctx.quadraticCurveTo(cx, cy - 28, cx - 16, cy - 6);
+  ctx.closePath();
+  ctx.fill();
+  // Helmet plume
+  ctx.fillStyle = '#c41e3a';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 30, 3, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Sword (right side)
+  ctx.fillStyle = '#ccc';
+  ctx.save();
+  ctx.translate(cx + 22, cy - 5);
+  ctx.rotate(0.2);
+  ctx.fillRect(-2, -20, 4, 28);  // blade
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(-4, 6, 8, 4);      // guard
+  ctx.fillStyle = '#8b4513';
+  ctx.fillRect(-2, 10, 4, 8);     // handle
+  ctx.restore();
+
+  // Shield (left side)
+  ctx.fillStyle = '#2a5aa0';
+  ctx.beginPath();
+  ctx.moveTo(cx - 22, cy - 5);
+  ctx.lineTo(cx - 32, cy);
+  ctx.lineTo(cx - 27, cy + 15);
+  ctx.lineTo(cx - 22, cy + 18);
+  ctx.lineTo(cx - 17, cy + 15);
+  ctx.lineTo(cx - 12, cy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.arc(cx - 22, cy + 5, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/**
+ * Draw the cartoony dragon villain at position (cx, cy).
+ * cx, cy is the center of the body.
+ */
+function drawDragon(ctx, cx, cy) {
+  ctx.save();
+
+  // Wings (behind body)
+  ctx.fillStyle = '#3CB371';
+  ctx.beginPath();
+  ctx.moveTo(cx - 5, cy - 5);
+  ctx.lineTo(cx - 25, cy - 35);
+  ctx.lineTo(cx - 15, cy - 15);
+  ctx.lineTo(cx - 30, cy - 25);
+  ctx.lineTo(cx - 15, cy - 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx + 5, cy - 5);
+  ctx.lineTo(cx + 25, cy - 35);
+  ctx.lineTo(cx + 15, cy - 15);
+  ctx.lineTo(cx + 30, cy - 25);
+  ctx.lineTo(cx + 15, cy - 5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Tail
+  ctx.fillStyle = '#2E8B57';
+  ctx.beginPath();
+  ctx.moveTo(cx + 15, cy + 10);
+  ctx.quadraticCurveTo(cx + 35, cy + 5, cx + 40, cy - 5);
+  ctx.lineTo(cx + 38, cy - 2);
+  ctx.quadraticCurveTo(cx + 32, cy + 8, cx + 13, cy + 13);
+  ctx.closePath();
+  ctx.fill();
+  // Tail spike
+  ctx.fillStyle = '#c41e3a';
+  ctx.beginPath();
+  ctx.moveTo(cx + 40, cy - 5);
+  ctx.lineTo(cx + 46, cy - 10);
+  ctx.lineTo(cx + 38, cy - 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Body (green oval)
+  ctx.fillStyle = '#2E8B57';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 12, 22, 16, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Belly
+  ctx.fillStyle = '#90EE90';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 16, 13, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs
+  ctx.fillStyle = '#2E8B57';
+  ctx.fillRect(cx - 14, cy + 24, 8, 12);
+  ctx.fillRect(cx + 6, cy + 24, 8, 12);
+  // Claws
+  ctx.fillStyle = '#ffd700';
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.arc(cx - 13 + i * 3, cy + 37, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 7 + i * 3, cy + 37, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Head
+  ctx.fillStyle = '#2E8B57';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 10, 14, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Snout
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 4, 8, 5, 0, 0, Math.PI);
+  ctx.fill();
+
+  // Spikes on head
+  ctx.fillStyle = '#c41e3a';
+  const spikes = [-8, -3, 2, 7];
+  spikes.forEach(sx => {
+    ctx.beginPath();
+    ctx.moveTo(cx + sx - 3, cy - 18);
+    ctx.lineTo(cx + sx, cy - 28);
+    ctx.lineTo(cx + sx + 3, cy - 18);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Eyes (angry)
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath(); ctx.arc(cx - 6, cy - 14, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 6, cy - 14, 4, 0, Math.PI * 2); ctx.fill();
+  // Pupils (slitted)
+  ctx.fillStyle = '#000';
+  ctx.fillRect(cx - 7, cy - 17, 2, 6);
+  ctx.fillRect(cx + 5, cy - 17, 2, 6);
+  // Angry eyebrows
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx - 11, cy - 20); ctx.lineTo(cx - 3, cy - 18); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx + 11, cy - 20); ctx.lineTo(cx + 3, cy - 18); ctx.stroke();
+
+  // Nostrils
+  ctx.fillStyle = '#1a5a3a';
+  ctx.beginPath(); ctx.arc(cx - 3, cy - 4, 1.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 3, cy - 4, 1.5, 0, Math.PI * 2); ctx.fill();
+
+  // Teeth
+  ctx.fillStyle = '#fff';
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i * 3 - 1.5, cy);
+    ctx.lineTo(cx + i * 3, cy + 4);
+    ctx.lineTo(cx + i * 3 + 1.5, cy);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+// ---- Battle Animation Effects ----
+// Attack types cycle for variety: hero has 3 attacks, dragon has 3 attacks.
+let heroAttackCount = 0;
+let dragonAttackCount = 0;
+
+/**
+ * Trigger a battle animation sequence.
+ * @param {string} type - "hero-attack" | "dragon-attack" | "victory"
+ */
+function triggerBattleAnimation(type) {
+  if (battleAnimating) return;
+  battleAnimating = true;
+  const canvas = document.getElementById('battle-canvas');
+  if (!canvas) { battleAnimating = false; return; }
+
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width / 2;
+  const h = canvas.height / 2;
+
+  if (type === 'hero-attack') {
+    const attackType = heroAttackCount % 3;
+    heroAttackCount++;
+    animateHeroAttack(ctx, w, h, attackType);
+  } else if (type === 'dragon-attack') {
+    const attackType = dragonAttackCount % 3;
+    dragonAttackCount++;
+    animateDragonAttack(ctx, w, h, attackType);
+  } else if (type === 'victory') {
+    animateVictory(ctx, w, h);
+  }
+}
+
+/**
+ * Animate hero attacking the dragon.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} w - canvas logical width
+ * @param {number} h - canvas logical height
+ * @param {number} attackType - 0: sword slash, 1: shield bash, 2: charge
+ */
+function animateHeroAttack(ctx, w, h, attackType) {
+  const frames = 80;
+  let frame = 0;
+  const heroBaseX = 70;
+  const dragonBaseX = w - 90;
+  const travelDist = dragonBaseX - heroBaseX - 30; // hero goes all the way to dragon
+
+  function tick() {
+    const progress = frame / frames;
+    drawBattleBG(ctx, w, h);
+
+    // Hero charges all the way to dragon and returns
+    let heroOffX = 0;
+    if (progress < 0.35) heroOffX = (progress / 0.35) * travelDist;       // charge forward
+    else if (progress < 0.5) heroOffX = travelDist;                         // hold at dragon
+    else heroOffX = travelDist * (1 - (progress - 0.5) / 0.5);             // return
+
+    // Dragon shakes on impact
+    let dragonOffX = 0;
+    if (progress > 0.3 && progress < 0.6) {
+      dragonOffX = Math.sin(progress * 50) * 8;
+    }
+
+    drawDragon(ctx, dragonBaseX + dragonOffX, 45);
+    drawCapybaraKnight(ctx, heroBaseX + heroOffX, 55);
+
+    // Comic POW starburst on impact
+    if (progress > 0.3 && progress < 0.65) {
+      const effectAlpha = 1 - ((progress - 0.3) / 0.35);
+      ctx.globalAlpha = Math.max(0, effectAlpha);
+      drawComicPOW(ctx, dragonBaseX - 15, 50, progress);
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+    frame++;
+    if (frame <= frames) requestAnimationFrame(tick);
+    else { battleAnimating = false; renderBattleCanvas(); }
+  }
+  requestAnimationFrame(tick);
+}
+
+/**
+ * Animate dragon attacking the hero — moves forward ~40%, then shoots fireballs.
+ */
+function animateDragonAttack(ctx, w, h, attackType) {
+  const frames = 100;
+  let frame = 0;
+  const heroBaseX = 70;
+  const dragonBaseX = w - 90;
+  const gap = dragonBaseX - heroBaseX;
+  const dragonAdvance = gap * 0.35;  // dragon moves forward 35%
+  const fireStartX = dragonBaseX - dragonAdvance - 20; // fire starts from dragon's mouth
+
+  function tick() {
+    const progress = frame / frames;
+    drawBattleBG(ctx, w, h);
+
+    // Dragon advances partway, holds, then retreats
+    let dragonOffX = 0;
+    if (progress < 0.2) dragonOffX = -(progress / 0.2) * dragonAdvance;    // advance
+    else if (progress < 0.6) dragonOffX = -dragonAdvance;                     // hold & breathe fire
+    else dragonOffX = -dragonAdvance * (1 - (progress - 0.6) / 0.4);         // retreat
+
+    // Hero shakes when fireballs arrive
+    let heroOffX = 0;
+    if (progress > 0.4 && progress < 0.7) {
+      heroOffX = Math.sin(progress * 50) * 8;
+    }
+
+    drawCapybaraKnight(ctx, heroBaseX + heroOffX, 55);
+    drawDragon(ctx, dragonBaseX + dragonOffX, 45);
+
+    // Fire breath: stream of fireballs from dragon to hero (Bowser-style)
+    if (progress > 0.2 && progress < 0.75) {
+      const fireProgress = (progress - 0.2) / 0.55;
+      drawBowserFire(ctx, fireStartX, 55, heroBaseX + 15, fireProgress);
+    }
+
+    // Comic POW on impact
+    if (progress > 0.4 && progress < 0.65) {
+      const effectAlpha = 1 - ((progress - 0.4) / 0.25);
+      ctx.globalAlpha = Math.max(0, effectAlpha);
+      drawComicPOW(ctx, heroBaseX + 20, 50, progress);
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+    frame++;
+    if (frame <= frames) requestAnimationFrame(tick);
+    else { battleAnimating = false; renderBattleCanvas(); }
+  }
+  requestAnimationFrame(tick);
+}
+
+/**
+ * Animate hero victory — hero does a dance, dragon gets X-eyes and slumps.
+ */
+function animateVictory(ctx, w, h) {
+  const frames = 110;
+  let frame = 0;
+  const heroBaseX = 70;
+  const dragonBaseX = w - 90;
+
+  function tick() {
+    const progress = frame / frames;
+    drawBattleBG(ctx, w, h);
+
+    // Dragon: X-eyes, falls over and fades
+    ctx.save();
+    const fallAngle = Math.min(progress * 2, 1) * (Math.PI / 2);
+    const dragonAlpha = 1 - Math.min(progress * 1.5, 1) * 0.5;
+    ctx.globalAlpha = dragonAlpha;
+    ctx.translate(dragonBaseX, 45 + 25);
+    ctx.rotate(fallAngle);
+    ctx.translate(-dragonBaseX, -(45 + 25));
+    drawDragon(ctx, dragonBaseX, 45);
+    // Draw X-eyes over dragon
+    if (progress > 0.2) drawXEyes(ctx, dragonBaseX, 45 - 14, 6);
+    ctx.restore();
+
+    // Hero victory dance: bouncing + arm pump
+    const dancePhase = progress * Math.PI * 6;
+    const bounceY = -Math.abs(Math.sin(dancePhase)) * 18;
+    const sway = Math.sin(dancePhase * 0.7) * 5;
+    drawCapybaraKnight(ctx, heroBaseX + sway, 55 + bounceY);
+
+    // Victory sparkles and stars
+    ctx.fillStyle = '#ffd700';
+    for (let i = 0; i < 8; i++) {
+      const angle = (progress * 5 + i) * Math.PI / 4;
+      const dist = 20 + Math.sin(progress * 10 + i * 2) * 15;
+      const sx = heroBaseX + Math.cos(angle) * dist;
+      const sy = 45 + bounceY + Math.sin(angle) * dist;
+      drawMiniStar(ctx, sx, sy, 3 + Math.sin(progress * 8 + i) * 2);
+    }
+
+    ctx.restore();
+    frame++;
+    if (frame <= frames) requestAnimationFrame(tick);
+    else battleAnimating = false;
+  }
+  requestAnimationFrame(tick);
+}
+
+// ---- Drawing Helpers ----
+
+/** Draw the sky + grass background. */
+function drawBattleBG(ctx, w, h) {
+  ctx.save();
+  ctx.scale(0.5, 0.5);
+  ctx.scale(2, 2);
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, 95);
+  skyGrad.addColorStop(0, '#87CEEB');
+  skyGrad.addColorStop(1, '#b3e0f2');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, 95);
+  const grassGrad = ctx.createLinearGradient(0, 95, 0, h);
+  grassGrad.addColorStop(0, '#5cb85c');
+  grassGrad.addColorStop(1, '#3a7d34');
+  ctx.fillStyle = grassGrad;
+  ctx.fillRect(0, 95, w, h - 95);
+}
+
+/**
+ * Draw a comic-book style "POW!" starburst at (x, y).
+ * Like the 1960s Batman TV show impact effects.
+ */
+function drawComicPOW(ctx, x, y, progress) {
+  const scale = 0.5 + progress * 1.5;
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Jagged starburst shape
+  const spikes = 12;
+  ctx.fillStyle = '#ffd700';
+  ctx.strokeStyle = '#ff4500';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < spikes; i++) {
+    const angle = (i / spikes) * Math.PI * 2;
+    const outerR = (20 + (i % 2) * 10) * scale;
+    const innerR = 10 * scale;
+    const r = (i % 2 === 0) ? outerR : innerR;
+    const px = Math.cos(angle) * r;
+    const py = Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // "POW" text
+  ctx.fillStyle = '#c41e3a';
+  ctx.font = `bold ${Math.round(12 * scale)}px 'Comic Sans MS', cursive, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('POW!', 0, 0);
+
+  ctx.restore();
+}
+
+/** Draw cartoon X-eyes (defeat eyes) at given position. */
+function drawXEyes(ctx, cx, cy, size) {
+  ctx.strokeStyle = '#c41e3a';
+  ctx.lineWidth = 3;
+  // Left X
+  ctx.beginPath();
+  ctx.moveTo(cx - size - 4, cy - size); ctx.lineTo(cx - size + 4, cy + size);
+  ctx.moveTo(cx - size + 4, cy - size); ctx.lineTo(cx - size - 4, cy + size);
+  ctx.stroke();
+  // Right X
+  ctx.beginPath();
+  ctx.moveTo(cx + size - 4, cy - size); ctx.lineTo(cx + size + 4, cy + size);
+  ctx.moveTo(cx + size + 4, cy - size); ctx.lineTo(cx + size - 4, cy + size);
+  ctx.stroke();
+}
+
+/** Draw a small 4-pointed star at (x, y). */
+function drawMiniStar(ctx, x, y, size) {
+  ctx.save();
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
+    const r = (i % 2 === 0) ? size : size * 0.4;
+    const px = x + Math.cos(angle) * r;
+    const py = y + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * Draw Bowser-style fireballs streaming from dragon to hero.
+ * @param {number} fireProgress - 0 to 1 (how far the fire has traveled)
+ */
+function drawBowserFire(ctx, startX, startY, endX, fireProgress) {
+  const numBalls = 5;
+  for (let i = 0; i < numBalls; i++) {
+    // Each fireball is offset in time
+    const t = (fireProgress * 1.5 - i * 0.15);
+    if (t < 0 || t > 1) continue;
+    const px = startX + (endX - startX) * t;
+    const py = startY + Math.sin(t * 8 + i * 2) * 8;
+    const size = 6 - t * 3;
+
+    // Fireball glow
+    ctx.fillStyle = 'rgba(255, 165, 0, 0.4)';
+    ctx.beginPath();
+    ctx.arc(px, py, size + 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Fireball core (orange → yellow gradient look)
+    ctx.fillStyle = '#ff4500';
+    ctx.beginPath();
+    ctx.arc(px, py, size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(px - 1, py - 1, size * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Trailing embers
+    for (let e = 0; e < 3; e++) {
+      const ex = px + 5 + e * 4 + Math.random() * 3;
+      const ey = py + (Math.random() - 0.5) * 8;
+      ctx.fillStyle = ['#ff6b35', '#ffa500', '#ff4500'][e];
+      ctx.beginPath();
+      ctx.arc(ex, ey, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
 // ============================================================
 function getEncouragement(correct, total) {
   const pct = correct / total;
@@ -779,10 +1897,13 @@ function closeParentMode() {
 function showParentTab(tab) {
   document.getElementById('tab-answers').classList.toggle('active-tab', tab === 'answers');
   document.getElementById('tab-edit').classList.toggle('active-tab', tab === 'edit');
+  document.getElementById('tab-gamequiz').classList.toggle('active-tab', tab === 'gamequiz');
   document.getElementById('parent-answers').style.display = tab === 'answers' ? 'block' : 'none';
   document.getElementById('parent-edit').style.display = tab === 'edit' ? 'block' : 'none';
+  document.getElementById('parent-gamequiz').style.display = tab === 'gamequiz' ? 'block' : 'none';
   if (tab === 'answers') renderAnswerKey();
   if (tab === 'edit') renderEditPanel();
+  if (tab === 'gamequiz') renderGameQuizEditPanel();
 }
 
 function renderAnswerKey() {
@@ -792,6 +1913,21 @@ function renderAnswerKey() {
   });
   html += '<h3 style="margin-top:20px;">✏️ Multiple Choice Answers</h3>';
   mcData.forEach((q, i) => {
+    html += `<div class="answer-key-item">
+      <strong>${i + 1}. ${esc(q.question)}</strong><br>
+      <span class="correct-answer">✓ ${esc(q.choices[q.correct])}</span>
+    </div>`;
+  });
+  html += '<h3 style="margin-top:20px;">🎮 Game Quiz Answers</h3>';
+  html += '<h4 style="color:#555; margin:8px 0;">📖 Vocabulary-Based</h4>';
+  jeopardyData.filter(q => q.category === 'vocab').forEach((q, i) => {
+    html += `<div class="answer-key-item">
+      <strong>${i + 1}. ${esc(q.question)}</strong><br>
+      <span class="correct-answer">✓ ${esc(q.choices[q.correct])}</span>
+    </div>`;
+  });
+  html += '<h4 style="color:#555; margin:12px 0 8px;">✏️ Definition-Based</h4>';
+  jeopardyData.filter(q => q.category === 'mc').forEach((q, i) => {
     html += `<div class="answer-key-item">
       <strong>${i + 1}. ${esc(q.question)}</strong><br>
       <span class="correct-answer">✓ ${esc(q.choices[q.correct])}</span>
@@ -846,18 +1982,87 @@ function editMCChoice(qi, ci, value) {
   saveData();
 }
 
+/**
+ * Render the Game Quiz edit panel in Parent Mode.
+ * Split into two sub-sections: Vocab-based and MC-based (Definition-based).
+ */
+function renderGameQuizEditPanel() {
+  let html = '<h3>🎮 Edit Game Quiz Questions</h3>';
+
+  // Vocab-based sub-section
+  html += '<h4 style="color:#2a5aa0; margin:12px 0 8px;">📖 Vocabulary-Based Questions</h4>';
+  jeopardyData.forEach((q, i) => {
+    if (q.category !== 'vocab') return;
+    html += `<div class="edit-group">
+      <label>Clue (definition shown to student)</label>
+      <textarea onchange="editJeopardy(${i}, 'question', this.value)">${esc(q.question)}</textarea>`;
+    q.choices.forEach((c, ci) => {
+      const isCorrect = ci === q.correct;
+      html += `<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; width:100%;">
+        <input type="radio" name="edit-jep-correct-${i}" class="radio-correct" style="flex-shrink:0; width:18px; height:18px;" ${isCorrect ? 'checked' : ''} onchange="editJeopardy(${i}, 'correct', ${ci})">
+        <input type="text" value="${esc(c)}" onchange="editJeopardyChoice(${i}, ${ci}, this.value)" style="flex:1; min-width:0;">
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  // MC-based sub-section
+  html += '<h4 style="color:#2a5aa0; margin:20px 0 8px;">✏️ Definition-Based Questions</h4>';
+  jeopardyData.forEach((q, i) => {
+    if (q.category !== 'mc') return;
+    html += `<div class="edit-group">
+      <label>Clue (answer shown to student)</label>
+      <textarea onchange="editJeopardy(${i}, 'question', this.value)">${esc(q.question)}</textarea>`;
+    q.choices.forEach((c, ci) => {
+      const isCorrect = ci === q.correct;
+      html += `<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; width:100%;">
+        <input type="radio" name="edit-jep-correct-${i}" class="radio-correct" style="flex-shrink:0; width:18px; height:18px;" ${isCorrect ? 'checked' : ''} onchange="editJeopardy(${i}, 'correct', ${ci})">
+        <input type="text" value="${esc(c)}" onchange="editJeopardyChoice(${i}, ${ci}, this.value)" style="flex:1; min-width:0;">
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  html += `<button class="btn btn-danger btn-block" style="margin-top:16px;" onclick="resetToDefaults()">🔄 Reset All to Defaults</button>`;
+  document.getElementById('parent-gamequiz').innerHTML = html;
+}
+
+/** Edit a jeopardy question field (question text or correct index). */
+function editJeopardy(i, field, value) {
+  if (field === 'correct') jeopardyData[i].correct = value;
+  else jeopardyData[i][field] = value;
+  saveData();
+}
+
+/** Edit a jeopardy question choice text. */
+function editJeopardyChoice(qi, ci, value) {
+  jeopardyData[qi].choices[ci] = value;
+  saveData();
+}
+
 function resetToDefaults() {
   if (confirm('This will reset all questions to the original defaults and clear saved progress. Are you sure?')) {
     localStorage.removeItem(DATA_KEY);
     localStorage.removeItem(STORAGE_KEY);
     vocabData = JSON.parse(JSON.stringify(DEFAULT_VOCAB));
     mcData = JSON.parse(JSON.stringify(DEFAULT_MC));
+    jeopardyData = JSON.parse(JSON.stringify(DEFAULT_JEOPARDY));
     vocabAnswers = {};
     mcAnswers = {};
     vocabResults = null;
     mcResults = null;
     vocabRetryOnly = [];
     mcRetryOnly = [];
+    // Reset Game Quiz state
+    gameAnswers = {};
+    gameResults = null;
+    gameRetryOnly = [];
+    gameCurrentQ = 0;
+    gameMode = null;
+    gameActiveIndices = [];
+    heroHP = 10;
+    heroMaxHP = 10;
+    heroDefeated = false;
     renderEditPanel();
     renderAnswerKey();
   }

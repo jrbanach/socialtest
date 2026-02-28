@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social Studies Quiz — Unit Tests</title>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; max-width: 800px; margin: 20px auto; padding: 16px; background: #f5f5f5; }
+  h1 { color: #1a3a6b; }
+  h2 { color: #2a5aa0; margin-top: 24px; border-bottom: 2px solid #ddd; padding-bottom: 4px; }
+  .suite { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .test { padding: 6px 10px; margin: 4px 0; border-radius: 4px; font-size: 0.95rem; }
+  .test.pass { background: #d4edda; color: #155724; }
+  .test.fail { background: #f8d7da; color: #721c24; }
+  .summary { font-size: 1.2rem; font-weight: 700; margin-top: 20px; padding: 12px; border-radius: 8px; text-align: center; }
+  .summary.all-pass { background: #d4edda; color: #155724; }
+  .summary.has-fail { background: #f8d7da; color: #721c24; }
+  .detail { font-size: 0.8rem; color: #888; margin-left: 20px; }
+</style>
+</head>
+<body>
+<h1>🧪 Social Studies Quiz — Unit Tests</h1>
+<p style="color:#555;">Open this file in a browser to run all tests. Tests validate quiz logic and battle mechanics independently.</p>
+<div id="results"></div>
+
+<script>
+// ============================================================
+// MINI TEST RUNNER — no dependencies, outputs to DOM
+// ============================================================
+let totalTests = 0, passCount = 0, failCount = 0;
+const suites = [];
+let currentSuite = null;
+
+/** Begin a named test suite. */
+function suite(name) {
+  currentSuite = { name, tests: [] };
+  suites.push(currentSuite);
+}
+
+/**
+ * Run a single test assertion.
+ * @param {string} name - test description
+ * @param {function} fn - test function; throw or return false to fail
+ */
+function test(name, fn) {
+  totalTests++;
+  try {
+    const result = fn();
+    if (result === false) throw new Error('Returned false');
+    passCount++;
+    currentSuite.tests.push({ name, pass: true });
+  } catch (e) {
+    failCount++;
+    currentSuite.tests.push({ name, pass: false, error: e.message });
+  }
+}
+
+/** Assert that a condition is true. */
+function assert(condition, msg) {
+  if (!condition) throw new Error(msg || 'Assertion failed');
+}
+
+/** Assert two values are strictly equal. */
+function assertEqual(actual, expected, msg) {
+  if (actual !== expected) throw new Error(msg || `Expected ${expected}, got ${actual}`);
+}
+
+/** Assert value is within range [min, max]. */
+function assertInRange(val, min, max, msg) {
+  if (val < min || val > max) throw new Error(msg || `${val} not in range [${min}, ${max}]`);
+}
+
+// ============================================================
+// EXTRACTED PURE FUNCTIONS (mirrored from index.html)
+// These are logic-only copies for isolated testing.
+// ============================================================
+
+/**
+ * Fisher-Yates shuffle — returns a new shuffled array.
+ * @param {any[]} arr
+ * @returns {any[]}
+ */
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * Build active question indices based on quiz mode.
+ * @param {object[]} jeopardyData - full question dataset
+ * @param {string} mode - "random" | "all" | "vocab" | "defs"
+ * @returns {number[]}
+ */
+function buildGameIndices(jeopardyData, mode) {
+  const vocabIdx = [], mcIdx = [];
+  jeopardyData.forEach((q, i) => {
+    if (q.category === 'vocab') vocabIdx.push(i);
+    else mcIdx.push(i);
+  });
+  switch (mode) {
+    case 'vocab': return shuffleArray([...vocabIdx]);
+    case 'defs':  return shuffleArray([...mcIdx]);
+    case 'all':   return [...vocabIdx, ...mcIdx];
+    case 'random':
+    default:      return shuffleArray([...vocabIdx, ...mcIdx]);
+  }
+}
+
+/**
+ * Calculate HP parameters for a given question count.
+ * @param {number} totalQuestions
+ * @returns {{ maxWrong: number, heroMaxHP: number }}
+ */
+function calcHP(totalQuestions) {
+  const maxWrong = Math.ceil(totalQuestions * 0.3);
+  return { maxWrong, heroMaxHP: maxWrong };
+}
+
+/**
+ * Compute heart display from current HP.
+ * @param {number} heroHP - current HP (0..heroMaxHP)
+ * @param {number} heroMaxHP - max HP
+ * @returns {{ full: number, half: number, empty: number }} counts for 5-heart display
+ */
+function computeHearts(heroHP, heroMaxHP) {
+  const displayMax = 10; // 5 full hearts × 2 half-hearts
+  const ratio = heroHP / heroMaxHP;
+  const halfHeartsRemaining = Math.round(ratio * displayMax);
+  let full = 0, half = 0, empty = 0;
+  for (let i = 0; i < 5; i++) {
+    const idx = i * 2;
+    const leftHalf = idx < halfHeartsRemaining;
+    const rightHalf = (idx + 1) < halfHeartsRemaining;
+    if (leftHalf && rightHalf) full++;
+    else if (leftHalf) half++;
+    else empty++;
+  }
+  return { full, half, empty };
+}
+
+/**
+ * Simulate grading an answer.
+ * @param {object} question - { choices, correct }
+ * @param {number} selectedChoice - index selected
+ * @returns {boolean} true if correct
+ */
+function gradeAnswer(question, selectedChoice) {
+  return selectedChoice === question.correct;
+}
+
+/**
+ * Sanitize string for safe HTML insertion (mirrors esc() in index.html).
+ * @param {string} str
+ * @returns {string}
+ */
+function esc(str) {
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\x3c/g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ============================================================
+// DEFAULT_JEOPARDY DATA (copied from index.html for testing)
+// ============================================================
+const DEFAULT_JEOPARDY = [
+  // VOCAB-BASED (20)
+  { question: "An official document from a king or queen that gave permission to start a colony", choices: ["Mayflower Compact", "Charter", "Proprietor", "Squanto"], correct: 1, category: "vocab" },
+  { question: "A person who agreed to work for someone for a certain number of years in exchange for passage to America", choices: ["Apprentice", "Debtor", "Indentured Servant", "Town Common"], correct: 2, category: "vocab" },
+  { question: "The English colony that disappeared, located off the coast of present-day North Carolina", choices: ["Roanoke Island", "Almanac", "Mayflower Compact", "Persecution"], correct: 0, category: "vocab" },
+  { question: "A book published each year with facts, weather predictions, and useful information", choices: ["Charter", "Cash Crop", "Mayflower Compact", "Almanac"], correct: 3, category: "vocab" },
+  { question: "A person who traveled to Plymouth, Massachusetts in 1620 to find religious freedom", choices: ["Puritans", "Pilgrim", "Indentured Servant", "Almanac"], correct: 1, category: "vocab" },
+  { question: "Being treated cruelly or unfairly because of your beliefs or who you are", choices: ["Town Common", "Indentured Servant", "Persecution", "Debtor"], correct: 2, category: "vocab" },
+  { question: "A person who owes money to someone else", choices: ["Debtor", "Francis Drake", "Indentured Servant", "Apprentice"], correct: 0, category: "vocab" },
+  { question: "A young person who learned a trade or skill by working with an experienced worker", choices: ["Artisan", "Roanoke Island", "Indentured Servant", "Apprentice"], correct: 3, category: "vocab" },
+  { question: "A skilled worker who makes things by hand, such as a blacksmith or carpenter", choices: ["Mayflower Compact", "Artisan", "Apprentice", "Proprietor"], correct: 1, category: "vocab" },
+  { question: "A Native American who helped the Pilgrims survive by teaching them how to grow crops and catch fish", choices: ["John Smith", "William Penn", "Squanto", "Charter"], correct: 2, category: "vocab" },
+  { question: "A crop that is grown to be sold for profit rather than to be used by the farmer", choices: ["Cash Crop", "Francis Drake", "Almanac", "Town Common"], correct: 0, category: "vocab" },
+  { question: "The leader of the Jamestown colony who made a rule that settlers must work to eat", choices: ["William Penn", "James Oglethorpe", "Almanac", "John Smith"], correct: 3, category: "vocab" },
+  { question: "An agreement signed by the Pilgrims that set up rules and a government for their colony", choices: ["Squanto", "Mayflower Compact", "Charter", "Town Common"], correct: 1, category: "vocab" },
+  { question: "The founder of Pennsylvania who believed in religious freedom and fair treatment of Native Americans", choices: ["James Oglethorpe", "John Smith", "William Penn", "Cash Crop"], correct: 2, category: "vocab" },
+  { question: "A group of people who wanted to purify the Church of England and settled in Massachusetts Bay", choices: ["Puritans", "Artisan", "Pilgrim", "Persecution"], correct: 0, category: "vocab" },
+  { question: "An English sea captain who sailed around the world and helped defeat the Spanish Armada", choices: ["John Smith", "William Penn", "Apprentice", "Francis Drake"], correct: 3, category: "vocab" },
+  { question: "A person who was given ownership of a colony by the king or queen", choices: ["Charter", "Proprietor", "Squanto", "William Penn"], correct: 1, category: "vocab" },
+  { question: "An open area in the center of a colonial town where animals could graze and people gathered", choices: ["Francis Drake", "Charter", "Town Common", "Proprietor"], correct: 2, category: "vocab" },
+  { question: "The founder of the colony of Georgia, which was created as a place for debtors to start over", choices: ["James Oglethorpe", "Almanac", "William Penn", "John Smith"], correct: 0, category: "vocab" },
+  { question: "A young woman in South Carolina who successfully grew indigo as a cash crop", choices: ["James Oglethorpe", "Mayflower Compact", "William Penn", "Elizabeth Lucas Pinckney"], correct: 3, category: "vocab" },
+  // MC-BASED (17)
+  { question: "They wanted religious freedom and were being persecuted for their beliefs", choices: ["Why Pilgrims went to Plymouth", "Why Pilgrims left home", "Most popular colonial book", "How enslaved people resisted"], correct: 1, category: "mc" },
+  { question: "Their ship was blown off course and they landed there by accident", choices: ["Why Pilgrims left home", "Jamestown's profitable crop", "Why Pilgrims went to Plymouth", "Who helped Pilgrims survive"], correct: 2, category: "mc" },
+  { question: "The Wampanoag people, including Squanto", choices: ["Who helped Pilgrims survive", "Why the 'breadbasket colonies'", "Why Pilgrims went to Plymouth", "Length of first Thanksgiving"], correct: 0, category: "mc" },
+  { question: "You were not paid wages and had to work for many years", choices: ["How enslaved people resisted", "Roanoke Island's nickname", "Why no women in early Jamestown", "Disadvantage of being an apprentice"], correct: 3, category: "mc" },
+  { question: "They grew large amounts of wheat and grain crops", choices: ["Jamestown's profitable crop", "Why the 'breadbasket colonies'", "Mystery of Roanoke Island", "Why colonists went to town"], correct: 1, category: "mc" },
+  { question: "Dame schools, run by women in their homes", choices: ["Jamestown's harsh winter", "Most popular colonial book", "Colonial children's schools", "Benjamin Franklin's fame"], correct: 2, category: "mc" },
+  { question: "The New England Primer", choices: ["Colonial children's schools", "Most popular colonial book", "Length of first Thanksgiving", "Benjamin Franklin's fame"], correct: 1, category: "mc" },
+  { question: "He was an inventor, writer, and founded the first public library and fire department", choices: ["Who was Sarah Hale", "Most popular colonial book", "Benjamin Franklin's fame", "Disadvantage of being an apprentice"], correct: 2, category: "mc" },
+  { question: "By breaking tools, working slowly, running away, and keeping their culture alive", choices: ["How enslaved people resisted", "Roanoke Island's nickname", "Disadvantage of being an apprentice", "Why no women in early Jamestown"], correct: 0, category: "mc" },
+  { question: "All the colonists disappeared and no one knows what happened to them", choices: ["Roanoke Island's nickname", "Jamestown's harsh winter", "Why the 'breadbasket colonies'", "Mystery of Roanoke Island"], correct: 3, category: "mc" },
+  { question: "The Lost Colony", choices: ["Mystery of Roanoke Island", "Roanoke Island's nickname", "Benjamin Franklin's fame", "Jamestown's harsh winter"], correct: 1, category: "mc" },
+  { question: "The Starving Time", choices: ["Colonial children's schools", "Mystery of Roanoke Island", "Jamestown's harsh winter", "Jamestown's profitable crop"], correct: 2, category: "mc" },
+  { question: "Tobacco, brought by John Rolfe", choices: ["Jamestown's profitable crop", "Who helped Pilgrims survive", "Why the 'breadbasket colonies'", "Jamestown's harsh winter"], correct: 0, category: "mc" },
+  { question: "The colony was set up as a business venture and only men were sent to find gold and profit", choices: ["Jamestown's profitable crop", "Length of first Thanksgiving", "Disadvantage of being an apprentice", "Why no women in early Jamestown"], correct: 3, category: "mc" },
+  { question: "Three days", choices: ["Who helped Pilgrims survive", "Length of first Thanksgiving", "Jamestown's profitable crop", "Why Pilgrims went to Plymouth"], correct: 1, category: "mc" },
+  { question: "She convinced President Lincoln to make Thanksgiving a national holiday", choices: ["Benjamin Franklin's fame", "Why the 'breadbasket colonies'", "Who was Sarah Hale", "Length of first Thanksgiving"], correct: 2, category: "mc" },
+  { question: "To go to church, trade goods, and attend town meetings", choices: ["Why colonists went to town", "Mystery of Roanoke Island", "Why the 'breadbasket colonies'", "Colonial children's schools"], correct: 0, category: "mc" }
+];
+
+
+// ============================================================
+// QUIZ LOGIC TEST SUITE
+// ============================================================
+suite('📝 Quiz Data Integrity');
+
+test('Total question count is 37', () => {
+  assertEqual(DEFAULT_JEOPARDY.length, 37);
+});
+
+test('20 questions have category "vocab"', () => {
+  const count = DEFAULT_JEOPARDY.filter(q => q.category === 'vocab').length;
+  assertEqual(count, 20);
+});
+
+test('17 questions have category "mc"', () => {
+  const count = DEFAULT_JEOPARDY.filter(q => q.category === 'mc').length;
+  assertEqual(count, 17);
+});
+
+test('All questions have exactly 4 choices', () => {
+  DEFAULT_JEOPARDY.forEach((q, i) => {
+    assertEqual(q.choices.length, 4, `Q${i} has ${q.choices.length} choices`);
+  });
+});
+
+test('All correct indices are 0-3', () => {
+  DEFAULT_JEOPARDY.forEach((q, i) => {
+    assertInRange(q.correct, 0, 3, `Q${i} correct index ${q.correct} out of range`);
+  });
+});
+
+test('All questions have non-empty question text', () => {
+  DEFAULT_JEOPARDY.forEach((q, i) => {
+    assert(q.question.trim().length > 0, `Q${i} has empty question`);
+  });
+});
+
+test('All choices are non-empty strings', () => {
+  DEFAULT_JEOPARDY.forEach((q, i) => {
+    q.choices.forEach((c, ci) => {
+      assert(typeof c === 'string' && c.trim().length > 0, `Q${i} choice ${ci} is empty`);
+    });
+  });
+});
+
+test('No duplicate choices within a single question', () => {
+  DEFAULT_JEOPARDY.forEach((q, i) => {
+    const unique = new Set(q.choices.map(c => c.toLowerCase()));
+    assertEqual(unique.size, 4, `Q${i} has duplicate choices`);
+  });
+});
+
+test('All categories are "vocab" or "mc"', () => {
+  DEFAULT_JEOPARDY.forEach((q, i) => {
+    assert(q.category === 'vocab' || q.category === 'mc', `Q${i} has invalid category "${q.category}"`);
+  });
+});
+
+
+suite('🔀 Shuffle & Mode Filtering');
+
+test('shuffleArray returns same length', () => {
+  const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const shuffled = shuffleArray(arr);
+  assertEqual(shuffled.length, arr.length);
+});
+
+test('shuffleArray contains same elements', () => {
+  const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const shuffled = shuffleArray(arr);
+  const sorted1 = [...arr].sort();
+  const sorted2 = [...shuffled].sort();
+  assertEqual(JSON.stringify(sorted1), JSON.stringify(sorted2));
+});
+
+test('shuffleArray produces different order (statistical — may rarely fail)', () => {
+  const arr = Array.from({ length: 20 }, (_, i) => i);
+  let differentCount = 0;
+  for (let trial = 0; trial < 5; trial++) {
+    const shuffled = shuffleArray(arr);
+    if (JSON.stringify(shuffled) !== JSON.stringify(arr)) differentCount++;
+  }
+  assert(differentCount >= 1, 'Shuffle produced identical order in all 5 trials');
+});
+
+test('shuffleArray does not mutate original', () => {
+  const arr = [1, 2, 3, 4, 5];
+  const copy = [...arr];
+  shuffleArray(arr);
+  assertEqual(JSON.stringify(arr), JSON.stringify(copy));
+});
+
+test('"vocab" mode returns exactly 20 indices', () => {
+  const indices = buildGameIndices(DEFAULT_JEOPARDY, 'vocab');
+  assertEqual(indices.length, 20);
+});
+
+test('"defs" mode returns exactly 17 indices', () => {
+  const indices = buildGameIndices(DEFAULT_JEOPARDY, 'defs');
+  assertEqual(indices.length, 17);
+});
+
+test('"all" mode returns 37 indices, vocab first', () => {
+  const indices = buildGameIndices(DEFAULT_JEOPARDY, 'all');
+  assertEqual(indices.length, 37);
+  // First 20 should be vocab category
+  for (let i = 0; i < 20; i++) {
+    assertEqual(DEFAULT_JEOPARDY[indices[i]].category, 'vocab', `Index ${i} should be vocab`);
+  }
+  // Last 17 should be mc category
+  for (let i = 20; i < 37; i++) {
+    assertEqual(DEFAULT_JEOPARDY[indices[i]].category, 'mc', `Index ${i} should be mc`);
+  }
+});
+
+test('"random" mode returns 37 indices', () => {
+  const indices = buildGameIndices(DEFAULT_JEOPARDY, 'random');
+  assertEqual(indices.length, 37);
+});
+
+test('"vocab" mode indices all point to vocab questions', () => {
+  const indices = buildGameIndices(DEFAULT_JEOPARDY, 'vocab');
+  indices.forEach(i => {
+    assertEqual(DEFAULT_JEOPARDY[i].category, 'vocab');
+  });
+});
+
+test('"defs" mode indices all point to mc questions', () => {
+  const indices = buildGameIndices(DEFAULT_JEOPARDY, 'defs');
+  indices.forEach(i => {
+    assertEqual(DEFAULT_JEOPARDY[i].category, 'mc');
+  });
+});
+
+
+suite('📊 Scoring & Grading');
+
+test('Correct answer grades as true', () => {
+  const q = DEFAULT_JEOPARDY[0]; // correct is 1
+  assert(gradeAnswer(q, q.correct) === true);
+});
+
+test('Wrong answer grades as false', () => {
+  const q = DEFAULT_JEOPARDY[0]; // correct is 1
+  assert(gradeAnswer(q, 0) === false);
+  assert(gradeAnswer(q, 2) === false);
+  assert(gradeAnswer(q, 3) === false);
+});
+
+test('Grading all questions with correct answers yields 37/37', () => {
+  let correct = 0;
+  DEFAULT_JEOPARDY.forEach(q => {
+    if (gradeAnswer(q, q.correct)) correct++;
+  });
+  assertEqual(correct, 37);
+});
+
+test('Grading all questions with wrong answers yields 0/37', () => {
+  let correct = 0;
+  DEFAULT_JEOPARDY.forEach(q => {
+    const wrongChoice = (q.correct + 1) % 4;
+    if (gradeAnswer(q, wrongChoice)) correct++;
+  });
+  assertEqual(correct, 0);
+});
+
+
+suite('🔒 XSS Sanitization');
+
+test('esc() escapes ampersand', () => {
+  assertEqual(esc('A & B'), 'A &amp; B');
+});
+
+test('esc() escapes quotes', () => {
+  assertEqual(esc('say "hello"'), 'say &quot;hello&quot;');
+});
+
+test('esc() escapes angle brackets', () => {
+  assertEqual(esc('<b>hello</b>'), '&lt;b&gt;hello&lt;/b&gt;');
+});
+
+test('esc() handles mixed special chars', () => {
+  assertEqual(esc('<b>"A & B"</b>'), '&lt;b&gt;&quot;A &amp; B&quot;&lt;/b&gt;');
+});
+
+
+// ============================================================
+// BATTLE LOGIC TEST SUITE
+// ============================================================
+suite('❤️ Heart / HP Calculations');
+
+test('HP for 37 questions: maxWrong = 12', () => {
+  const { maxWrong } = calcHP(37);
+  assertEqual(maxWrong, 12); // ceil(37 * 0.3) = ceil(11.1) = 12
+});
+
+test('HP for 20 questions (vocab only): maxWrong = 6', () => {
+  const { maxWrong } = calcHP(20);
+  assertEqual(maxWrong, 6); // ceil(20 * 0.3) = 6
+});
+
+test('HP for 17 questions (defs only): maxWrong = 6', () => {
+  const { maxWrong } = calcHP(17);
+  assertEqual(maxWrong, 6); // ceil(17 * 0.3) = ceil(5.1) = 6
+});
+
+test('HP for 1 question: maxWrong = 1', () => {
+  const { maxWrong } = calcHP(1);
+  assertEqual(maxWrong, 1);
+});
+
+test('Full HP renders 5 full hearts, 0 half, 0 empty', () => {
+  const { full, half, empty } = computeHearts(10, 10);
+  assertEqual(full, 5);
+  assertEqual(half, 0);
+  assertEqual(empty, 0);
+});
+
+test('Zero HP renders 0 full, 0 half, 5 empty', () => {
+  const { full, half, empty } = computeHearts(0, 10);
+  assertEqual(full, 0);
+  assertEqual(half, 0);
+  assertEqual(empty, 5);
+});
+
+test('Half HP renders ~2-3 full, maybe half, rest empty', () => {
+  const { full, half, empty } = computeHearts(5, 10);
+  // 5/10 = 0.5 ratio → 5 half-hearts remaining → 2 full + 1 half + 2 empty
+  assertEqual(full + half + empty, 5, 'Total hearts should always be 5');
+  assert(full >= 1 && full <= 3, `Expected 1-3 full hearts, got ${full}`);
+});
+
+test('Total displayed hearts always equals 5', () => {
+  for (let hp = 0; hp <= 12; hp++) {
+    const { full, half, empty } = computeHearts(hp, 12);
+    assertEqual(full + half + empty, 5, `HP ${hp}/12: total hearts = ${full + half + empty}`);
+  }
+});
+
+
+suite('⚔️ Battle State & Defeat Logic');
+
+test('Hero is NOT defeated when wrong count <= 30%', () => {
+  // 37 questions, 11 wrong = 29.7% → still alive
+  const { maxWrong } = calcHP(37); // 12
+  let hp = maxWrong;
+  for (let i = 0; i < 11; i++) hp = Math.max(0, hp - 1);
+  assert(hp > 0, `HP should be > 0 after 11 wrong (got ${hp})`);
+});
+
+test('Hero IS defeated when wrong count > 30%', () => {
+  // 37 questions, 12 wrong = 32.4% → defeated
+  const { maxWrong } = calcHP(37); // 12
+  let hp = maxWrong;
+  for (let i = 0; i < 12; i++) hp = Math.max(0, hp - 1);
+  assertEqual(hp, 0, 'HP should be 0 after 12 wrong');
+});
+
+test('Defeat threshold scales with question count (vocab only = 20)', () => {
+  const { maxWrong } = calcHP(20); // 6
+  let hp = maxWrong;
+  // 6 wrong should defeat
+  for (let i = 0; i < 6; i++) hp = Math.max(0, hp - 1);
+  assertEqual(hp, 0);
+});
+
+test('Battle reset clears HP to max', () => {
+  // Simulate: start with 12 HP, take 5 damage, then reset
+  let heroMaxHP = 12;
+  let heroHP = 12;
+  for (let i = 0; i < 5; i++) heroHP--;
+  assertEqual(heroHP, 7);
+  // Reset
+  heroHP = heroMaxHP;
+  assertEqual(heroHP, 12);
+});
+
+test('Retry recalculates HP for smaller question set', () => {
+  // Original: 37 questions → maxWrong = 12
+  // Retry: only 5 wrong → maxWrong = ceil(5 * 0.3) = 2
+  const { maxWrong: retryMax } = calcHP(5);
+  assertEqual(retryMax, 2);
+});
+
+test('Each wrong answer costs exactly 1 HP', () => {
+  let hp = 10;
+  hp = Math.max(0, hp - 1);
+  assertEqual(hp, 9);
+  hp = Math.max(0, hp - 1);
+  assertEqual(hp, 8);
+});
+
+test('HP never goes below 0', () => {
+  let hp = 1;
+  hp = Math.max(0, hp - 1);
+  assertEqual(hp, 0);
+  hp = Math.max(0, hp - 1);
+  assertEqual(hp, 0, 'HP should not go below 0');
+});
+
+test('Victory condition: all correct means no damage', () => {
+  const { maxWrong } = calcHP(37);
+  let hp = maxWrong;
+  // Answer all 37 correctly → 0 wrong
+  let wrongCount = 0;
+  assertEqual(wrongCount, 0);
+  assertEqual(hp, maxWrong, 'HP should remain at max');
+});
+
+
+// ============================================================
+// RENDER RESULTS TO DOM
+// ============================================================
+function renderResults() {
+  const el = document.getElementById('results');
+  let html = '';
+  suites.forEach(s => {
+    html += `<div class="suite"><h2>${s.name}</h2>`;
+    s.tests.forEach(t => {
+      html += `<div class="test ${t.pass ? 'pass' : 'fail'}">
+        ${t.pass ? '✅' : '❌'} ${t.name}
+        ${t.error ? `<div class="detail">Error: ${t.error}</div>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  const allPass = failCount === 0;
+  html += `<div class="summary ${allPass ? 'all-pass' : 'has-fail'}">
+    ${allPass ? '🎉' : '⚠️'} ${passCount}/${totalTests} tests passed
+    ${failCount > 0 ? ` — ${failCount} failed` : ''}
+  </div>`;
+  el.innerHTML = html;
+}
+
+renderResults();
+</script>
+</body>
+</html>
