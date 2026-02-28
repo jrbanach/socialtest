@@ -573,6 +573,10 @@ let mcRetryOnly = [];
 let selectedWord = null;
 let mcCurrentQ = 0;      // current question index within active set
 
+// --- Choice shuffle maps (randomize answer order per question) ---
+let mcShuffleMap = {};     // { qIndex: [shuffledOriginalIndices] }
+let gameShuffleMap = {};   // { qIndex: [shuffledOriginalIndices] }
+
 // --- Game Quiz (Jeopardy) state ---
 let gameAnswers = {};      // { qIndex: choiceIndex } — selected answers
 let gameResults = null;    // { qIndex: true/false } — graded results per question
@@ -870,6 +874,19 @@ function getActiveMCIndices() {
   return mcRetryOnly.length > 0 ? mcRetryOnly : mcData.map((_, i) => i);
 }
 
+/** Get or create a shuffled choice order for a question. */
+function getShuffleOrder(map, qi, numChoices) {
+  if (!map[qi]) {
+    const order = Array.from({ length: numChoices }, (_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    map[qi] = order;
+  }
+  return map[qi];
+}
+
 function renderMC() {
   const activeIndices = getActiveMCIndices();
   const qEl = document.getElementById('mc-questions');
@@ -891,16 +908,16 @@ function renderMC() {
   let html = `<div class="mc-q">
     <div class="question-text" style="margin-bottom:4px;">Question ${mcCurrentQ + 1} of ${activeIndices.length}</div>
     <div class="question-text">${esc(q.question)}</div>
-    ${q.choices.map((c, ci) => {
-      const checked = selectedChoice === ci ? 'checked' : '';
+    ${getShuffleOrder(mcShuffleMap, qi, q.choices.length).map(origIdx => {
+      const checked = selectedChoice === origIdx ? 'checked' : '';
       let labelClass = '';
       if (submitted) {
-        if (ci === q.correct) labelClass = 'correct';
-        else if (selectedChoice === ci && ci !== q.correct) labelClass = 'wrong';
+        if (origIdx === q.correct) labelClass = 'correct';
+        else if (selectedChoice === origIdx && origIdx !== q.correct) labelClass = 'wrong';
       }
       return `<label class="${labelClass}">
-        <input type="radio" name="mc-${qi}" value="${ci}" ${checked} ${submitted ? 'disabled' : ''} onchange="mcSelect(${qi}, ${ci})">
-        ${esc(c)}
+        <input type="radio" name="mc-${qi}" value="${origIdx}" ${checked} ${submitted ? 'disabled' : ''} onchange="mcSelect(${qi}, ${origIdx})">
+        ${esc(q.choices[origIdx])}
       </label>`;
     }).join('')}`;
 
@@ -979,7 +996,7 @@ function retryMC(indices) {
   mcRetryOnly = indices;
   mcResults = null;
   mcCurrentQ = 0;
-  indices.forEach(i => delete mcAnswers[i]);
+  indices.forEach(i => { delete mcAnswers[i]; delete mcShuffleMap[i]; });
   document.getElementById('mc-results').style.display = 'none';
   saveProgress();
   renderMC();
@@ -989,6 +1006,7 @@ function resetMC() {
   mcRetryOnly = [];
   mcResults = null;
   mcAnswers = {};
+  mcShuffleMap = {};
   mcCurrentQ = 0;
   document.getElementById('mc-results').style.display = 'none';
   saveProgress();
@@ -1112,16 +1130,16 @@ function renderGameQuestion() {
       ${esc(q.question)}
     </div>
     <div style="font-size:0.85rem; color:#555; margin-bottom:8px;">Question ${gameCurrentQ + 1} of ${indices.length}</div>
-    ${q.choices.map((c, ci) => {
-      const checked = selectedChoice === ci ? 'checked' : '';
+    ${getShuffleOrder(gameShuffleMap, qi, q.choices.length).map(origIdx => {
+      const checked = selectedChoice === origIdx ? 'checked' : '';
       let labelClass = '';
       if (submitted) {
-        if (ci === q.correct) labelClass = 'correct';
-        else if (selectedChoice === ci && ci !== q.correct) labelClass = 'wrong';
+        if (origIdx === q.correct) labelClass = 'correct';
+        else if (selectedChoice === origIdx && origIdx !== q.correct) labelClass = 'wrong';
       }
       return `<label class="${labelClass}">
-        <input type="radio" name="game-${qi}" value="${ci}" ${checked} ${submitted ? 'disabled' : ''} onchange="gameSelect(${qi}, ${ci})">
-        ${esc(c)}
+        <input type="radio" name="game-${qi}" value="${origIdx}" ${checked} ${submitted ? 'disabled' : ''} onchange="gameSelect(${qi}, ${origIdx})">
+        ${esc(q.choices[origIdx])}
       </label>`;
     }).join('')}`;
 
@@ -1246,7 +1264,7 @@ function retryGameQuiz(indices) {
   gameRetryOnly = indices;
   gameResults = null;
   gameCurrentQ = 0;
-  indices.forEach(i => delete gameAnswers[i]);
+  indices.forEach(i => { delete gameAnswers[i]; delete gameShuffleMap[i]; });
   // Battle resets for retry
   const maxWrong = Math.ceil(indices.length * 0.3);
   heroMaxHP = Math.max(maxWrong, 1);
@@ -1262,6 +1280,7 @@ function resetGameQuiz() {
   gameRetryOnly = [];
   gameResults = null;
   gameAnswers = {};
+  gameShuffleMap = {};
   gameCurrentQ = 0;
   gameMode = null;
   gameActiveIndices = [];
