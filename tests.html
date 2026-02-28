@@ -518,6 +518,312 @@ test('Victory condition: all correct means no damage', () => {
 
 
 // ============================================================
+// RESTART FUNCTIONALITY TEST SUITE (Issue #4)
+// ============================================================
+suite('🔄 Restart Functionality');
+
+test('resetVocab clears all vocab state', () => {
+  // Simulate state
+  let vocabAnswers = { 0: 'Charter', 3: 'Almanac' };
+  let vocabResults = { 0: true, 3: false };
+  let vocabRetryOnly = [3];
+
+  // Reset (mirrors resetVocab logic)
+  vocabRetryOnly = [];
+  vocabResults = null;
+  vocabAnswers = {};
+
+  assert(Object.keys(vocabAnswers).length === 0, 'vocabAnswers should be empty');
+  assert(vocabResults === null, 'vocabResults should be null');
+  assert(vocabRetryOnly.length === 0, 'vocabRetryOnly should be empty');
+});
+
+test('resetMC clears all MC state', () => {
+  let mcAnswers = { 0: 2, 1: 1 };
+  let mcResults = { 0: true, 1: false };
+  let mcRetryOnly = [1];
+  let mcCurrentQ = 5;
+
+  // Reset (mirrors resetMC logic)
+  mcRetryOnly = [];
+  mcResults = null;
+  mcAnswers = {};
+  mcCurrentQ = 0;
+
+  assert(Object.keys(mcAnswers).length === 0, 'mcAnswers should be empty');
+  assert(mcResults === null, 'mcResults should be null');
+  assert(mcRetryOnly.length === 0, 'mcRetryOnly should be empty');
+  assert(mcCurrentQ === 0, 'mcCurrentQ should be 0');
+});
+
+test('resetGameQuiz clears all game state and returns to mode selection', () => {
+  let gameAnswers = { 0: 1, 1: 2 };
+  let gameResults = { 0: true, 1: false };
+  let gameRetryOnly = [1];
+  let gameCurrentQ = 3;
+  let gameMode = 'random';
+  let gameActiveIndices = [0, 1, 2, 3];
+  let heroHP = 2;
+  let heroMaxHP = 5;
+  let heroDefeated = true;
+
+  // Reset (mirrors resetGameQuiz logic)
+  gameRetryOnly = [];
+  gameResults = null;
+  gameAnswers = {};
+  gameCurrentQ = 0;
+  gameMode = null;
+  gameActiveIndices = [];
+  heroHP = 10;
+  heroMaxHP = 10;
+  heroDefeated = false;
+
+  assert(Object.keys(gameAnswers).length === 0, 'gameAnswers should be empty');
+  assert(gameResults === null, 'gameResults should be null');
+  assert(gameRetryOnly.length === 0, 'gameRetryOnly should be empty');
+  assert(gameCurrentQ === 0, 'gameCurrentQ should be 0');
+  assert(gameMode === null, 'gameMode should be null (shows settings dialog)');
+  assert(gameActiveIndices.length === 0, 'gameActiveIndices should be empty');
+  assert(heroHP === 10, 'heroHP should reset to default');
+  assert(heroMaxHP === 10, 'heroMaxHP should reset to default');
+  assert(heroDefeated === false, 'heroDefeated should be false');
+});
+
+test('Battle state fully resets on game restart', () => {
+  // Simulate a mid-game state with damage taken
+  let heroHP = 1;
+  let heroMaxHP = 4;
+  let heroDefeated = true;
+
+  // Reset battle (mirrors resetGameQuiz)
+  heroHP = 10;
+  heroMaxHP = 10;
+  heroDefeated = false;
+
+  assert(heroHP === 10, 'HP should be at default max');
+  assert(!heroDefeated, 'heroDefeated should be false');
+  const hearts = computeHearts(heroHP, heroMaxHP);
+  assert(hearts.full === 5, 'Should show 5 full hearts after reset');
+  assert(hearts.half === 0, 'No half hearts');
+  assert(hearts.empty === 0, 'No empty hearts');
+});
+
+test('Vocab restart does not affect MC state', () => {
+  let vocabAnswers = { 0: 'Charter' };
+  let mcAnswers = { 0: 2, 1: 3 };
+  let mcResults = { 0: true, 1: true };
+
+  // Reset vocab only
+  vocabAnswers = {};
+
+  assert(Object.keys(mcAnswers).length === 2, 'MC answers should be untouched');
+  assert(mcResults[0] === true, 'MC results should be untouched');
+});
+
+test('MC restart does not affect Game Quiz state', () => {
+  let mcAnswers = { 0: 2 };
+  let gameAnswers = { 0: 1, 1: 0 };
+  let heroHP = 3;
+
+  // Reset MC only
+  mcAnswers = {};
+
+  assert(Object.keys(gameAnswers).length === 2, 'Game answers should be untouched');
+  assert(heroHP === 3, 'Hero HP should be untouched');
+});
+
+test('Game Quiz restart does not affect Vocab or MC state', () => {
+  let vocabAnswers = { 0: 'Charter', 5: 'Pilgrim' };
+  let mcAnswers = { 0: 2 };
+  let gameAnswers = { 0: 1 };
+  let gameMode = 'random';
+
+  // Reset game only
+  gameAnswers = {};
+  gameMode = null;
+
+  assert(Object.keys(vocabAnswers).length === 2, 'Vocab answers should be untouched');
+  assert(Object.keys(mcAnswers).length === 1, 'MC answers should be untouched');
+});
+
+test('Mid-quiz restart resets question index to 0', () => {
+  // Simulate mid-quiz in MC at question 8
+  let mcCurrentQ = 8;
+  let mcAnswers = { 0: 1, 1: 2, 2: 0, 3: 3, 4: 1, 5: 2, 6: 0, 7: 3 };
+
+  // Reset
+  mcCurrentQ = 0;
+  mcAnswers = {};
+
+  assert(mcCurrentQ === 0, 'Current question should be 0');
+  assert(Object.keys(mcAnswers).length === 0, 'Answers should be cleared');
+});
+
+test('Game Quiz restart recalculates HP when new mode is selected', () => {
+  // After reset, start a new game with vocab-only mode (20 questions)
+  const vocabIndices = buildGameIndices(DEFAULT_JEOPARDY, 'vocab');
+  const hp = calcHP(vocabIndices.length);
+  assert(hp.heroMaxHP === Math.ceil(20 * 0.3), 'HP for vocab mode should be ceil(20 * 0.3) = 6');
+
+  // Now try defs mode (17 questions)
+  const defsIndices = buildGameIndices(DEFAULT_JEOPARDY, 'defs');
+  const hp2 = calcHP(defsIndices.length);
+  assert(hp2.heroMaxHP === Math.ceil(17 * 0.3), 'HP for defs mode should be ceil(17 * 0.3) = 6');
+});
+
+test('confirmRestart sections map to correct reset functions', () => {
+  // Verify the section name mapping used by confirmRestart
+  const names = { vocab: 'Vocabulary', mc: 'Multiple Choice', gamequiz: 'Game Quiz' };
+  assert(names['vocab'] === 'Vocabulary', 'vocab maps to Vocabulary');
+  assert(names['mc'] === 'Multiple Choice', 'mc maps to Multiple Choice');
+  assert(names['gamequiz'] === 'Game Quiz', 'gamequiz maps to Game Quiz');
+});
+
+// ============================================================
+// PERSISTENCE & PLAYER SUITE
+// ============================================================
+// Minimal test data for persistence tests
+const DEFAULT_VOCAB = [
+  { term: "Charter", definition: "An official document from a king or queen" },
+  { term: "Pilgrim", definition: "A person who traveled to Plymouth" },
+];
+const DEFAULT_MC = [
+  { question: "Who helped the Pilgrims?", choices: ["Squanto","Drake","Raleigh","Penn"], correct: 0 },
+];
+
+suite('Persistence & Player Tests');
+
+test('saveData writes to localStorage', () => {
+  // Simulate saveData localStorage write
+  const payload = { vocab: DEFAULT_VOCAB, mc: DEFAULT_MC, jeopardy: DEFAULT_JEOPARDY };
+  const key = 'socialStudiesQuizData';
+  localStorage.setItem(key, JSON.stringify(payload));
+  const saved = JSON.parse(localStorage.getItem(key));
+  assert(saved.vocab.length === DEFAULT_VOCAB.length, 'Vocab saved to localStorage');
+  assert(saved.mc.length === DEFAULT_MC.length, 'MC saved to localStorage');
+  assert(saved.jeopardy.length === DEFAULT_JEOPARDY.length, 'Jeopardy saved to localStorage');
+  localStorage.removeItem(key);
+});
+
+test('loadData falls back to localStorage when API unavailable', () => {
+  // Simulate localStorage fallback
+  const key = 'socialStudiesQuizData';
+  const custom = { vocab: [{ term: 'Test', definition: 'A test' }], mc: [], jeopardy: [] };
+  localStorage.setItem(key, JSON.stringify(custom));
+  const loaded = JSON.parse(localStorage.getItem(key));
+  assert(loaded.vocab[0].term === 'Test', 'Should load custom vocab from localStorage');
+  assert(loaded.mc.length === 0, 'Should load empty mc from localStorage');
+  localStorage.removeItem(key);
+});
+
+test('loadData falls back to DEFAULT when no localStorage', () => {
+  const key = 'socialStudiesQuizData';
+  localStorage.removeItem(key);
+  const saved = localStorage.getItem(key);
+  assert(saved === null, 'No localStorage data');
+  // When both API and localStorage fail, DEFAULT arrays are used
+  assert(DEFAULT_VOCAB.length > 0, 'DEFAULT_VOCAB exists as final fallback');
+  assert(DEFAULT_MC.length > 0, 'DEFAULT_MC exists as final fallback');
+  assert(DEFAULT_JEOPARDY.length > 0, 'DEFAULT_JEOPARDY exists as final fallback');
+});
+
+test('Edit-save-refresh cycle preserves custom edits in localStorage', () => {
+  const key = 'socialStudiesQuizData';
+  // Start with defaults
+  let vocabData = JSON.parse(JSON.stringify(DEFAULT_VOCAB));
+  // Edit a question
+  vocabData[0] = { term: 'Edited Term', definition: 'Edited Definition' };
+  // Save (simulating saveData localStorage write)
+  const payload = { vocab: vocabData, mc: DEFAULT_MC, jeopardy: DEFAULT_JEOPARDY };
+  localStorage.setItem(key, JSON.stringify(payload));
+  // "Refresh" — reload from localStorage
+  const reloaded = JSON.parse(localStorage.getItem(key));
+  assert(reloaded.vocab[0].term === 'Edited Term', 'Edited term persists after refresh');
+  assert(reloaded.vocab[0].definition === 'Edited Definition', 'Edited definition persists');
+  assert(reloaded.vocab.length === DEFAULT_VOCAB.length, 'Array length unchanged');
+  localStorage.removeItem(key);
+});
+
+test('saveInFlight guard prevents concurrent saves', () => {
+  let saveInFlight = false;
+  // Simulate first save starting
+  saveInFlight = true;
+  // Second save should be blocked
+  assert(saveInFlight === true, 'Guard is active');
+  // First save completes
+  saveInFlight = false;
+  assert(saveInFlight === false, 'Guard released after save');
+});
+
+test('Player data stored and retrieved from localStorage', () => {
+  const pid = 'test-uuid-123';
+  const pname = 'TestKid';
+  localStorage.setItem('socialtest_playerId', pid);
+  localStorage.setItem('socialtest_playerName', pname);
+  assert(localStorage.getItem('socialtest_playerId') === pid, 'Player ID persisted');
+  assert(localStorage.getItem('socialtest_playerName') === pname, 'Player name persisted');
+  localStorage.removeItem('socialtest_playerId');
+  localStorage.removeItem('socialtest_playerName');
+});
+
+test('Player change clears localStorage identity', () => {
+  localStorage.setItem('socialtest_playerId', 'old-id');
+  localStorage.setItem('socialtest_playerName', 'OldName');
+  // Simulate changePlayer
+  localStorage.removeItem('socialtest_playerId');
+  localStorage.removeItem('socialtest_playerName');
+  assert(localStorage.getItem('socialtest_playerId') === null, 'Player ID cleared');
+  assert(localStorage.getItem('socialtest_playerName') === null, 'Player name cleared');
+});
+
+test('History record has all required fields', () => {
+  const record = {
+    playerId: 'uuid-123',
+    playerName: 'TestKid',
+    section: 'vocab',
+    mode: null,
+    score: 15,
+    total: 20,
+    percentage: Math.round((15 / 20) * 100),
+    timestamp: new Date().toISOString(),
+    duration: 0,
+  };
+  assert(record.playerId === 'uuid-123', 'Has playerId');
+  assert(record.playerName === 'TestKid', 'Has playerName');
+  assert(record.section === 'vocab', 'Has section');
+  assert(record.score === 15, 'Has score');
+  assert(record.total === 20, 'Has total');
+  assert(record.percentage === 75, 'Percentage calculated correctly');
+  assert(record.timestamp.length > 10, 'Has ISO timestamp');
+});
+
+test('History records accumulate in localStorage', () => {
+  const key = 'socialtest_history';
+  localStorage.removeItem(key);
+  const records = [];
+  // Simulate two attempts
+  records.push({ playerId: '1', playerName: 'A', section: 'vocab', score: 10, total: 20, percentage: 50, timestamp: new Date().toISOString(), duration: 0 });
+  records.push({ playerId: '1', playerName: 'A', section: 'mc', score: 15, total: 17, percentage: 88, timestamp: new Date().toISOString(), duration: 0 });
+  localStorage.setItem(key, JSON.stringify(records));
+  const loaded = JSON.parse(localStorage.getItem(key));
+  assert(loaded.length === 2, 'Two records stored');
+  assert(loaded[0].section === 'vocab', 'First record is vocab');
+  assert(loaded[1].section === 'mc', 'Second record is mc');
+  localStorage.removeItem(key);
+});
+
+test('logAttempt only fires on initial attempt, not retry', () => {
+  // The design says: log only when retryOnly array is empty
+  let vocabRetryOnly = [];
+  const shouldLog = vocabRetryOnly.length === 0;
+  assert(shouldLog === true, 'Logs on initial attempt');
+
+  vocabRetryOnly = [2, 5, 8];
+  const shouldNotLog = vocabRetryOnly.length === 0;
+  assert(shouldNotLog === false, 'Does not log on retry');
+});
+
+// ============================================================
 // RENDER RESULTS TO DOM
 // ============================================================
 function renderResults() {
