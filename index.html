@@ -563,6 +563,145 @@ const STORAGE_KEY = "socialtest_progress";
 const DATA_KEY = "socialtest_data";
 const API_URL = "https://socialtest-api.azurewebsites.net/api";
 
+// ============================================================
+// QUEST ENGINE — Quiz-Agnostic Stage & Enemy System
+// The quest engine is decoupled from quiz content so any
+// question set can plug in (social studies, science, etc.).
+// ============================================================
+
+/** Enemy definitions — each stage maps to one enemy type. */
+const ENEMY_ROSTER = [
+  { id: 'wolf',        name: 'Wolf Pack',        emoji: '🐺', hp: 3,  atk: 1, special: null,
+    desc: 'A pack of hungry wolves blocks the path!' },
+  { id: 'skeleton',    name: 'Skeleton Warrior',  emoji: '💀', hp: 5,  atk: 1, special: null,
+    desc: 'An ancient skeleton rises from the ground!' },
+  { id: 'wizard',      name: 'Dark Wizard',       emoji: '🧙', hp: 6,  atk: 1, special: 'curse',
+    desc: 'A dark wizard appears in a puff of smoke!' },
+  { id: 'darkknight',  name: 'Dark Knight',       emoji: '⚔️', hp: 8,  atk: 2, special: null,
+    desc: 'A fearsome dark knight challenges you!' },
+  { id: 'dragon',      name: 'Dragon Boss',       emoji: '🐉', hp: 10, atk: 2, special: 'firebreath',
+    desc: 'The mighty dragon awaits — final battle!' }
+];
+
+/** Power-up pool — offered between stages via roguelike draft. */
+const POWERUP_POOL = [
+  { id: 'sharp-sword',    name: 'Sharp Sword',    emoji: '🗡️', slot: 'weapon',    effect: { atk: 1 },
+    desc: '+1 attack damage' },
+  { id: 'iron-shield',    name: 'Iron Shield',    emoji: '🛡️', slot: 'armor',     effect: { blockFirst: true },
+    desc: 'Block first wrong answer each stage' },
+  { id: 'healing-potion', name: 'Healing Potion', emoji: '💚', slot: 'consumable', effect: { healHearts: 2 },
+    desc: 'Restore 2 hearts' },
+  { id: 'speed-boots',    name: 'Speed Boots',    emoji: '⚡', slot: 'accessory',  effect: { xpBonus: 0.5 },
+    desc: 'Bonus XP from correct answers' },
+  { id: 'fire-amulet',    name: 'Fire Amulet',    emoji: '🔥', slot: 'accessory',  effect: { firstHitDouble: true },
+    desc: 'Double damage on first hit each stage' },
+  { id: 'lucky-clover',   name: 'Lucky Clover',   emoji: '🍀', slot: 'accessory',  effect: { dodgeChance: 0.25 },
+    desc: '25% chance wrong answer doesn\'t count' },
+  { id: 'pet-companion',  name: 'Pet Companion',  emoji: '🐾', slot: 'accessory',  effect: { passiveHeal: 5 },
+    desc: 'Heal 1 half-heart every 5 questions' }
+];
+
+/** Random event pool — triggered between stages. */
+const EVENT_POOL = [
+  { id: 'camp',     name: 'Rest at Camp',        emoji: '🏕️', type: 'choice',
+    desc: 'You find a cozy campsite. Rest and heal 1 heart?',
+    effect: { healHearts: 1 } },
+  { id: 'merchant', name: 'Traveling Merchant',   emoji: '🎪', type: 'trade',
+    desc: 'A merchant offers to trade one of your items for something new.',
+    effect: { tradeItem: true } },
+  { id: 'ambush',   name: 'Ambush!',              emoji: '⚠️', type: 'minibattle',
+    desc: 'Bandits attack! Answer 2 bonus questions for extra XP.',
+    effect: { bonusQuestions: 2, xpReward: 20 } },
+  { id: 'shortcut', name: 'Shortcut Found',       emoji: '🗺️', type: 'choice',
+    desc: 'A hidden path! Skip ahead but miss the next power-up draft.',
+    effect: { skipDraft: true } }
+];
+
+/**
+ * Build stages for a quest run. Quiz-agnostic: takes any question array
+ * and distributes questions across stages with matching enemies.
+ * @param {Array} questions - Array of question objects (any format)
+ * @param {string} mode - Quiz mode for filtering ("random"|"all"|"vocab"|"defs")
+ * @param {Object} [options] - Optional overrides
+ * @param {number} [options.maxStages=5] - Max stages (capped by enemy roster)
+ * @param {number} [options.minPerStage=4] - Min questions per stage
+ * @returns {{ stages: Array, totalQuestions: number }}
+ */
+function buildQuestStages(questions, mode, options = {}) {
+  const maxStages = Math.min(options.maxStages || 5, ENEMY_ROSTER.length);
+  const minPerStage = options.minPerStage || 4;
+
+  // Filter and order questions by mode
+  const indices = buildGameIndices(mode);
+  const total = indices.length;
+
+  // Calculate stage count: at least 2, at most maxStages, need minPerStage each
+  const stageCount = Math.max(2, Math.min(maxStages, Math.floor(total / minPerStage)));
+
+  // Distribute questions evenly, remainder goes to later stages (boss gets most)
+  const basePerStage = Math.floor(total / stageCount);
+  const remainder = total % stageCount;
+
+  // Select enemies: always end with dragon boss, pick evenly from roster for earlier stages
+  const enemies = selectEnemies(stageCount);
+
+  const stages = [];
+  let offset = 0;
+  for (let s = 0; s < stageCount; s++) {
+    // Later stages get +1 from remainder (boss stage gets extras)
+    const count = basePerStage + (s >= stageCount - remainder ? 1 : 0);
+    stages.push({
+      stageIndex: s,
+      enemy: enemies[s],
+      questionIndices: indices.slice(offset, offset + count),
+      isBoss: s === stageCount - 1
+    });
+    offset += count;
+  }
+
+  return { stages, totalQuestions: total };
+}
+
+/**
+ * Select enemies for a given number of stages.
+ * Always ends with dragon boss. Earlier stages pick evenly from the roster.
+ * @param {number} stageCount
+ * @returns {Array} enemy definitions for each stage
+ */
+function selectEnemies(stageCount) {
+  const nonBoss = ENEMY_ROSTER.filter(e => e.id !== 'dragon');
+  const boss = ENEMY_ROSTER.find(e => e.id === 'dragon');
+  const enemies = [];
+
+  // Pick (stageCount - 1) enemies from non-boss roster, evenly spaced
+  const step = nonBoss.length / (stageCount - 1);
+  for (let i = 0; i < stageCount - 1; i++) {
+    enemies.push(nonBoss[Math.min(Math.floor(i * step), nonBoss.length - 1)]);
+  }
+  enemies.push(boss); // final stage is always dragon
+  return enemies;
+}
+
+/** Default hero stats at the start of a quest run. */
+const DEFAULT_HERO_STATS = {
+  level: 1,
+  xp: 0,
+  xpToNext: 30,      // XP needed to reach next level
+  atk: 1,             // damage per correct answer
+  def: 0,             // damage reduction (0 = none)
+  maxHP: 10,          // max half-hearts (5 full hearts)
+  equipment: {        // 3 slots
+    weapon: null,
+    armor: null,
+    accessory: null
+  },
+  titles: []          // earned during run: "Dragon Slayer", etc.
+};
+
+// ============================================================
+// END QUEST ENGINE
+// ============================================================
+
 let vocabData, mcData, jeopardyData;
 let vocabAnswers = {};   // { qIndex: "term" }
 let mcAnswers = {};      // { qIndex: choiceIndex }
