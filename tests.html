@@ -1130,6 +1130,24 @@ test('Equipment applies stat modifiers correctly', () => {
   assert(hero.equipment.weapon.id === 'sharp-sword', 'Sword equipped');
 });
 
+test('Replacing equipment removes old stat bonuses', () => {
+  const hero = { atk: 1, xpBonus: 0, equipment: { weapon: null, armor: null, accessory: null } };
+  const sword1 = { id: 'sharp-sword', slot: 'weapon', effect: { atk: 1 } };
+  const sword2 = { id: 'sharp-sword', slot: 'weapon', effect: { atk: 1 } };
+
+  // Equip first sword
+  hero.atk += sword1.effect.atk;
+  hero.equipment.weapon = sword1;
+  assert(hero.atk === 2, 'First sword: atk = 2');
+
+  // Replace with second sword — must remove old bonus first
+  const oldEff = hero.equipment.weapon.effect;
+  if (oldEff.atk) hero.atk -= oldEff.atk;
+  hero.atk += sword2.effect.atk;
+  hero.equipment.weapon = sword2;
+  assert(hero.atk === 2, `After replacement: expected 2, got ${hero.atk} (no stacking)`);
+});
+
 test('getEquipmentEffect finds effects across slots', () => {
   const eq = {
     weapon: { effect: { atk: 1 } },

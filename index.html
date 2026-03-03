@@ -909,6 +909,13 @@ function applyPowerup(powerup) {
   const hero = questState.hero;
   const eff = powerup.effect;
 
+  // Remove old equipment bonuses before applying new ones
+  if (powerup.slot !== 'consumable' && hero.equipment[powerup.slot]) {
+    const oldEff = hero.equipment[powerup.slot].effect;
+    if (oldEff.atk) hero.atk -= oldEff.atk;
+    if (oldEff.xpBonus) hero.xpBonus = Math.max(0, (hero.xpBonus || 0) - oldEff.xpBonus);
+  }
+
   if (eff.atk) hero.atk += eff.atk;
   if (eff.healHearts) {
     heroHP = Math.min(heroHP + eff.healHearts * 2, heroMaxHP);
