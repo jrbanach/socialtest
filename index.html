@@ -1772,259 +1772,965 @@ function renderBattleCanvas() {
 
   // Draw characters
   drawCapybaraKnight(ctx, 70, 55);
-  drawDragon(ctx, w - 90, 45);
+  // Use drawEnemy dispatcher for the current enemy (falls back to dragon)
+  const currentEnemyId = (typeof questState !== 'undefined' && questState.currentEnemy && questState.currentEnemy.id) ? questState.currentEnemy.id : 'dragon';
+  drawEnemy(ctx, w - 90, 45, currentEnemyId);
 }
 
 /**
- * Draw the capybara knight hero at position (cx, cy).
- * cx, cy is the center of the body.
+ * Draw the capybara knight hero — cute Capybara Go style.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} cx - center x
+ * @param {number} cy - center y
+ * @param {string} [pose='idle'] - 'idle'|'attack'|'hurt'|'defeat'
  */
-function drawCapybaraKnight(ctx, cx, cy) {
+function drawCapybaraKnight(ctx, cx, cy, pose) {
+  if (!pose) {
+    // Legacy calls: infer pose from game state
+    if (heroDefeated && heroHP <= 0) pose = 'defeat';
+    else pose = 'idle';
+  }
   ctx.save();
 
-  // If defeated: slumped pose (tilted, lowered) instead of full rotation
-  if (heroDefeated && heroHP <= 0) {
+  // Pose transforms
+  if (pose === 'defeat') {
     ctx.globalAlpha = 0.85;
     ctx.translate(cx, cy + 10);
-    ctx.rotate(0.4); // slight tilt, not full rotation
+    ctx.rotate(0.4);
     ctx.translate(-cx, -(cy + 10));
+  } else if (pose === 'attack') {
+    ctx.translate(4, -2); // lean forward
+  } else if (pose === 'hurt') {
+    ctx.translate(-3, 0); // lean back
   }
 
-  // Cape (behind body)
-  ctx.fillStyle = '#c41e3a';
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
   ctx.beginPath();
-  ctx.moveTo(cx - 12, cy - 5);
-  ctx.quadraticCurveTo(cx - 28, cy + 20, cx - 15, cy + 35);
-  ctx.lineTo(cx - 8, cy);
+  ctx.ellipse(cx, cy + 36, 18, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cape (behind body) — gradient red
+  const capeGrad = ctx.createLinearGradient(cx - 25, cy - 5, cx - 10, cy + 35);
+  capeGrad.addColorStop(0, '#e63946');
+  capeGrad.addColorStop(1, '#9b1b30');
+  ctx.fillStyle = capeGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - 10, cy - 2);
+  ctx.quadraticCurveTo(cx - 30, cy + 18, cx - 16, cy + 34);
+  ctx.quadraticCurveTo(cx - 12, cy + 28, cx - 8, cy + 34);
+  ctx.lineTo(cx - 6, cy + 2);
   ctx.closePath();
   ctx.fill();
 
-  // Body (brown oval)
-  ctx.fillStyle = '#a07830';
+  // Body — warm brown gradient, rounder
+  const bodyGrad = ctx.createRadialGradient(cx, cy + 10, 4, cx, cy + 12, 20);
+  bodyGrad.addColorStop(0, '#d4a35a');
+  bodyGrad.addColorStop(1, '#a07830');
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 12, 18, 15, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Belly patch — lighter
+  ctx.fillStyle = '#e8c88a';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 16, 11, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs — rounded
+  ctx.fillStyle = '#8b6914';
+  ctx.beginPath(); ctx.ellipse(cx - 9, cy + 28, 5, 7, -0.1, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 9, cy + 28, 5, 7, 0.1, 0, Math.PI * 2); ctx.fill();
+  // Feet — little rounded paws
+  ctx.fillStyle = '#5a3e0a';
+  ctx.beginPath(); ctx.ellipse(cx - 10, cy + 34, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 10, cy + 34, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Head — warm gradient circle
+  const headGrad = ctx.createRadialGradient(cx - 2, cy - 14, 3, cx, cy - 10, 16);
+  headGrad.addColorStop(0, '#d4a35a');
+  headGrad.addColorStop(1, '#b08830');
+  ctx.fillStyle = headGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 10, 15, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cheeks — rosy
+  ctx.fillStyle = 'rgba(255, 150, 150, 0.35)';
+  ctx.beginPath(); ctx.ellipse(cx - 11, cy - 5, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 11, cy - 5, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Ears — rounded with inner color
+  ctx.fillStyle = '#8b6914';
+  ctx.beginPath(); ctx.ellipse(cx - 11, cy - 23, 5, 5, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 11, cy - 23, 5, 5, 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f0c89a';
+  ctx.beginPath(); ctx.ellipse(cx - 11, cy - 23, 3, 3, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 11, cy - 23, 3, 3, 0.3, 0, Math.PI * 2); ctx.fill();
+
+  // Eyes — large, expressive
+  if (pose === 'defeat') {
+    drawXEyes(ctx, cx, cy - 12, 4);
+  } else if (pose === 'hurt') {
+    // Squinting eyes
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - 8, cy - 12); ctx.lineTo(cx - 2, cy - 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 2, cy - 12); ctx.lineTo(cx + 8, cy - 12); ctx.stroke();
+  } else {
+    // Big cute eyes
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(cx - 5, cy - 12, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 5, cy - 12, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2c1810';
+    ctx.beginPath(); ctx.arc(cx - 5, cy - 11, 2.8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 5, cy - 11, 2.8, 0, Math.PI * 2); ctx.fill();
+    // Shine highlights
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(cx - 4, cy - 13, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 6, cy - 13, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx - 6, cy - 10, 0.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4, cy - 10, 0.6, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Nose — cute oval
+  ctx.fillStyle = '#5a3e0a';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 5, 4.5, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Nose shine
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.beginPath(); ctx.ellipse(cx - 1, cy - 6, 1.5, 1, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Mouth — small smile
+  if (pose !== 'defeat' && pose !== 'hurt') {
+    ctx.strokeStyle = '#5a3e0a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy - 2, 3, 0.1, Math.PI - 0.1);
+    ctx.stroke();
+  }
+
+  // Helmet — polished steel gradient
+  const helmetGrad = ctx.createLinearGradient(cx - 14, cy - 30, cx + 14, cy - 8);
+  helmetGrad.addColorStop(0, '#b0b8c8');
+  helmetGrad.addColorStop(0.4, '#d4dae4');
+  helmetGrad.addColorStop(0.7, '#8a92a2');
+  helmetGrad.addColorStop(1, '#6a7080');
+  ctx.fillStyle = helmetGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - 15, cy - 8);
+  ctx.quadraticCurveTo(cx - 16, cy - 22, cx, cy - 30);
+  ctx.quadraticCurveTo(cx + 16, cy - 22, cx + 15, cy - 8);
+  ctx.lineTo(cx + 16, cy - 6);
+  ctx.quadraticCurveTo(cx, cy - 26, cx - 16, cy - 6);
+  ctx.closePath();
+  ctx.fill();
+  // Helmet rim
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - 16, cy - 6);
+  ctx.lineTo(cx + 16, cy - 6);
+  ctx.stroke();
+  // Helmet plume — gradient feather
+  const plumeGrad = ctx.createLinearGradient(cx - 3, cy - 38, cx + 3, cy - 28);
+  plumeGrad.addColorStop(0, '#ff4060');
+  plumeGrad.addColorStop(1, '#c41e3a');
+  ctx.fillStyle = plumeGrad;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 32, 4, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Sword (right side) — shiny blade
+  ctx.save();
+  ctx.translate(cx + 22, cy - 5);
+  if (pose === 'attack') ctx.rotate(-0.5); else ctx.rotate(0.2);
+  // Blade gradient
+  const bladeGrad = ctx.createLinearGradient(-2, -22, 4, -22);
+  bladeGrad.addColorStop(0, '#e8eef5');
+  bladeGrad.addColorStop(0.5, '#ffffff');
+  bladeGrad.addColorStop(1, '#b0b8c8');
+  ctx.fillStyle = bladeGrad;
+  ctx.beginPath();
+  ctx.moveTo(0, -22);
+  ctx.lineTo(3, -18);
+  ctx.lineTo(2, 6);
+  ctx.lineTo(-2, 6);
+  ctx.lineTo(-3, -18);
+  ctx.closePath();
+  ctx.fill();
+  // Guard
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.ellipse(0, 7, 5, 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Handle
+  const handleGrad = ctx.createLinearGradient(-2, 9, 2, 9);
+  handleGrad.addColorStop(0, '#8b4513');
+  handleGrad.addColorStop(1, '#a0522d');
+  ctx.fillStyle = handleGrad;
+  ctx.fillRect(-2, 9, 4, 8);
+  // Pommel
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath(); ctx.arc(0, 18, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // Shield (left side) — gradient heraldic
+  ctx.save();
+  const shieldGrad = ctx.createLinearGradient(cx - 34, cy - 5, cx - 12, cy + 18);
+  shieldGrad.addColorStop(0, '#3a7bd5');
+  shieldGrad.addColorStop(1, '#1e4d8c');
+  ctx.fillStyle = shieldGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - 22, cy - 8);
+  ctx.quadraticCurveTo(cx - 34, cy, cx - 30, cy + 10);
+  ctx.quadraticCurveTo(cx - 22, cy + 20, cx - 14, cy + 10);
+  ctx.quadraticCurveTo(cx - 10, cy, cx - 22, cy - 8);
+  ctx.closePath();
+  ctx.fill();
+  // Shield emblem — golden star
+  ctx.fillStyle = '#ffd700';
+  drawMiniStar(ctx, cx - 22, cy + 5, 5);
+  // Shield border
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 22, cy - 8);
+  ctx.quadraticCurveTo(cx - 34, cy, cx - 30, cy + 10);
+  ctx.quadraticCurveTo(cx - 22, cy + 20, cx - 14, cy + 10);
+  ctx.quadraticCurveTo(cx - 10, cy, cx - 22, cy - 8);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+// ---- Enemy Draw Functions (Capybara Go style) ----
+
+/**
+ * Dispatcher: draw the appropriate enemy based on id.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x - center x
+ * @param {number} y - center y
+ * @param {string} enemyId - one of 'wolf','skeleton','wizard','darkknight','dragon'
+ * @param {string} [pose='idle'] - 'idle'|'attack'|'hurt'|'defeat'
+ */
+function drawEnemy(ctx, x, y, enemyId, pose) {
+  pose = pose || 'idle';
+  switch (enemyId) {
+    case 'wolf':       drawWolf(ctx, x, y, pose); break;
+    case 'skeleton':   drawSkeleton(ctx, x, y, pose); break;
+    case 'wizard':     drawWizard(ctx, x, y, pose); break;
+    case 'darkknight': drawDarkKnight(ctx, x, y, pose); break;
+    case 'dragon':
+    default:           drawDragon(ctx, x, y, pose); break;
+  }
+}
+
+/** Draw a cute menacing grey wolf. */
+function drawWolf(ctx, cx, cy, pose) {
+  ctx.save();
+  if (pose === 'defeat') {
+    ctx.globalAlpha = 0.7;
+    ctx.translate(cx, cy + 12);
+    ctx.rotate(Math.PI / 2);
+    ctx.translate(-cx, -(cy + 12));
+  } else if (pose === 'attack') { ctx.translate(-4, -2); }
+  else if (pose === 'hurt') { ctx.translate(3, 0); }
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.1)';
+  ctx.beginPath(); ctx.ellipse(cx, cy + 36, 16, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Tail — bushy
+  const tailGrad = ctx.createLinearGradient(cx + 18, cy + 5, cx + 35, cy - 10);
+  tailGrad.addColorStop(0, '#7a7a82');
+  tailGrad.addColorStop(1, '#b0b0b8');
+  ctx.fillStyle = tailGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx + 14, cy + 12);
+  ctx.quadraticCurveTo(cx + 30, cy + 2, cx + 34, cy - 10);
+  ctx.quadraticCurveTo(cx + 38, cy - 6, cx + 32, cy + 4);
+  ctx.quadraticCurveTo(cx + 28, cy + 14, cx + 12, cy + 16);
+  ctx.closePath();
+  ctx.fill();
+  // White tail tip
+  ctx.fillStyle = '#e0e0e5';
+  ctx.beginPath(); ctx.arc(cx + 34, cy - 8, 4, 0, Math.PI * 2); ctx.fill();
+
+  // Body — grey gradient
+  const bodyGrad = ctx.createRadialGradient(cx, cy + 10, 4, cx, cy + 12, 20);
+  bodyGrad.addColorStop(0, '#9a9aa2');
+  bodyGrad.addColorStop(1, '#6a6a72');
+  ctx.fillStyle = bodyGrad;
   ctx.beginPath();
   ctx.ellipse(cx, cy + 12, 18, 14, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  // Belly
+  ctx.fillStyle = '#c0c0c8';
+  ctx.beginPath(); ctx.ellipse(cx, cy + 16, 10, 8, 0, 0, Math.PI * 2); ctx.fill();
+
   // Legs
-  ctx.fillStyle = '#8b6914';
-  ctx.fillRect(cx - 12, cy + 22, 7, 12);
-  ctx.fillRect(cx + 5, cy + 22, 7, 12);
-  // Feet
-  ctx.fillStyle = '#5a3e0a';
-  ctx.fillRect(cx - 13, cy + 32, 9, 3);
-  ctx.fillRect(cx + 4, cy + 32, 9, 3);
+  ctx.fillStyle = '#5a5a62';
+  ctx.beginPath(); ctx.ellipse(cx - 9, cy + 27, 5, 7, -0.1, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 9, cy + 27, 5, 7, 0.1, 0, Math.PI * 2); ctx.fill();
+  // Paws
+  ctx.fillStyle = '#404048';
+  ctx.beginPath(); ctx.ellipse(cx - 10, cy + 33, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 10, cy + 33, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
 
-  // Head (brown circle)
-  ctx.fillStyle = '#b08830';
+  // Head
+  const headGrad = ctx.createRadialGradient(cx, cy - 12, 3, cx, cy - 8, 16);
+  headGrad.addColorStop(0, '#a0a0a8');
+  headGrad.addColorStop(1, '#7a7a82');
+  ctx.fillStyle = headGrad;
   ctx.beginPath();
-  ctx.arc(cx, cy - 10, 14, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy - 8, 14, 13, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Ears
-  ctx.fillStyle = '#8b6914';
+  // Snout
+  ctx.fillStyle = '#8a8a92';
+  ctx.beginPath(); ctx.ellipse(cx, cy - 1, 8, 6, 0, 0, Math.PI * 2); ctx.fill();
+  // Snout lighter
+  ctx.fillStyle = '#c0c0c8';
+  ctx.beginPath(); ctx.ellipse(cx, cy, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Nose
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.ellipse(cx, cy - 4, 3, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.beginPath(); ctx.ellipse(cx - 1, cy - 5, 1, 0.7, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Ears — pointed
+  ctx.fillStyle = '#6a6a72';
   ctx.beginPath();
-  ctx.ellipse(cx - 10, cy - 22, 5, 4, -0.3, 0, Math.PI * 2);
+  ctx.moveTo(cx - 8, cy - 18);
+  ctx.quadraticCurveTo(cx - 14, cy - 36, cx - 6, cy - 24);
+  ctx.closePath();
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(cx + 10, cy - 22, 5, 4, 0.3, 0, Math.PI * 2);
+  ctx.moveTo(cx + 8, cy - 18);
+  ctx.quadraticCurveTo(cx + 14, cy - 36, cx + 6, cy - 24);
+  ctx.closePath();
   ctx.fill();
   // Inner ear
-  ctx.fillStyle = '#d4a05a';
+  ctx.fillStyle = '#c89a9a';
   ctx.beginPath();
-  ctx.ellipse(cx - 10, cy - 22, 3, 2.5, -0.3, 0, Math.PI * 2);
+  ctx.moveTo(cx - 8, cy - 19);
+  ctx.quadraticCurveTo(cx - 12, cy - 32, cx - 7, cy - 24);
+  ctx.closePath();
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(cx + 10, cy - 22, 3, 2.5, 0.3, 0, Math.PI * 2);
+  ctx.moveTo(cx + 8, cy - 19);
+  ctx.quadraticCurveTo(cx + 12, cy - 32, cx + 7, cy - 24);
+  ctx.closePath();
   ctx.fill();
 
-  // Eyes — X-eyes when defeated, normal otherwise
-  if (heroDefeated && heroHP <= 0) {
+  // Eyes
+  if (pose === 'defeat') {
     drawXEyes(ctx, cx, cy - 12, 4);
+  } else if (pose === 'hurt') {
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - 8, cy - 12); ctx.lineTo(cx - 2, cy - 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 2, cy - 12); ctx.lineTo(cx + 8, cy - 12); ctx.stroke();
   } else {
-    ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.arc(cx - 5, cy - 12, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + 5, cy - 12, 2.5, 0, Math.PI * 2); ctx.fill();
-    // Eye shine
+    // Fierce amber eyes
+    ctx.fillStyle = '#ffc040';
+    ctx.beginPath(); ctx.arc(cx - 5, cy - 12, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 5, cy - 12, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.ellipse(cx - 5, cy - 12, 1.5, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 5, cy - 12, 1.5, 2.5, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.beginPath(); ctx.arc(cx - 4, cy - 13, 1, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(cx + 6, cy - 13, 1, 0, Math.PI * 2); ctx.fill();
+    // Angry brows
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx - 9, cy - 17); ctx.lineTo(cx - 2, cy - 16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 9, cy - 17); ctx.lineTo(cx + 2, cy - 16); ctx.stroke();
   }
 
-  // Nose
-  ctx.fillStyle = '#5a3e0a';
-  ctx.beginPath();
-  ctx.ellipse(cx, cy - 5, 4, 2.5, 0, 0, Math.PI * 2);
-  ctx.fill();
+  // Mouth — teeth when attacking
+  if (pose === 'attack') {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(cx - 4, cy + 2); ctx.lineTo(cx - 2, cy + 6); ctx.lineTo(cx, cy + 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx, cy + 2); ctx.lineTo(cx + 2, cy + 6); ctx.lineTo(cx + 4, cy + 2); ctx.fill();
+  }
 
-  // Helmet (gray arc over head)
-  ctx.fillStyle = '#888';
-  ctx.beginPath();
-  ctx.moveTo(cx - 14, cy - 8);
-  ctx.quadraticCurveTo(cx, cy - 32, cx + 14, cy - 8);
-  ctx.lineTo(cx + 16, cy - 6);
-  ctx.quadraticCurveTo(cx, cy - 28, cx - 16, cy - 6);
-  ctx.closePath();
-  ctx.fill();
-  // Helmet plume
-  ctx.fillStyle = '#c41e3a';
-  ctx.beginPath();
-  ctx.ellipse(cx, cy - 30, 3, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.restore();
+}
 
-  // Sword (right side)
-  ctx.fillStyle = '#ccc';
+/** Draw a bony skeleton warrior with a sword. */
+function drawSkeleton(ctx, cx, cy, pose) {
   ctx.save();
-  ctx.translate(cx + 22, cy - 5);
-  ctx.rotate(0.2);
-  ctx.fillRect(-2, -20, 4, 28);  // blade
-  ctx.fillStyle = '#ffd700';
-  ctx.fillRect(-4, 6, 8, 4);      // guard
-  ctx.fillStyle = '#8b4513';
-  ctx.fillRect(-2, 10, 4, 8);     // handle
+  if (pose === 'defeat') {
+    ctx.globalAlpha = 0.65;
+    ctx.translate(cx, cy + 12);
+    ctx.rotate(Math.PI / 2);
+    ctx.translate(-cx, -(cy + 12));
+  } else if (pose === 'attack') { ctx.translate(-4, -1); }
+  else if (pose === 'hurt') { ctx.translate(3, 0); }
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  ctx.beginPath(); ctx.ellipse(cx, cy + 36, 14, 3, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Sword (behind body for skeleton)
+  ctx.save();
+  ctx.translate(cx - 18, cy - 8);
+  if (pose === 'attack') ctx.rotate(0.6); else ctx.rotate(-0.2);
+  const sbGrad = ctx.createLinearGradient(-1, -18, 3, -18);
+  sbGrad.addColorStop(0, '#c8c8d0');
+  sbGrad.addColorStop(1, '#8888a0');
+  ctx.fillStyle = sbGrad;
+  ctx.fillRect(-1.5, -18, 3, 24);
+  ctx.fillStyle = '#665544';
+  ctx.fillRect(-3, 5, 6, 3);
+  ctx.fillStyle = '#554433';
+  ctx.fillRect(-1.5, 8, 3, 6);
   ctx.restore();
 
-  // Shield (left side)
-  ctx.fillStyle = '#2a5aa0';
+  // Rib cage — body
+  const boneGrad = ctx.createRadialGradient(cx, cy + 10, 2, cx, cy + 12, 18);
+  boneGrad.addColorStop(0, '#f5f0e8');
+  boneGrad.addColorStop(1, '#d4cfc5');
+  ctx.fillStyle = boneGrad;
   ctx.beginPath();
-  ctx.moveTo(cx - 22, cy - 5);
-  ctx.lineTo(cx - 32, cy);
-  ctx.lineTo(cx - 27, cy + 15);
-  ctx.lineTo(cx - 22, cy + 18);
-  ctx.lineTo(cx - 17, cy + 15);
-  ctx.lineTo(cx - 12, cy);
+  ctx.ellipse(cx, cy + 10, 13, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Rib lines
+  ctx.strokeStyle = '#b0a898';
+  ctx.lineWidth = 1;
+  for (let r = -2; r <= 2; r++) {
+    ctx.beginPath();
+    ctx.moveTo(cx - 8, cy + 6 + r * 4);
+    ctx.quadraticCurveTo(cx, cy + 4 + r * 4, cx + 8, cy + 6 + r * 4);
+    ctx.stroke();
+  }
+
+  // Legs — bony
+  ctx.fillStyle = '#e8e3d8';
+  ctx.fillRect(cx - 8, cy + 22, 4, 14);
+  ctx.fillRect(cx + 4, cy + 22, 4, 14);
+  // Knee joints
+  ctx.fillStyle = '#d4cfc5';
+  ctx.beginPath(); ctx.arc(cx - 6, cy + 28, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 6, cy + 28, 3, 0, Math.PI * 2); ctx.fill();
+  // Feet
+  ctx.fillStyle = '#d4cfc5';
+  ctx.beginPath(); ctx.ellipse(cx - 7, cy + 35, 5, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 7, cy + 35, 5, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Skull — head
+  const skullGrad = ctx.createRadialGradient(cx - 1, cy - 14, 2, cx, cy - 10, 14);
+  skullGrad.addColorStop(0, '#fff');
+  skullGrad.addColorStop(1, '#d8d4ca');
+  ctx.fillStyle = skullGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 10, 13, 0, Math.PI * 2);
+  ctx.fill();
+  // Jaw
+  ctx.fillStyle = '#e8e3d8';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 1, 8, 5, 0, 0, Math.PI);
+  ctx.fill();
+
+  // Eye sockets
+  if (pose === 'defeat') {
+    drawXEyes(ctx, cx, cy - 13, 4);
+  } else {
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath(); ctx.ellipse(cx - 5, cy - 13, 3.5, 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 5, cy - 13, 3.5, 4, 0, 0, Math.PI * 2); ctx.fill();
+    // Glowing red pupils
+    ctx.fillStyle = pose === 'hurt' ? '#ff3333' : '#ff4444';
+    ctx.beginPath(); ctx.arc(cx - 5, cy - 12, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 5, cy - 12, 1.5, 0, Math.PI * 2); ctx.fill();
+    // Glow
+    ctx.fillStyle = 'rgba(255, 60, 60, 0.2)';
+    ctx.beginPath(); ctx.arc(cx - 5, cy - 12, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 5, cy - 12, 4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Nose hole
+  ctx.fillStyle = '#8a8578';
+  ctx.beginPath();
+  ctx.moveTo(cx - 2, cy - 6);
+  ctx.lineTo(cx, cy - 3);
+  ctx.lineTo(cx + 2, cy - 6);
   ctx.closePath();
   ctx.fill();
+
+  // Teeth
+  ctx.fillStyle = '#f0ece2';
+  for (let t = -2; t <= 2; t++) {
+    ctx.fillRect(cx + t * 3 - 1, cy + 1, 2, 3);
+  }
+
+  // Helmet — simple iron cap
+  ctx.fillStyle = '#6a6a78';
+  ctx.beginPath();
+  ctx.moveTo(cx - 14, cy - 10);
+  ctx.quadraticCurveTo(cx, cy - 28, cx + 14, cy - 10);
+  ctx.lineTo(cx + 15, cy - 8);
+  ctx.quadraticCurveTo(cx, cy - 24, cx - 15, cy - 8);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/** Draw a dark wizard with staff and purple magic. */
+function drawWizard(ctx, cx, cy, pose) {
+  ctx.save();
+  if (pose === 'defeat') {
+    ctx.globalAlpha = 0.65;
+    ctx.translate(cx, cy + 12);
+    ctx.rotate(Math.PI / 2.5);
+    ctx.translate(-cx, -(cy + 12));
+  } else if (pose === 'attack') { ctx.translate(-3, -2); }
+  else if (pose === 'hurt') { ctx.translate(4, 0); }
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.1)';
+  ctx.beginPath(); ctx.ellipse(cx, cy + 36, 16, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Staff (behind body)
+  ctx.save();
+  ctx.translate(cx + 20, cy - 15);
+  ctx.rotate(0.15);
+  // Staff pole
+  const staffGrad = ctx.createLinearGradient(-1, -20, 2, 50);
+  staffGrad.addColorStop(0, '#5a3a1a');
+  staffGrad.addColorStop(1, '#3a2510');
+  ctx.fillStyle = staffGrad;
+  ctx.fillRect(-2, -15, 4, 52);
+  // Orb at top
+  const orbGrad = ctx.createRadialGradient(-1, -19, 1, 0, -18, 6);
+  orbGrad.addColorStop(0, '#e0b0ff');
+  orbGrad.addColorStop(0.5, '#9b30ff');
+  orbGrad.addColorStop(1, '#4a0080');
+  ctx.fillStyle = orbGrad;
+  ctx.beginPath(); ctx.arc(0, -19, 6, 0, Math.PI * 2); ctx.fill();
+  // Orb glow
+  ctx.fillStyle = 'rgba(155, 48, 255, 0.25)';
+  ctx.beginPath(); ctx.arc(0, -19, 10, 0, Math.PI * 2); ctx.fill();
+  // Orb shine
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath(); ctx.arc(-2, -21, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // Robe — body (dark purple gradient)
+  const robeGrad = ctx.createLinearGradient(cx - 18, cy - 5, cx + 18, cy + 35);
+  robeGrad.addColorStop(0, '#3a1a5e');
+  robeGrad.addColorStop(0.6, '#2a0e4a');
+  robeGrad.addColorStop(1, '#1a0630');
+  ctx.fillStyle = robeGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - 10, cy - 2);
+  ctx.quadraticCurveTo(cx - 22, cy + 15, cx - 18, cy + 35);
+  ctx.lineTo(cx + 18, cy + 35);
+  ctx.quadraticCurveTo(cx + 22, cy + 15, cx + 10, cy - 2);
+  ctx.closePath();
+  ctx.fill();
+  // Robe trim
+  ctx.strokeStyle = '#8b5cf6';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 18, cy + 35);
+  ctx.lineTo(cx + 18, cy + 35);
+  ctx.stroke();
+
+  // Robe sash
+  ctx.fillStyle = '#7c3aed';
+  ctx.beginPath(); ctx.ellipse(cx, cy + 10, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Head — shadowed face
+  ctx.fillStyle = '#2a1a3e';
+  ctx.beginPath(); ctx.arc(cx, cy - 8, 12, 0, Math.PI * 2); ctx.fill();
+  // Face — slight skin tone in shadow
+  ctx.fillStyle = '#5a4a6a';
+  ctx.beginPath(); ctx.arc(cx, cy - 6, 9, 0, Math.PI * 2); ctx.fill();
+
+  // Eyes — glowing purple
+  if (pose === 'defeat') {
+    drawXEyes(ctx, cx, cy - 10, 4);
+  } else if (pose === 'hurt') {
+    ctx.strokeStyle = '#bf40ff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - 7, cy - 9); ctx.lineTo(cx - 1, cy - 9); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 1, cy - 9); ctx.lineTo(cx + 7, cy - 9); ctx.stroke();
+  } else {
+    ctx.fillStyle = '#bf40ff';
+    ctx.beginPath(); ctx.arc(cx - 4, cy - 9, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4, cy - 9, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(cx - 4, cy - 9, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4, cy - 9, 1.5, 0, Math.PI * 2); ctx.fill();
+    // Eye glow
+    ctx.fillStyle = 'rgba(190, 64, 255, 0.2)';
+    ctx.beginPath(); ctx.arc(cx - 4, cy - 9, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4, cy - 9, 5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Wizard hat — tall pointed
+  const hatGrad = ctx.createLinearGradient(cx - 16, cy - 8, cx + 5, cy - 40);
+  hatGrad.addColorStop(0, '#2a0e4a');
+  hatGrad.addColorStop(1, '#4a1a7a');
+  ctx.fillStyle = hatGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - 16, cy - 8);
+  ctx.lineTo(cx + 2, cy - 42);
+  ctx.lineTo(cx + 16, cy - 8);
+  ctx.closePath();
+  ctx.fill();
+  // Hat brim
+  ctx.fillStyle = '#3a1a5e';
+  ctx.beginPath(); ctx.ellipse(cx, cy - 8, 18, 5, 0, 0, Math.PI * 2); ctx.fill();
+  // Hat band
   ctx.fillStyle = '#ffd700';
   ctx.beginPath();
-  ctx.arc(cx - 22, cy + 5, 4, 0, Math.PI * 2);
+  ctx.moveTo(cx - 14, cy - 12);
+  ctx.lineTo(cx + 12, cy - 12);
+  ctx.lineTo(cx + 11, cy - 9);
+  ctx.lineTo(cx - 13, cy - 9);
+  ctx.closePath();
+  ctx.fill();
+  // Star on hat
+  ctx.fillStyle = '#ffd700';
+  drawMiniStar(ctx, cx - 2, cy - 24, 3);
+
+  // Magic particles when attacking
+  if (pose === 'attack') {
+    ctx.fillStyle = 'rgba(190, 64, 255, 0.5)';
+    for (let p = 0; p < 6; p++) {
+      const px = cx - 10 - p * 8 + Math.sin(Date.now() / 100 + p) * 4;
+      const py = cy - 5 + Math.cos(Date.now() / 80 + p * 2) * 8;
+      ctx.beginPath(); ctx.arc(px, py, 2 + Math.random() * 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+/** Draw a dark knight in heavy armor. */
+function drawDarkKnight(ctx, cx, cy, pose) {
+  ctx.save();
+  if (pose === 'defeat') {
+    ctx.globalAlpha = 0.7;
+    ctx.translate(cx, cy + 12);
+    ctx.rotate(Math.PI / 2.2);
+    ctx.translate(-cx, -(cy + 12));
+  } else if (pose === 'attack') { ctx.translate(-5, -2); }
+  else if (pose === 'hurt') { ctx.translate(4, 0); }
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath(); ctx.ellipse(cx, cy + 37, 18, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Cape (behind) — dark tattered
+  const dkCapeGrad = ctx.createLinearGradient(cx + 8, cy - 5, cx + 28, cy + 35);
+  dkCapeGrad.addColorStop(0, '#1a1a28');
+  dkCapeGrad.addColorStop(1, '#0a0a14');
+  ctx.fillStyle = dkCapeGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx + 10, cy - 2);
+  ctx.quadraticCurveTo(cx + 30, cy + 15, cx + 20, cy + 36);
+  ctx.lineTo(cx + 14, cy + 36);
+  ctx.quadraticCurveTo(cx + 22, cy + 15, cx + 6, cy + 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Greatsword (behind, right side)
+  ctx.save();
+  ctx.translate(cx - 22, cy - 10);
+  if (pose === 'attack') ctx.rotate(0.7); else ctx.rotate(-0.3);
+  // Big blade
+  const dkBladeGrad = ctx.createLinearGradient(-3, -28, 4, -28);
+  dkBladeGrad.addColorStop(0, '#4a4a58');
+  dkBladeGrad.addColorStop(0.5, '#6a6a7a');
+  dkBladeGrad.addColorStop(1, '#3a3a48');
+  ctx.fillStyle = dkBladeGrad;
+  ctx.beginPath();
+  ctx.moveTo(0, -28);
+  ctx.lineTo(4, -24);
+  ctx.lineTo(3, 8);
+  ctx.lineTo(-3, 8);
+  ctx.lineTo(-4, -24);
+  ctx.closePath();
+  ctx.fill();
+  // Dark edge line
+  ctx.strokeStyle = '#2a2a38';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(0, -26); ctx.lineTo(0, 6); ctx.stroke();
+  // Guard
+  ctx.fillStyle = '#444';
+  ctx.fillRect(-6, 7, 12, 3);
+  // Handle
+  ctx.fillStyle = '#2a1a10';
+  ctx.fillRect(-2, 10, 4, 8);
+  ctx.restore();
+
+  // Armor body — dark steel gradient
+  const armorGrad = ctx.createRadialGradient(cx, cy + 8, 4, cx, cy + 12, 22);
+  armorGrad.addColorStop(0, '#4a4a58');
+  armorGrad.addColorStop(0.5, '#3a3a48');
+  armorGrad.addColorStop(1, '#1a1a28');
+  ctx.fillStyle = armorGrad;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 12, 18, 16, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Armor plate lines
+  ctx.strokeStyle = '#5a5a68';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + 24); ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 8, 14, 6, 0, -0.2, Math.PI + 0.2);
+  ctx.stroke();
+
+  // Shoulder pauldrons
+  ctx.fillStyle = '#3a3a48';
+  ctx.beginPath(); ctx.ellipse(cx - 16, cy + 2, 7, 5, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 16, cy + 2, 7, 5, 0.3, 0, Math.PI * 2); ctx.fill();
+  // Pauldron spikes
+  ctx.fillStyle = '#2a2a38';
+  ctx.beginPath(); ctx.moveTo(cx - 20, cy); ctx.lineTo(cx - 22, cy - 6); ctx.lineTo(cx - 18, cy - 1); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx + 20, cy); ctx.lineTo(cx + 22, cy - 6); ctx.lineTo(cx + 18, cy - 1); ctx.fill();
+
+  // Legs — armored greaves
+  ctx.fillStyle = '#2a2a38';
+  ctx.beginPath(); ctx.ellipse(cx - 8, cy + 28, 6, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 8, cy + 28, 6, 8, 0, 0, Math.PI * 2); ctx.fill();
+  // Knee guards
+  ctx.fillStyle = '#3a3a48';
+  ctx.beginPath(); ctx.ellipse(cx - 8, cy + 25, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 8, cy + 25, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+  // Sabatons
+  ctx.fillStyle = '#1a1a28';
+  ctx.beginPath(); ctx.ellipse(cx - 9, cy + 35, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 9, cy + 35, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Helmet — great helm with visor slit
+  const helmGrad = ctx.createLinearGradient(cx - 14, cy - 28, cx + 14, cy - 6);
+  helmGrad.addColorStop(0, '#3a3a48');
+  helmGrad.addColorStop(0.4, '#4a4a58');
+  helmGrad.addColorStop(1, '#2a2a38');
+  ctx.fillStyle = helmGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 10, 14, 0, Math.PI * 2);
+  ctx.fill();
+  // Flat top
+  ctx.fillRect(cx - 10, cy - 24, 20, 6);
+  // Visor slit — glowing red
+  ctx.fillStyle = '#000';
+  ctx.fillRect(cx - 10, cy - 12, 20, 4);
+  if (pose === 'defeat') {
+    drawXEyes(ctx, cx, cy - 10, 4);
+  } else {
+    const eyeColor = pose === 'hurt' ? '#ff2222' : '#cc2222';
+    ctx.fillStyle = eyeColor;
+    ctx.beginPath(); ctx.ellipse(cx - 4, cy - 10, 2.5, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 4, cy - 10, 2.5, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+    // Eye glow
+    ctx.fillStyle = 'rgba(204, 34, 34, 0.2)';
+    ctx.beginPath(); ctx.arc(cx - 4, cy - 10, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4, cy - 10, 5, 0, Math.PI * 2); ctx.fill();
+  }
+  // Helm crest
+  ctx.fillStyle = '#1a1a28';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 24);
+  ctx.lineTo(cx - 3, cy - 32);
+  ctx.lineTo(cx + 3, cy - 32);
+  ctx.closePath();
   ctx.fill();
 
   ctx.restore();
 }
 
 /**
- * Draw the cartoony dragon villain at position (cx, cy).
- * cx, cy is the center of the body.
+ * Draw the upgraded dragon boss — cute but menacing, Capybara Go style.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} cx - center x
+ * @param {number} cy - center y
+ * @param {string} [pose='idle'] - 'idle'|'attack'|'hurt'|'defeat'
  */
-function drawDragon(ctx, cx, cy) {
+function drawDragon(ctx, cx, cy, pose) {
+  if (!pose) pose = 'idle';
   ctx.save();
+  if (pose === 'defeat') {
+    ctx.globalAlpha = 0.7;
+    ctx.translate(cx, cy + 12);
+    ctx.rotate(Math.PI / 2);
+    ctx.translate(-cx, -(cy + 12));
+  } else if (pose === 'attack') { ctx.translate(-5, -2); }
+  else if (pose === 'hurt') { ctx.translate(4, 0); }
 
-  // Wings (behind body)
-  ctx.fillStyle = '#3CB371';
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.beginPath(); ctx.ellipse(cx, cy + 38, 22, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Wings (behind body) — membrane gradient
+  const wingGrad = ctx.createLinearGradient(cx - 30, cy - 35, cx - 5, cy - 5);
+  wingGrad.addColorStop(0, '#5ad880');
+  wingGrad.addColorStop(1, '#2a8b4a');
+  ctx.fillStyle = wingGrad;
   ctx.beginPath();
   ctx.moveTo(cx - 5, cy - 5);
-  ctx.lineTo(cx - 25, cy - 35);
-  ctx.lineTo(cx - 15, cy - 15);
-  ctx.lineTo(cx - 30, cy - 25);
-  ctx.lineTo(cx - 15, cy - 5);
+  ctx.quadraticCurveTo(cx - 18, cy - 28, cx - 28, cy - 35);
+  ctx.quadraticCurveTo(cx - 22, cy - 20, cx - 32, cy - 25);
+  ctx.quadraticCurveTo(cx - 18, cy - 12, cx - 15, cy - 5);
   ctx.closePath();
   ctx.fill();
+  const wingGrad2 = ctx.createLinearGradient(cx + 5, cy - 5, cx + 30, cy - 35);
+  wingGrad2.addColorStop(0, '#2a8b4a');
+  wingGrad2.addColorStop(1, '#5ad880');
+  ctx.fillStyle = wingGrad2;
   ctx.beginPath();
   ctx.moveTo(cx + 5, cy - 5);
-  ctx.lineTo(cx + 25, cy - 35);
-  ctx.lineTo(cx + 15, cy - 15);
-  ctx.lineTo(cx + 30, cy - 25);
-  ctx.lineTo(cx + 15, cy - 5);
+  ctx.quadraticCurveTo(cx + 18, cy - 28, cx + 28, cy - 35);
+  ctx.quadraticCurveTo(cx + 22, cy - 20, cx + 32, cy - 25);
+  ctx.quadraticCurveTo(cx + 18, cy - 12, cx + 15, cy - 5);
   ctx.closePath();
   ctx.fill();
 
-  // Tail
-  ctx.fillStyle = '#2E8B57';
+  // Tail — graceful curve
+  const tailGrad = ctx.createLinearGradient(cx + 15, cy + 10, cx + 42, cy - 8);
+  tailGrad.addColorStop(0, '#2E8B57');
+  tailGrad.addColorStop(1, '#3CB371');
+  ctx.fillStyle = tailGrad;
   ctx.beginPath();
   ctx.moveTo(cx + 15, cy + 10);
-  ctx.quadraticCurveTo(cx + 35, cy + 5, cx + 40, cy - 5);
-  ctx.lineTo(cx + 38, cy - 2);
+  ctx.quadraticCurveTo(cx + 35, cy + 5, cx + 42, cy - 5);
+  ctx.lineTo(cx + 40, cy - 2);
   ctx.quadraticCurveTo(cx + 32, cy + 8, cx + 13, cy + 13);
   ctx.closePath();
   ctx.fill();
-  // Tail spike
-  ctx.fillStyle = '#c41e3a';
+  // Tail spike — flame-shaped
+  const spikeGrad = ctx.createRadialGradient(cx + 44, cy - 8, 1, cx + 44, cy - 8, 7);
+  spikeGrad.addColorStop(0, '#ff6a00');
+  spikeGrad.addColorStop(0.5, '#e63946');
+  spikeGrad.addColorStop(1, '#c41e3a');
+  ctx.fillStyle = spikeGrad;
   ctx.beginPath();
-  ctx.moveTo(cx + 40, cy - 5);
-  ctx.lineTo(cx + 46, cy - 10);
-  ctx.lineTo(cx + 38, cy - 2);
+  ctx.moveTo(cx + 40, cy - 3);
+  ctx.quadraticCurveTo(cx + 44, cy - 12, cx + 48, cy - 8);
+  ctx.quadraticCurveTo(cx + 44, cy - 4, cx + 40, cy - 3);
   ctx.closePath();
   ctx.fill();
 
-  // Body (green oval)
-  ctx.fillStyle = '#2E8B57';
+  // Body — rich green gradient
+  const bodyGrad = ctx.createRadialGradient(cx, cy + 10, 5, cx, cy + 14, 24);
+  bodyGrad.addColorStop(0, '#4ade80');
+  bodyGrad.addColorStop(0.5, '#2E8B57');
+  bodyGrad.addColorStop(1, '#1a6b3a');
+  ctx.fillStyle = bodyGrad;
   ctx.beginPath();
   ctx.ellipse(cx, cy + 12, 22, 16, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Belly
-  ctx.fillStyle = '#90EE90';
+  // Belly — soft light green
+  const bellyGrad = ctx.createRadialGradient(cx, cy + 16, 2, cx, cy + 16, 12);
+  bellyGrad.addColorStop(0, '#bbf7d0');
+  bellyGrad.addColorStop(1, '#86efac');
+  ctx.fillStyle = bellyGrad;
   ctx.beginPath();
   ctx.ellipse(cx, cy + 16, 13, 10, 0, 0, Math.PI * 2);
   ctx.fill();
+  // Belly scales pattern
+  ctx.strokeStyle = 'rgba(34, 120, 70, 0.2)';
+  ctx.lineWidth = 0.5;
+  for (let s = 0; s < 3; s++) {
+    ctx.beginPath();
+    ctx.arc(cx, cy + 12 + s * 5, 8 - s * 2, 0.3, Math.PI - 0.3);
+    ctx.stroke();
+  }
 
-  // Legs
+  // Legs — rounded with claws
   ctx.fillStyle = '#2E8B57';
-  ctx.fillRect(cx - 14, cy + 24, 8, 12);
-  ctx.fillRect(cx + 6, cy + 24, 8, 12);
-  // Claws
+  ctx.beginPath(); ctx.ellipse(cx - 11, cy + 28, 6, 8, -0.1, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 11, cy + 28, 6, 8, 0.1, 0, Math.PI * 2); ctx.fill();
+  // Claws — golden
   ctx.fillStyle = '#ffd700';
   for (let i = 0; i < 3; i++) {
+    ctx.beginPath(); ctx.ellipse(cx - 14 + i * 3, cy + 36, 1.5, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 8 + i * 3, cy + 36, 1.5, 2, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Head — gradient
+  const drHeadGrad = ctx.createRadialGradient(cx - 1, cy - 14, 3, cx, cy - 10, 15);
+  drHeadGrad.addColorStop(0, '#4ade80');
+  drHeadGrad.addColorStop(1, '#2E8B57');
+  ctx.fillStyle = drHeadGrad;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 10, 15, 13, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Snout — rounded
+  ctx.fillStyle = '#2a7d4a';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 3, 9, 6, 0, 0, Math.PI);
+  ctx.fill();
+
+  // Spikes on head — gradient
+  for (let si = 0; si < 4; si++) {
+    const sx = [-9, -3, 3, 9][si];
+    const spGrad = ctx.createLinearGradient(cx + sx, cy - 20, cx + sx, cy - 30);
+    spGrad.addColorStop(0, '#e63946');
+    spGrad.addColorStop(1, '#ff6b6b');
+    ctx.fillStyle = spGrad;
     ctx.beginPath();
-    ctx.arc(cx - 13 + i * 3, cy + 37, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + 7 + i * 3, cy + 37, 1.5, 0, Math.PI * 2);
+    ctx.moveTo(cx + sx - 3, cy - 19);
+    ctx.quadraticCurveTo(cx + sx, cy - 32, cx + sx + 3, cy - 19);
+    ctx.closePath();
     ctx.fill();
   }
 
-  // Head
-  ctx.fillStyle = '#2E8B57';
-  ctx.beginPath();
-  ctx.ellipse(cx, cy - 10, 14, 12, 0, 0, Math.PI * 2);
-  ctx.fill();
+  // Eyes
+  if (pose === 'defeat') {
+    drawXEyes(ctx, cx, cy - 14, 6);
+  } else if (pose === 'hurt') {
+    ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - 10, cy - 14); ctx.lineTo(cx - 2, cy - 14); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 2, cy - 14); ctx.lineTo(cx + 10, cy - 14); ctx.stroke();
+  } else {
+    // Big golden eyes with slitted pupils
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath(); ctx.arc(cx - 6, cy - 14, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 6, cy - 14, 4.5, 0, Math.PI * 2); ctx.fill();
+    // Slitted pupils
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(cx - 6, cy - 14, 1.2, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 6, cy - 14, 1.2, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+    // Eye shine
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(cx - 5, cy - 16, 1.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 7, cy - 16, 1.3, 0, Math.PI * 2); ctx.fill();
+    // Angry eyebrows
+    ctx.strokeStyle = '#1a5a3a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - 12, cy - 20); ctx.lineTo(cx - 3, cy - 19); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 12, cy - 20); ctx.lineTo(cx + 3, cy - 19); ctx.stroke();
+  }
 
-  // Snout
-  ctx.beginPath();
-  ctx.ellipse(cx, cy - 4, 8, 5, 0, 0, Math.PI);
-  ctx.fill();
-
-  // Spikes on head
-  ctx.fillStyle = '#c41e3a';
-  const spikes = [-8, -3, 2, 7];
-  spikes.forEach(sx => {
-    ctx.beginPath();
-    ctx.moveTo(cx + sx - 3, cy - 18);
-    ctx.lineTo(cx + sx, cy - 28);
-    ctx.lineTo(cx + sx + 3, cy - 18);
-    ctx.closePath();
-    ctx.fill();
-  });
-
-  // Eyes (angry)
-  ctx.fillStyle = '#FFD700';
-  ctx.beginPath(); ctx.arc(cx - 6, cy - 14, 4, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx + 6, cy - 14, 4, 0, Math.PI * 2); ctx.fill();
-  // Pupils (slitted)
-  ctx.fillStyle = '#000';
-  ctx.fillRect(cx - 7, cy - 17, 2, 6);
-  ctx.fillRect(cx + 5, cy - 17, 2, 6);
-  // Angry eyebrows
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(cx - 11, cy - 20); ctx.lineTo(cx - 3, cy - 18); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx + 11, cy - 20); ctx.lineTo(cx + 3, cy - 18); ctx.stroke();
-
-  // Nostrils
+  // Nostrils — with smoke puffs
   ctx.fillStyle = '#1a5a3a';
-  ctx.beginPath(); ctx.arc(cx - 3, cy - 4, 1.5, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx + 3, cy - 4, 1.5, 0, Math.PI * 2); ctx.fill();
-
-  // Teeth
-  ctx.fillStyle = '#fff';
-  for (let i = -2; i <= 2; i++) {
-    ctx.beginPath();
-    ctx.moveTo(cx + i * 3 - 1.5, cy);
-    ctx.lineTo(cx + i * 3, cy + 4);
-    ctx.lineTo(cx + i * 3 + 1.5, cy);
-    ctx.closePath();
-    ctx.fill();
+  ctx.beginPath(); ctx.arc(cx - 3, cy - 3, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 3, cy - 3, 2, 0, Math.PI * 2); ctx.fill();
+  // Nostril smoke when attacking
+  if (pose === 'attack') {
+    ctx.fillStyle = 'rgba(200, 200, 200, 0.3)';
+    ctx.beginPath(); ctx.arc(cx - 6, cy - 5, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 6, cy - 5, 3, 0, Math.PI * 2); ctx.fill();
   }
+
+  // Teeth — cute fangs
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.moveTo(cx - 5, cy); ctx.lineTo(cx - 3.5, cy + 5); ctx.lineTo(cx - 2, cy); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx + 2, cy); ctx.lineTo(cx + 3.5, cy + 5); ctx.lineTo(cx + 5, cy); ctx.closePath(); ctx.fill();
 
   ctx.restore();
 }
@@ -2072,6 +2778,7 @@ function animateHeroAttack(ctx, w, h, attackType) {
   const frames = 80;
   let frame = 0;
   const heroBaseX = 70;
+  const _enemyId = (typeof questState !== 'undefined' && questState.currentEnemy && questState.currentEnemy.id) ? questState.currentEnemy.id : 'dragon';
   const dragonBaseX = w - 90;
   const travelDist = dragonBaseX - heroBaseX - 30; // hero goes all the way to dragon
 
@@ -2091,7 +2798,7 @@ function animateHeroAttack(ctx, w, h, attackType) {
       dragonOffX = Math.sin(progress * 50) * 8;
     }
 
-    drawDragon(ctx, dragonBaseX + dragonOffX, 45);
+    drawEnemy(ctx, dragonBaseX + dragonOffX, 45, _enemyId);
     drawCapybaraKnight(ctx, heroBaseX + heroOffX, 55);
 
     // Comic POW starburst on impact
@@ -2118,6 +2825,7 @@ function animateDragonAttack(ctx, w, h, attackType) {
   let frame = 0;
   const heroBaseX = 70;
   const dragonBaseX = w - 90;
+  const _enemyId = (typeof questState !== 'undefined' && questState.currentEnemy && questState.currentEnemy.id) ? questState.currentEnemy.id : 'dragon';
   const gap = dragonBaseX - heroBaseX;
   const dragonAdvance = gap * 0.35;  // dragon moves forward 35%
   const fireStartX = dragonBaseX - dragonAdvance - 20; // fire starts from dragon's mouth
@@ -2139,7 +2847,7 @@ function animateDragonAttack(ctx, w, h, attackType) {
     }
 
     drawCapybaraKnight(ctx, heroBaseX + heroOffX, 55);
-    drawDragon(ctx, dragonBaseX + dragonOffX, 45);
+    drawEnemy(ctx, dragonBaseX + dragonOffX, 45, _enemyId);
 
     // Fire breath: stream of fireballs from dragon to hero (Bowser-style)
     if (progress > 0.2 && progress < 0.75) {
@@ -2171,6 +2879,7 @@ function animateVictory(ctx, w, h) {
   let frame = 0;
   const heroBaseX = 70;
   const dragonBaseX = w - 90;
+  const _enemyId = (typeof questState !== 'undefined' && questState.currentEnemy && questState.currentEnemy.id) ? questState.currentEnemy.id : 'dragon';
 
   function tick() {
     const progress = frame / frames;
@@ -2184,8 +2893,8 @@ function animateVictory(ctx, w, h) {
     ctx.translate(dragonBaseX, 45 + 25);
     ctx.rotate(fallAngle);
     ctx.translate(-dragonBaseX, -(45 + 25));
-    drawDragon(ctx, dragonBaseX, 45);
-    // Draw X-eyes over dragon
+    drawEnemy(ctx, dragonBaseX, 45, _enemyId, 'defeat');
+    // Draw X-eyes over enemy
     if (progress > 0.2) drawXEyes(ctx, dragonBaseX, 45 - 14, 6);
     ctx.restore();
 
