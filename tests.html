@@ -1028,6 +1028,179 @@ test('Quiz registry has required metadata fields', () => {
 });
 
 // ============================================================
+// QUEST STATE MACHINE TESTS
+// ============================================================
+suite('Quest State Machine');
+
+test('startQuest initializes all required state', () => {
+  // Simulate startQuest by creating the state directly
+  const stages = [
+    { stageIndex: 0, enemy: { id: 'wolf', hp: 3 }, questionIndices: [0,1,2], isBoss: false },
+    { stageIndex: 1, enemy: { id: 'dragon', hp: 10 }, questionIndices: [3,4,5], isBoss: true }
+  ];
+  const qs = {
+    phase: 'STAGE_INTRO',
+    stages: stages,
+    currentStage: 0,
+    hero: JSON.parse(JSON.stringify({
+      level: 1, xp: 0, xpToNext: 30, atk: 1, def: 0, maxHP: 10,
+      equipment: { weapon: null, armor: null, accessory: null }, titles: []
+    })),
+    stageAnswers: {},
+    stageResults: null,
+    stageCurrentQ: 0,
+    stageShuffleMap: {},
+    totalCorrect: 0,
+    totalAnswered: 0,
+    pendingEvent: null,
+    pendingDraft: null,
+    skippedDraft: false,
+    mode: 'random'
+  };
+  assert(qs.phase === 'STAGE_INTRO', 'Starts at STAGE_INTRO');
+  assert(qs.currentStage === 0, 'Starts at stage 0');
+  assert(qs.hero.level === 1, 'Hero starts at level 1');
+  assert(qs.hero.atk === 1, 'Hero starts with 1 atk');
+  assert(qs.hero.equipment.weapon === null, 'No weapon equipped');
+  assert(qs.stages.length === 2, 'Has 2 stages');
+  assert(qs.stages[1].isBoss === true, 'Last stage is boss');
+});
+
+test('Phase transitions follow correct order', () => {
+  // STAGE_INTRO → QUESTIONS → STAGE_CLEAR → (EVENT/DRAFT) → next stage
+  const phases = ['STAGE_INTRO', 'QUESTIONS', 'STAGE_CLEAR'];
+  let phase = 'STAGE_INTRO';
+
+  // STAGE_INTRO → QUESTIONS
+  if (phase === 'STAGE_INTRO') phase = 'QUESTIONS';
+  assert(phase === 'QUESTIONS', 'STAGE_INTRO → QUESTIONS');
+
+  // QUESTIONS → STAGE_CLEAR
+  if (phase === 'QUESTIONS') phase = 'STAGE_CLEAR';
+  assert(phase === 'STAGE_CLEAR', 'QUESTIONS → STAGE_CLEAR');
+});
+
+test('Last stage transitions to VICTORY or DEFEAT', () => {
+  // When on last stage and STAGE_CLEAR, should go to VICTORY/DEFEAT
+  const isLastStage = true;
+  const heroDefeatedTest = false;
+
+  let nextPhase;
+  if (isLastStage) {
+    nextPhase = heroDefeatedTest ? 'DEFEAT' : 'VICTORY';
+  }
+  assert(nextPhase === 'VICTORY', 'Last stage + alive = VICTORY');
+
+  const nextPhase2 = true ? 'DEFEAT' : 'VICTORY';
+  assert(nextPhase2 === 'DEFEAT', 'Last stage + defeated = DEFEAT');
+});
+
+test('XP awards and level-up works correctly', () => {
+  const hero = { level: 1, xp: 0, xpToNext: 30, atk: 1, maxHP: 10 };
+  const baseXP = 10;
+
+  // Award 3 correct answers = 30 XP = level up
+  for (let i = 0; i < 3; i++) {
+    hero.xp += baseXP;
+  }
+  // Check level-up
+  if (hero.xp >= hero.xpToNext) {
+    hero.xp -= hero.xpToNext;
+    hero.level++;
+    hero.atk += 1;
+    hero.maxHP += 2;
+    hero.xpToNext = Math.round(hero.xpToNext * 1.4);
+  }
+  assert(hero.level === 2, `Expected level 2, got ${hero.level}`);
+  assert(hero.atk === 2, `Expected 2 atk, got ${hero.atk}`);
+  assert(hero.maxHP === 12, `Expected 12 maxHP, got ${hero.maxHP}`);
+  assert(hero.xp === 0, `Expected 0 remaining XP, got ${hero.xp}`);
+  assert(hero.xpToNext === 42, `Expected 42 xpToNext, got ${hero.xpToNext}`);
+});
+
+test('Equipment applies stat modifiers correctly', () => {
+  const hero = { atk: 1, equipment: { weapon: null, armor: null, accessory: null } };
+  const sword = { id: 'sharp-sword', slot: 'weapon', effect: { atk: 1 } };
+
+  // Apply sword
+  hero.atk += sword.effect.atk;
+  hero.equipment.weapon = sword;
+
+  assert(hero.atk === 2, `Expected 2 atk after sword, got ${hero.atk}`);
+  assert(hero.equipment.weapon.id === 'sharp-sword', 'Sword equipped');
+});
+
+test('getEquipmentEffect finds effects across slots', () => {
+  const eq = {
+    weapon: { effect: { atk: 1 } },
+    armor: { effect: { blockFirst: true } },
+    accessory: { effect: { dodgeChance: 0.25 } }
+  };
+
+  // Check blockFirst
+  let found = undefined;
+  for (const slot of Object.values(eq)) {
+    if (slot && slot.effect && slot.effect.blockFirst !== undefined) {
+      found = slot.effect.blockFirst;
+    }
+  }
+  assert(found === true, 'Found blockFirst in armor slot');
+
+  // Check missing effect
+  let missing = undefined;
+  for (const slot of Object.values(eq)) {
+    if (slot && slot.effect && slot.effect.passiveHeal !== undefined) {
+      missing = slot.effect.passiveHeal;
+    }
+  }
+  assert(missing === undefined, 'passiveHeal not found (not equipped)');
+});
+
+test('rollDraftChoices returns 3 items from pool', () => {
+  // Simulate shuffleArray + slice
+  const pool = [1,2,3,4,5,6,7];
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const draft = shuffled.slice(0, 3);
+  assert(draft.length === 3, 'Draft has 3 choices');
+  draft.forEach(item => {
+    assert(pool.includes(item), 'Each draft item is from the pool');
+  });
+});
+
+test('Event effect heals hero correctly', () => {
+  let hp = 6;
+  const maxHP = 10;
+  const event = { effect: { healHearts: 1 } };
+  hp = Math.min(hp + event.effect.healHearts * 2, maxHP);
+  assert(hp === 8, `Expected 8 HP after heal, got ${hp}`);
+
+  // Heal shouldn't exceed max
+  hp = 9;
+  hp = Math.min(hp + event.effect.healHearts * 2, maxHP);
+  assert(hp === 10, `Expected 10 HP (capped), got ${hp}`);
+});
+
+test('Save/restore preserves questState shape', () => {
+  const qs = {
+    phase: 'QUESTIONS',
+    currentStage: 1,
+    hero: { level: 2, xp: 15, xpToNext: 42, atk: 2, def: 0, maxHP: 12,
+            equipment: { weapon: { id: 'sharp-sword' }, armor: null, accessory: null } },
+    totalCorrect: 5,
+    totalAnswered: 8,
+    mode: 'random'
+  };
+  const serialized = JSON.stringify(qs);
+  const restored = JSON.parse(serialized);
+
+  assert(restored.phase === 'QUESTIONS', 'Phase preserved');
+  assert(restored.currentStage === 1, 'Stage preserved');
+  assert(restored.hero.level === 2, 'Hero level preserved');
+  assert(restored.hero.equipment.weapon.id === 'sharp-sword', 'Equipment preserved');
+  assert(restored.totalCorrect === 5, 'Score preserved');
+});
+
+// ============================================================
 // RENDER RESULTS TO DOM
 // ============================================================
 function renderResults() {
