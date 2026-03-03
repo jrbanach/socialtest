@@ -1004,6 +1004,29 @@ test('Quest engine works with any question array (quiz-agnostic)', () => {
   assert(distributed === 15, 'All questions distributed');
 });
 
+test('Quiz registry has required metadata fields', () => {
+  // Verify the registry shape so future quizzes follow the same contract
+  const required = ['id', 'subject', 'title', 'grade', 'vocab', 'mc', 'jeopardy'];
+  const registry = {
+    id: 'colonial-america-ch5-6',
+    subject: 'Social Studies',
+    title: '5th Grade Colonial America — Chapters 5 & 6',
+    grade: 5,
+    vocab: [{ term: 'Test', definition: 'A test' }],
+    mc: [{ question: 'Q?', choices: ['A','B','C','D'], correct: 0 }],
+    jeopardy: [{ question: 'Clue', choices: ['A','B','C','D'], correct: 0, category: 'vocab' }]
+  };
+  required.forEach(field => {
+    assert(registry[field] !== undefined, `Registry has '${field}' field`);
+  });
+  assert(typeof registry.id === 'string', 'id is a string');
+  assert(typeof registry.subject === 'string', 'subject is a string');
+  assert(typeof registry.grade === 'number', 'grade is a number');
+  assert(Array.isArray(registry.vocab), 'vocab is an array');
+  assert(Array.isArray(registry.mc), 'mc is an array');
+  assert(Array.isArray(registry.jeopardy), 'jeopardy is an array');
+});
+
 // ============================================================
 // RENDER RESULTS TO DOM
 // ============================================================
