@@ -748,6 +748,243 @@ let heroMaxHP = 10;        // max half-hearts (recalculated per session)
 let heroDefeated = false;  // true when HP hits 0
 let battleAnimating = false; // true during attack/hurt animations
 
+// --- Quest state machine (multi-stage adventure) ---
+// Wraps per-stage + cross-stage state. null when no quest is active.
+let questState = null;
+// questState shape when active:
+// {
+//   phase: 'STAGE_INTRO'|'QUESTIONS'|'STAGE_CLEAR'|'EVENT'|'DRAFT'|'BOSS_INTRO'|'VICTORY'|'DEFEAT',
+//   stages: [...],           // from buildQuestStages()
+//   currentStage: 0,         // index into stages[]
+//   hero: { ...DEFAULT_HERO_STATS },
+//   stageAnswers: {},         // answers for current stage only
+//   stageResults: null,       // results for current stage only
+//   stageCurrentQ: 0,         // question index within current stage
+//   stageShuffleMap: {},      // shuffle map for current stage
+//   totalCorrect: 0,          // running total across all stages
+//   totalAnswered: 0,         // running total across all stages
+//   pendingEvent: null,       // random event to show (or null)
+//   pendingDraft: null,       // power-up draft choices (or null)
+//   skippedDraft: false,      // true if event skipped the draft
+//   mode: 'random'|'all'|'vocab'|'defs'
+// }
+
+/**
+ * Initialize a new quest run with stages, enemies, and hero stats.
+ * @param {string} mode - Quiz mode ("random"|"all"|"vocab"|"defs")
+ */
+function startQuest(mode) {
+  const { stages, totalQuestions } = buildQuestStages(jeopardyData, mode);
+  questState = {
+    phase: 'STAGE_INTRO',
+    stages: stages,
+    currentStage: 0,
+    hero: JSON.parse(JSON.stringify(DEFAULT_HERO_STATS)),
+    stageAnswers: {},
+    stageResults: null,
+    stageCurrentQ: 0,
+    stageShuffleMap: {},
+    totalCorrect: 0,
+    totalAnswered: 0,
+    pendingEvent: null,
+    pendingDraft: null,
+    skippedDraft: false,
+    mode: mode
+  };
+  // Set hero HP based on first stage
+  questState.hero.maxHP = 10;
+  heroHP = questState.hero.maxHP;
+  heroMaxHP = questState.hero.maxHP;
+  heroDefeated = false;
+  saveProgress();
+}
+
+/** Get the current stage definition from questState. */
+function getCurrentStage() {
+  if (!questState) return null;
+  return questState.stages[questState.currentStage];
+}
+
+/** Get the current enemy for the active stage. */
+function getCurrentEnemy() {
+  const stage = getCurrentStage();
+  return stage ? stage.enemy : null;
+}
+
+/**
+ * Advance quest to the next phase in the state machine.
+ * STAGE_INTRO → QUESTIONS → STAGE_CLEAR → EVENT → DRAFT → next STAGE_INTRO (or VICTORY)
+ */
+function advanceQuestPhase() {
+  if (!questState) return;
+
+  switch (questState.phase) {
+    case 'STAGE_INTRO':
+      questState.phase = 'QUESTIONS';
+      break;
+
+    case 'QUESTIONS':
+      questState.phase = 'STAGE_CLEAR';
+      break;
+
+    case 'STAGE_CLEAR':
+      // Check if this was the last stage
+      if (questState.currentStage >= questState.stages.length - 1) {
+        questState.phase = heroDefeated ? 'DEFEAT' : 'VICTORY';
+      } else {
+        // Roll a random event
+        questState.pendingEvent = rollRandomEvent();
+        questState.phase = questState.pendingEvent ? 'EVENT' : 'DRAFT';
+        if (!questState.pendingEvent) {
+          questState.pendingDraft = rollDraftChoices();
+        }
+      }
+      break;
+
+    case 'EVENT':
+      // After event, go to draft (unless event skipped it)
+      if (questState.skippedDraft) {
+        questState.skippedDraft = false;
+        questState.pendingDraft = null;
+        advanceToNextStage();
+      } else {
+        questState.pendingDraft = rollDraftChoices();
+        questState.phase = 'DRAFT';
+      }
+      break;
+
+    case 'DRAFT':
+      advanceToNextStage();
+      break;
+
+    case 'BOSS_INTRO':
+      questState.phase = 'QUESTIONS';
+      break;
+  }
+  saveProgress();
+}
+
+/** Move to the next stage, resetting per-stage state. */
+function advanceToNextStage() {
+  questState.currentStage++;
+  questState.stageAnswers = {};
+  questState.stageResults = null;
+  questState.stageCurrentQ = 0;
+  questState.stageShuffleMap = {};
+  questState.pendingEvent = null;
+  questState.pendingDraft = null;
+
+  const stage = getCurrentStage();
+  if (stage && stage.isBoss) {
+    questState.phase = 'BOSS_INTRO';
+  } else {
+    questState.phase = 'STAGE_INTRO';
+  }
+}
+
+/**
+ * Roll a random event from EVENT_POOL (50% chance of an event occurring).
+ * @returns {Object|null} event definition or null
+ */
+function rollRandomEvent() {
+  if (Math.random() < 0.5) return null;
+  return EVENT_POOL[Math.floor(Math.random() * EVENT_POOL.length)];
+}
+
+/**
+ * Roll 3 random power-up choices for the draft screen.
+ * @returns {Array} 3 power-up definitions from POWERUP_POOL
+ */
+function rollDraftChoices() {
+  const shuffled = shuffleArray([...POWERUP_POOL]);
+  return shuffled.slice(0, 3);
+}
+
+/**
+ * Apply a chosen power-up to the hero.
+ * @param {Object} powerup - power-up definition from POWERUP_POOL
+ */
+function applyPowerup(powerup) {
+  if (!questState) return;
+  const hero = questState.hero;
+  const eff = powerup.effect;
+
+  // Remove old equipment bonuses before applying new ones
+  if (powerup.slot !== 'consumable' && hero.equipment[powerup.slot]) {
+    const oldEff = hero.equipment[powerup.slot].effect;
+    if (oldEff.atk) hero.atk -= oldEff.atk;
+    if (oldEff.xpBonus) hero.xpBonus = Math.max(0, (hero.xpBonus || 0) - oldEff.xpBonus);
+  }
+
+  if (eff.atk) hero.atk += eff.atk;
+  if (eff.healHearts) {
+    heroHP = Math.min(heroHP + eff.healHearts * 2, heroMaxHP);
+  }
+  if (eff.xpBonus) hero.xpBonus = (hero.xpBonus || 0) + eff.xpBonus;
+
+  // Store equipment in slot (replaces existing)
+  if (powerup.slot !== 'consumable') {
+    hero.equipment[powerup.slot] = powerup;
+  }
+  saveProgress();
+}
+
+/**
+ * Apply a random event's effect to the hero.
+ * @param {Object} event - event definition from EVENT_POOL
+ */
+function applyEventEffect(event) {
+  if (!questState) return;
+  const eff = event.effect;
+
+  if (eff.healHearts) {
+    heroHP = Math.min(heroHP + eff.healHearts * 2, heroMaxHP);
+  }
+  if (eff.skipDraft) {
+    questState.skippedDraft = true;
+  }
+  saveProgress();
+}
+
+/**
+ * Award XP for a correct answer and check for level-up.
+ * @param {boolean} isCorrect
+ */
+function awardQuestXP(isCorrect) {
+  if (!questState || !isCorrect) return;
+  const hero = questState.hero;
+  const baseXP = 10;
+  const bonus = hero.xpBonus || 0;
+  hero.xp += Math.round(baseXP * (1 + bonus));
+
+  // Level-up check
+  while (hero.xp >= hero.xpToNext) {
+    hero.xp -= hero.xpToNext;
+    hero.level++;
+    hero.atk += 1;
+    hero.maxHP += 2;
+    heroMaxHP = hero.maxHP;
+    heroHP = Math.min(heroHP + 2, heroMaxHP); // heal 1 heart on level-up
+    hero.xpToNext = Math.round(hero.xpToNext * 1.4); // increasing XP curve
+  }
+}
+
+/**
+ * Check if hero has equipment with a specific effect.
+ * @param {string} effectKey - e.g., 'blockFirst', 'dodgeChance', 'firstHitDouble'
+ * @returns {*} effect value or undefined
+ */
+function getEquipmentEffect(effectKey) {
+  if (!questState) return undefined;
+  const eq = questState.hero.equipment;
+  for (const slot of Object.values(eq)) {
+    if (slot && slot.effect && slot.effect[effectKey] !== undefined) {
+      return slot.effect[effectKey];
+    }
+  }
+  return undefined;
+}
+
 // --- Player identity ---
 let playerId = null;
 let playerName = null;
@@ -831,7 +1068,7 @@ function loadProgress() {
     vocabRetryOnly = p.vocabRetryOnly || [];
     mcRetryOnly = p.mcRetryOnly || [];
     mcCurrentQ = p.mcCurrentQ || 0;
-    // Game Quiz state
+    // Game Quiz state (legacy single-battle)
     gameAnswers = p.gameAnswers || {};
     gameResults = p.gameResults || null;
     gameRetryOnly = p.gameRetryOnly || [];
@@ -841,6 +1078,12 @@ function loadProgress() {
     heroHP = p.heroHP !== undefined ? p.heroHP : 10;
     heroMaxHP = p.heroMaxHP || 10;
     heroDefeated = p.heroDefeated || false;
+    // Quest state (multi-stage)
+    questState = p.questState || null;
+    if (questState) {
+      heroHP = p.heroHP !== undefined ? p.heroHP : questState.hero.maxHP;
+      heroMaxHP = questState.hero.maxHP;
+    }
   }
 }
 
@@ -848,7 +1091,8 @@ function saveProgress() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     vocabAnswers, mcAnswers, vocabResults, mcResults, vocabRetryOnly, mcRetryOnly, mcCurrentQ,
     gameAnswers, gameResults, gameRetryOnly, gameCurrentQ, gameMode, gameActiveIndices,
-    heroHP, heroMaxHP, heroDefeated
+    heroHP, heroMaxHP, heroDefeated,
+    questState
   }));
 }
 
