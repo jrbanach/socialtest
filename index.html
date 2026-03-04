@@ -3352,9 +3352,10 @@ function animateHeroAttack(ctx, w, h, attackType) {
   const frames = 80;
   let frame = 0;
   const heroBaseX = 70;
-  const _enemyId = (typeof questState !== 'undefined' && questState.currentEnemy && questState.currentEnemy.id) ? questState.currentEnemy.id : 'dragon';
+  const _enemy = getCurrentEnemy();
+  const _enemyId = _enemy ? _enemy.id : 'dragon';
   const dragonBaseX = w - 90;
-  const travelDist = dragonBaseX - heroBaseX - 30; // hero goes all the way to dragon
+  const travelDist = dragonBaseX - heroBaseX - 30; // hero goes all the way to enemy
 
   function tick() {
     const progress = frame / frames;
@@ -3399,7 +3400,8 @@ function animateDragonAttack(ctx, w, h, attackType) {
   let frame = 0;
   const heroBaseX = 70;
   const dragonBaseX = w - 90;
-  const _enemyId = (typeof questState !== 'undefined' && questState.currentEnemy && questState.currentEnemy.id) ? questState.currentEnemy.id : 'dragon';
+  const _enem = getCurrentEnemy();
+  const _enemyId = _enem ? _enem.id : 'dragon';
   const gap = dragonBaseX - heroBaseX;
   const dragonAdvance = gap * 0.35;  // dragon moves forward 35%
   const fireStartX = dragonBaseX - dragonAdvance - 20; // fire starts from dragon's mouth
@@ -3453,7 +3455,8 @@ function animateVictory(ctx, w, h) {
   let frame = 0;
   const heroBaseX = 70;
   const dragonBaseX = w - 90;
-  const _enemyId = (typeof questState !== 'undefined' && questState.currentEnemy && questState.currentEnemy.id) ? questState.currentEnemy.id : 'dragon';
+  const _enem2 = getCurrentEnemy();
+  const _enemyId = _enem2 ? _enem2.id : 'dragon';
 
   function tick() {
     const progress = frame / frames;
