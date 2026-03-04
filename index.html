@@ -3393,7 +3393,7 @@ function animateHeroAttack(ctx, w, h, attackType) {
 }
 
 /**
- * Animate dragon attacking the hero — moves forward ~40%, then shoots fireballs.
+ * Animate enemy attacking the hero — dispatches to per-enemy attack style.
  */
 function animateDragonAttack(ctx, w, h, attackType) {
   const frames = 100;
@@ -3403,39 +3403,57 @@ function animateDragonAttack(ctx, w, h, attackType) {
   const _enem = getCurrentEnemy();
   const _enemyId = _enem ? _enem.id : 'dragon';
   const gap = dragonBaseX - heroBaseX;
-  const dragonAdvance = gap * 0.35;  // dragon moves forward 35%
-  const fireStartX = dragonBaseX - dragonAdvance - 20; // fire starts from dragon's mouth
+  const enemyAdvance = gap * 0.35;
+  const projectileStartX = dragonBaseX - enemyAdvance - 20;
 
   function tick() {
     const progress = frame / frames;
     drawBattleBG(ctx, w, h);
 
-    // Dragon advances partway, holds, then retreats
-    let dragonOffX = 0;
-    if (progress < 0.2) dragonOffX = -(progress / 0.2) * dragonAdvance;    // advance
-    else if (progress < 0.6) dragonOffX = -dragonAdvance;                     // hold & breathe fire
-    else dragonOffX = -dragonAdvance * (1 - (progress - 0.6) / 0.4);         // retreat
+    // Enemy advances partway, holds, then retreats
+    let enemyOffX = 0;
+    if (progress < 0.2) enemyOffX = -(progress / 0.2) * enemyAdvance;
+    else if (progress < 0.6) enemyOffX = -enemyAdvance;
+    else enemyOffX = -enemyAdvance * (1 - (progress - 0.6) / 0.4);
 
-    // Hero shakes when fireballs arrive
+    // Hero shakes on impact
     let heroOffX = 0;
     if (progress > 0.4 && progress < 0.7) {
       heroOffX = Math.sin(progress * 50) * 8;
     }
 
     drawCapybaraKnight(ctx, heroBaseX + heroOffX, 55);
-    drawEnemy(ctx, dragonBaseX + dragonOffX, 45, _enemyId);
+    drawEnemy(ctx, dragonBaseX + enemyOffX, 45, _enemyId);
 
-    // Fire breath: stream of fireballs from dragon to hero (Bowser-style)
+    // Per-enemy attack effect
     if (progress > 0.2 && progress < 0.75) {
-      const fireProgress = (progress - 0.2) / 0.55;
-      drawBowserFire(ctx, fireStartX, 55, heroBaseX + 15, fireProgress);
+      const atkProgress = (progress - 0.2) / 0.55;
+      switch (_enemyId) {
+        case 'wolf':
+          drawWolfWindBlast(ctx, projectileStartX, 55, heroBaseX + 15, atkProgress);
+          break;
+        case 'skeleton':
+          drawSkeletonSlash(ctx, projectileStartX, 55, heroBaseX + 15, atkProgress);
+          break;
+        case 'wizard':
+          drawWizardSpell(ctx, projectileStartX, 55, heroBaseX + 15, atkProgress);
+          break;
+        case 'darkknight':
+          drawDarkKnightStrike(ctx, projectileStartX, 55, heroBaseX + 15, atkProgress);
+          break;
+        case 'dragon':
+        default:
+          drawBowserFire(ctx, projectileStartX, 55, heroBaseX + 15, atkProgress);
+          break;
+      }
     }
 
-    // Comic POW on impact
+    // Comic impact text varies per enemy
     if (progress > 0.4 && progress < 0.65) {
       const effectAlpha = 1 - ((progress - 0.4) / 0.25);
       ctx.globalAlpha = Math.max(0, effectAlpha);
-      drawComicPOW(ctx, heroBaseX + 20, 50, progress);
+      const impactWord = { wolf: 'WHOOSH!', skeleton: 'SLASH!', wizard: 'ZAP!', darkknight: 'CLANG!', dragon: 'POW!' }[_enemyId] || 'POW!';
+      drawComicImpact(ctx, heroBaseX + 20, 50, progress, impactWord);
       ctx.globalAlpha = 1;
     }
 
@@ -3555,6 +3573,198 @@ function drawComicPOW(ctx, x, y, progress) {
   ctx.fillText('POW!', 0, 0);
 
   ctx.restore();
+}
+
+/** Draw comic impact starburst with custom text. */
+function drawComicImpact(ctx, x, y, progress, word) {
+  const scale = 0.5 + progress * 1.5;
+  ctx.save();
+  ctx.translate(x, y);
+  const spikes = 12;
+  ctx.fillStyle = '#ffd700';
+  ctx.strokeStyle = '#ff4500';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < spikes; i++) {
+    const angle = (i / spikes) * Math.PI * 2;
+    const outerR = (20 + (i % 2) * 10) * scale;
+    const innerR = 10 * scale;
+    const r = (i % 2 === 0) ? outerR : innerR;
+    const px = Math.cos(angle) * r;
+    const py = Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#c41e3a';
+  ctx.font = `bold ${Math.round(12 * scale)}px 'Comic Sans MS', cursive, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(word, 0, 0);
+  ctx.restore();
+}
+
+/** Wolf attack: powerful wind blast (Three Little Pigs style). */
+function drawWolfWindBlast(ctx, startX, startY, endX, progress) {
+  const numGusts = 6;
+  for (let i = 0; i < numGusts; i++) {
+    const t = (progress * 1.5 - i * 0.12);
+    if (t < 0 || t > 1) continue;
+    const px = startX + (endX - startX) * t;
+    const py = startY + Math.sin(t * 10 + i * 1.5) * 10;
+    const size = 10 - t * 5;
+
+    // Wind swirl — translucent grey-white arcs
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(t * 4 + i);
+    ctx.strokeStyle = `rgba(180, 200, 220, ${0.6 - t * 0.4})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, size, 0, Math.PI * 1.3);
+    ctx.stroke();
+    // Inner swirl
+    ctx.strokeStyle = `rgba(220, 230, 240, ${0.5 - t * 0.3})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.6, 0.5, Math.PI * 1.5);
+    ctx.stroke();
+    ctx.restore();
+
+    // Scattered debris particles
+    for (let d = 0; d < 2; d++) {
+      const dx = px - 3 - d * 5 + Math.sin(t * 12 + d) * 4;
+      const dy = py + Math.cos(t * 8 + i + d) * 6;
+      ctx.fillStyle = `rgba(140, 160, 140, ${0.4 - t * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(dx, dy, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+/** Skeleton attack: flying sword slash arcs. */
+function drawSkeletonSlash(ctx, startX, startY, endX, progress) {
+  const numSlashes = 3;
+  for (let i = 0; i < numSlashes; i++) {
+    const t = (progress * 1.4 - i * 0.2);
+    if (t < 0 || t > 1) continue;
+    const px = startX + (endX - startX) * t;
+    const py = startY + Math.sin(t * 6 + i * 2) * 6;
+
+    // Slash arc — white/silver streaks
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(-0.5 + t * 3 + i * 0.8);
+    const slashLen = 14 - t * 6;
+    const grad = ctx.createLinearGradient(-slashLen, 0, slashLen, 0);
+    grad.addColorStop(0, `rgba(255, 255, 255, 0)`);
+    grad.addColorStop(0.3, `rgba(220, 220, 240, ${0.8 - t * 0.5})`);
+    grad.addColorStop(0.7, `rgba(200, 200, 220, ${0.6 - t * 0.4})`);
+    grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, slashLen, -0.4, Math.PI * 0.8);
+    ctx.stroke();
+    ctx.restore();
+
+    // Bone fragment sparks
+    ctx.fillStyle = `rgba(240, 235, 220, ${0.5 - t * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(px + 3, py - 4, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/** Wizard attack: purple magic bolts with sparkle trail. */
+function drawWizardSpell(ctx, startX, startY, endX, progress) {
+  const numBolts = 4;
+  for (let i = 0; i < numBolts; i++) {
+    const t = (progress * 1.4 - i * 0.15);
+    if (t < 0 || t > 1) continue;
+    const px = startX + (endX - startX) * t;
+    const py = startY + Math.sin(t * 12 + i * 2.5) * 12;
+    const size = 7 - t * 3;
+
+    // Magic glow aura
+    ctx.fillStyle = `rgba(155, 48, 255, ${0.3 - t * 0.2})`;
+    ctx.beginPath();
+    ctx.arc(px, py, size + 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Magic bolt core (purple → pink)
+    const boltGrad = ctx.createRadialGradient(px, py, 0, px, py, size);
+    boltGrad.addColorStop(0, '#e0b0ff');
+    boltGrad.addColorStop(0.6, '#9b30ff');
+    boltGrad.addColorStop(1, '#4a0080');
+    ctx.fillStyle = boltGrad;
+    ctx.beginPath();
+    ctx.arc(px, py, size, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sparkle trail
+    for (let s = 0; s < 4; s++) {
+      const sx = px + 4 + s * 5 + Math.sin(t * 15 + s) * 3;
+      const sy = py + Math.cos(t * 10 + i + s) * 5;
+      const sparkleSize = 1.5 - s * 0.3;
+      if (sparkleSize <= 0) continue;
+      ctx.fillStyle = ['#e0b0ff', '#ffd700', '#ff69b4', '#9b30ff'][s];
+      // 4-point star sparkle
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(t * 8 + s);
+      ctx.beginPath();
+      for (let p = 0; p < 4; p++) {
+        const a = (p / 4) * Math.PI * 2;
+        ctx.lineTo(Math.cos(a) * sparkleSize * 2, Math.sin(a) * sparkleSize * 2);
+        const a2 = ((p + 0.5) / 4) * Math.PI * 2;
+        ctx.lineTo(Math.cos(a2) * sparkleSize, Math.sin(a2) * sparkleSize);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+/** Dark Knight attack: dark energy shockwave. */
+function drawDarkKnightStrike(ctx, startX, startY, endX, progress) {
+  const numWaves = 4;
+  for (let i = 0; i < numWaves; i++) {
+    const t = (progress * 1.3 - i * 0.15);
+    if (t < 0 || t > 1) continue;
+    const px = startX + (endX - startX) * t;
+    const py = startY;
+    const size = 12 - t * 6;
+
+    // Dark energy ring
+    ctx.strokeStyle = `rgba(80, 20, 20, ${0.7 - t * 0.5})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(px, py, size, size * 0.6, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Red inner glow
+    ctx.strokeStyle = `rgba(200, 30, 30, ${0.5 - t * 0.3})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(px, py, size * 0.6, size * 0.35, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Dark sparks
+    for (let s = 0; s < 3; s++) {
+      const angle = (s / 3) * Math.PI * 2 + t * 5;
+      const sx = px + Math.cos(angle) * size * 0.8;
+      const sy = py + Math.sin(angle) * size * 0.5;
+      ctx.fillStyle = `rgba(60, 10, 10, ${0.6 - t * 0.4})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 }
 
 /** Draw cartoon X-eyes (defeat eyes) at given position. */
