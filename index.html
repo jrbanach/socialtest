@@ -109,6 +109,44 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .battle-strip { position: relative; width: 100%; height: 140px; margin-bottom: 12px; border-radius: 8px; overflow: hidden; }
 .battle-strip canvas { display: block; width: 100%; height: 140px; }
 
+/* Quest Phase Cards */
+.quest-phase-card { background: #fff; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.1); margin-bottom: 16px; }
+.quest-phase-card.boss-intro { border: 3px solid #e74c3c; background: linear-gradient(135deg, #fff 0%, #fff5f5 100%); }
+.quest-phase-card.stage-intro { border: 2px solid #4ade80; }
+.quest-phase-card.stage-clear { border: 2px solid #fbbf24; background: linear-gradient(135deg, #fff 0%, #fffbeb 100%); }
+.quest-phase-card.victory-card { border: 3px solid #4ade80; background: linear-gradient(135deg, #fff 0%, #f0fff4 100%); }
+.quest-phase-card.defeat-card { border: 3px solid #888; background: linear-gradient(135deg, #fff 0%, #f5f5f5 100%); }
+.stage-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; color: #666; font-weight: 700; margin-bottom: 12px; }
+.stage-enemy-preview { margin: 12px auto; }
+.stage-enemy-preview canvas { display: block; margin: 0 auto; border-radius: 50%; }
+.stage-enemy-name { font-size: 1.4rem; font-weight: 800; color: #1a1a2e; margin: 8px 0; }
+.stage-enemy-desc { font-size: 0.9rem; color: #666; margin-bottom: 12px; }
+.stage-info { display: flex; gap: 16px; justify-content: center; font-size: 0.9rem; color: #555; margin-bottom: 16px; flex-wrap: wrap; }
+.stage-score { margin: 12px 0; }
+.stage-clear-enemy { font-size: 1.2rem; font-weight: 700; color: #2a5aa0; margin-bottom: 8px; }
+.stage-stats { display: flex; gap: 16px; justify-content: center; font-size: 0.9rem; color: #555; margin: 12px 0; flex-wrap: wrap; }
+.stage-summary { text-align: left; margin: 16px 0; }
+.stage-summary-row { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #eee; font-size: 0.95rem; }
+.stage-summary-score { font-weight: 600; color: #2a5aa0; }
+.victory-title { font-size: 1.3rem; font-weight: 800; color: #2E8B57; margin: 8px 0; }
+.defeat-title { font-size: 1.1rem; font-weight: 600; color: #666; margin: 8px 0 16px; }
+.quest-btn { margin-top: 12px; padding: 14px 24px; font-size: 1.05rem; min-height: 48px; }
+
+/* Phase transition animation */
+@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.quest-phase-card { animation: fadeSlideIn 0.35s ease-out; }
+
+/* Adventure Map */
+.adventure-map-container { margin: 16px 0; }
+.adventure-map-container canvas { display: block; width: 100%; border-radius: 8px; }
+
+@media (max-width: 480px) {
+  .quest-phase-card { padding: 14px; }
+  .stage-enemy-name { font-size: 1.2rem; }
+  .stage-info { gap: 10px; font-size: 0.85rem; }
+  .quest-btn { padding: 12px 18px; font-size: 1rem; }
+}
+
 /* Hearts (Zelda-style) */
 .hearts-bar { display: flex; gap: 3px; justify-content: center; margin-bottom: 8px; align-items: center; }
 .heart-icon { width: 22px; height: 20px; display: inline-block; }
@@ -1437,6 +1475,46 @@ function renderGameQuiz() {
 
   settingsEl.style.display = 'none';
   activeEl.style.display = 'block';
+
+  // Quest phase routing
+  if (questState) {
+    const qEl = document.getElementById('game-questions');
+    const resultsEl = document.getElementById('game-results');
+    resultsEl.style.display = 'none';
+
+    switch (questState.phase) {
+      case 'STAGE_INTRO':
+      case 'BOSS_INTRO':
+        renderStageIntro();
+        return;
+      case 'QUESTIONS':
+        renderHearts();
+        renderBattleCanvas();
+        renderGameQuestion();
+        return;
+      case 'STAGE_CLEAR':
+        renderStageClear();
+        return;
+      case 'EVENT':
+        // Phase 2 feature — skip to draft for now
+        advanceQuestPhase();
+        renderGameQuiz();
+        return;
+      case 'DRAFT':
+        // Phase 2 feature — skip to next stage for now
+        advanceQuestPhase();
+        renderGameQuiz();
+        return;
+      case 'VICTORY':
+        renderQuestVictory();
+        return;
+      case 'DEFEAT':
+        renderQuestDefeat();
+        return;
+    }
+  }
+
+  // Legacy fallback (no quest active)
   renderHearts();
   renderBattleCanvas();
   renderGameQuestion();
@@ -1454,12 +1532,17 @@ function startGameQuiz(mode) {
   gameCurrentQ = 0;
   heroDefeated = false;
 
-  // Build the active question indices based on mode
-  gameActiveIndices = buildGameIndices(mode);
+  // Initialize multi-stage quest
+  startQuest(mode);
 
-  // Calculate HP: 5 full hearts = 10 half-hearts, hero dies at >30% wrong
-  const maxWrong = Math.ceil(gameActiveIndices.length * 0.3);
-  heroMaxHP = maxWrong;  // 1 HP per wrong answer allowed
+  // Build flat index list from all stages for backward-compat scoring
+  gameActiveIndices = [];
+  questState.stages.forEach(s => {
+    gameActiveIndices.push(...s.questionIndices);
+  });
+
+  // HP is managed by questState.hero, sync to legacy globals
+  heroMaxHP = questState.hero.maxHP;
   heroHP = heroMaxHP;
 
   saveProgress();
@@ -1503,24 +1586,47 @@ function shuffleArray(arr) {
 
 /**
  * Render the current Game Quiz question (one at a time, like MC).
+ * In quest mode, uses stage-specific question indices.
  */
 function renderGameQuestion() {
   const qEl = document.getElementById('game-questions');
   const resultsEl = document.getElementById('game-results');
-  const indices = gameRetryOnly.length > 0 ? gameRetryOnly : gameActiveIndices;
 
-  // All questions answered → show final score
-  if (gameCurrentQ >= indices.length) {
+  // Show battle strip and hearts during questions
+  document.getElementById('battle-strip').style.display = 'block';
+  document.getElementById('hearts-bar').style.display = 'block';
+
+  // Determine question source: stage-based or legacy
+  let indices, currentQ;
+  if (questState && questState.phase === 'QUESTIONS') {
+    indices = getStageQuestions();
+    currentQ = questState.stageCurrentQ;
+  } else {
+    indices = gameRetryOnly.length > 0 ? gameRetryOnly : gameActiveIndices;
+    currentQ = gameCurrentQ;
+  }
+
+  // All stage questions answered → advance to STAGE_CLEAR
+  if (currentQ >= indices.length) {
+    if (questState && questState.phase === 'QUESTIONS') {
+      advanceQuestPhase(); // QUESTIONS → STAGE_CLEAR
+      renderGameQuiz();
+      return;
+    }
     qEl.innerHTML = '';
     showGameFinalScore();
     return;
   }
 
   resultsEl.style.display = 'none';
-  const qi = indices[gameCurrentQ];
+  const qi = indices[currentQ];
   const q = jeopardyData[qi];
   const submitted = gameResults && gameResults[qi] !== undefined;
   const selectedChoice = gameAnswers[qi];
+
+  // Stage context for quest mode
+  const stage = getCurrentStage();
+  const stageLabel = stage ? `Stage ${stage.stageIndex + 1}: ${stage.enemy.emoji} ${stage.enemy.name} — ` : '';
 
   // Category label for "random" mode
   const catLabel = gameMode === 'random'
@@ -1532,7 +1638,7 @@ function renderGameQuestion() {
       ${catLabel}
       ${esc(q.question)}
     </div>
-    <div style="font-size:0.85rem; color:#555; margin-bottom:8px;">Question ${gameCurrentQ + 1} of ${indices.length}</div>
+    <div style="font-size:0.85rem; color:#555; margin-bottom:8px;">${stageLabel}Question ${currentQ + 1} of ${indices.length}</div>
     ${getShuffleOrder(gameShuffleMap, qi, q.choices.length).map(origIdx => {
       const checked = selectedChoice === origIdx ? 'checked' : '';
       let labelClass = '';
@@ -1580,8 +1686,15 @@ function gameSelect(qi, ci) {
 
 /** Submit the current Game Quiz answer — grade it, update HP, trigger battle animation. */
 function gameSubmitOne() {
-  const indices = gameRetryOnly.length > 0 ? gameRetryOnly : gameActiveIndices;
-  const qi = indices[gameCurrentQ];
+  let indices, currentQ;
+  if (questState && questState.phase === 'QUESTIONS') {
+    indices = getStageQuestions();
+    currentQ = questState.stageCurrentQ;
+  } else {
+    indices = gameRetryOnly.length > 0 ? gameRetryOnly : gameActiveIndices;
+    currentQ = gameCurrentQ;
+  }
+  const qi = indices[currentQ];
   if (gameAnswers[qi] === undefined) {
     alert('Please select an answer first!');
     return;
@@ -1589,6 +1702,14 @@ function gameSubmitOne() {
   if (!gameResults) gameResults = {};
   const isCorrect = gameAnswers[qi] === jeopardyData[qi].correct;
   gameResults[qi] = isCorrect;
+
+  // Track in quest state too
+  if (questState) {
+    if (!questState.stageResults) questState.stageResults = {};
+    questState.stageResults[qi] = isCorrect;
+    questState.totalAnswered++;
+    if (isCorrect) questState.totalCorrect++;
+  }
 
   if (isCorrect) {
     triggerBattleAnimation('hero-attack');
@@ -1606,7 +1727,11 @@ function gameSubmitOne() {
 
 /** Advance to the next Game Quiz question. */
 function gameNext() {
-  gameCurrentQ++;
+  if (questState && questState.phase === 'QUESTIONS') {
+    questState.stageCurrentQ++;
+  } else {
+    gameCurrentQ++;
+  }
   saveProgress();
   renderBattleCanvas(); // reset to idle poses
   renderGameQuestion();
@@ -1614,7 +1739,11 @@ function gameNext() {
 
 /** Continue playing after hero defeat (student chose to keep going). */
 function gameContinueAfterDefeat() {
-  gameCurrentQ++;
+  if (questState && questState.phase === 'QUESTIONS') {
+    questState.stageCurrentQ++;
+  } else {
+    gameCurrentQ++;
+  }
   saveProgress();
   renderBattleCanvas();
   renderGameQuestion();
@@ -1622,7 +1751,15 @@ function gameContinueAfterDefeat() {
 
 /** Update the Game Quiz progress bar. */
 function updateGameProgress(indices) {
-  const pct = (gameCurrentQ / indices.length) * 100;
+  let pct;
+  if (questState) {
+    // Overall quest progress
+    const totalQ = gameActiveIndices.length;
+    const answeredSoFar = questState.totalAnswered;
+    pct = (answeredSoFar / totalQ) * 100;
+  } else {
+    pct = (gameCurrentQ / indices.length) * 100;
+  }
   document.getElementById('game-progress').style.width = pct + '%';
 }
 
@@ -1656,7 +1793,7 @@ function showGameFinalScore() {
   updateGameProgress(indices);
   document.getElementById('game-progress').style.width = '100%';
   // Log attempt if not a retry
-  if (gameRetryOnly.length === 0) logAttempt('gamequiz', questionOrder, correct, total, 0);
+  if (gameRetryOnly.length === 0) logAttempt('gamequiz', gameActiveIndices, correct, total, 0);
 }
 
 /**
@@ -1690,16 +1827,337 @@ function resetGameQuiz() {
   heroHP = 10;
   heroMaxHP = 10;
   heroDefeated = false;
+  questState = null;
   document.getElementById('game-results').style.display = 'none';
   saveProgress();
   renderGameQuiz();
 }
 
 // ============================================================
-// BATTLE — Canvas Drawing & Animation
-// The battle strip shows a capybara knight (hero, left) vs a
-// dragon (villain, right) on a grassy field with sky background.
+// QUEST PHASE RENDERERS — Stage Intro, Map, Clear, Victory
 // ============================================================
+
+/** Get questions for the current stage. */
+function getStageQuestions() {
+  const stage = getCurrentStage();
+  if (!stage) return [];
+  return stage.questionIndices;
+}
+
+/** Calculate score for the current stage. */
+function getStageScore() {
+  if (!questState) return { correct: 0, total: 0 };
+  const indices = getStageQuestions();
+  let correct = 0;
+  indices.forEach(qi => {
+    if (gameResults && gameResults[qi]) correct++;
+  });
+  return { correct, total: indices.length };
+}
+
+/** Render the STAGE_INTRO or BOSS_INTRO screen. */
+function renderStageIntro() {
+  const stage = getCurrentStage();
+  if (!stage) return;
+  const isBoss = questState.phase === 'BOSS_INTRO' || stage.isBoss;
+  const enemy = stage.enemy;
+  const stageNum = stage.stageIndex + 1;
+  const totalStages = questState.stages.length;
+
+  const qEl = document.getElementById('game-questions');
+  const progressEl = document.getElementById('game-progress');
+  progressEl.style.width = ((questState.currentStage / totalStages) * 100) + '%';
+
+  // Hide battle strip and hearts for intro
+  document.getElementById('battle-strip').style.display = 'none';
+  document.getElementById('hearts-bar').style.display = 'none';
+
+  qEl.innerHTML = `
+    <div class="quest-phase-card ${isBoss ? 'boss-intro' : 'stage-intro'}">
+      <div class="stage-label">${isBoss ? '💀 BOSS STAGE' : `Stage ${stageNum} of ${totalStages}`}</div>
+      <div class="stage-enemy-preview">
+        <canvas id="intro-enemy-canvas" width="200" height="200"></canvas>
+      </div>
+      <div class="stage-enemy-name">${enemy.emoji} ${enemy.name}</div>
+      <div class="stage-enemy-desc">${enemy.desc || ''}</div>
+      <div class="stage-info">
+        <span>❤️ HP: ${enemy.hp}</span>
+        <span>⚔️ ATK: ${enemy.atk}</span>
+        <span>📝 ${stage.questionIndices.length} questions</span>
+      </div>
+      ${renderAdventureMapHTML()}
+      <button class="btn ${isBoss ? 'btn-danger' : 'btn-success'} btn-block quest-btn" onclick="beginStageBattle()">
+        ${isBoss ? '⚔️ Face the Boss!' : '⚔️ Begin Battle!'}
+      </button>
+    </div>`;
+
+  // Draw enemy preview on intro canvas
+  setTimeout(() => {
+    const c = document.getElementById('intro-enemy-canvas');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    c.width = 200; c.height = 200;
+    // Dark background circle
+    const bg = ctx.createRadialGradient(100, 100, 20, 100, 100, 90);
+    bg.addColorStop(0, isBoss ? '#2a1020' : '#1a1a2e');
+    bg.addColorStop(1, isBoss ? '#1a0818' : '#0d0d1a');
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.arc(100, 100, 90, 0, Math.PI * 2); ctx.fill();
+    // Draw enemy centered
+    drawEnemy(ctx, 100, 100, enemy.id, 'idle');
+  }, 10);
+}
+
+/** Start the battle for the current stage (transition from STAGE_INTRO to QUESTIONS). */
+function beginStageBattle() {
+  advanceQuestPhase(); // STAGE_INTRO → QUESTIONS
+  renderGameQuiz();
+}
+
+/** Render the STAGE_CLEAR screen with per-stage score and adventure map. */
+function renderStageClear() {
+  const stage = getCurrentStage();
+  if (!stage) return;
+  const enemy = stage.enemy;
+  const score = getStageScore();
+  const stageNum = stage.stageIndex + 1;
+  const isLastStage = questState.currentStage >= questState.stages.length - 1;
+
+  const qEl = document.getElementById('game-questions');
+
+  // Hide battle strip for clear screen
+  document.getElementById('battle-strip').style.display = 'none';
+  document.getElementById('hearts-bar').style.display = 'none';
+
+  const pct = Math.round((score.correct / score.total) * 100);
+  const encouragement = pct === 100 ? '🌟 Perfect Stage!' :
+    pct >= 80 ? '⚡ Excellent work!' :
+    pct >= 60 ? '👍 Good job!' : '💪 Keep going!';
+
+  qEl.innerHTML = `
+    <div class="quest-phase-card stage-clear">
+      <div class="stage-label">Stage ${stageNum} Complete!</div>
+      <div class="stage-clear-enemy">${enemy.emoji} ${enemy.name} Defeated!</div>
+      <div class="stage-score">
+        <div class="big-score">${score.correct}/${score.total}</div>
+        <div class="encouragement">${encouragement}</div>
+      </div>
+      <div class="stage-stats">
+        <span>❤️ HP: ${heroHP}/${heroMaxHP}</span>
+        <span>✅ Total: ${questState.totalCorrect}/${questState.totalAnswered}</span>
+      </div>
+      ${renderAdventureMapHTML()}
+      ${isLastStage
+        ? `<button class="btn btn-primary btn-block quest-btn" onclick="finishQuest()">See Final Results →</button>`
+        : `<button class="btn btn-success btn-block quest-btn" onclick="continueQuest()">Continue Adventure →</button>`
+      }
+    </div>`;
+}
+
+/** Continue to the next stage (or event/draft). */
+function continueQuest() {
+  advanceQuestPhase(); // STAGE_CLEAR → EVENT/DRAFT/next STAGE_INTRO
+  renderGameQuiz();
+}
+
+/** Finish the quest — transition to VICTORY or DEFEAT. */
+function finishQuest() {
+  advanceQuestPhase(); // STAGE_CLEAR → VICTORY/DEFEAT
+  renderGameQuiz();
+}
+
+/** Render the VICTORY screen. */
+function renderQuestVictory() {
+  const qEl = document.getElementById('game-questions');
+  const resultsEl = document.getElementById('game-results');
+  document.getElementById('battle-strip').style.display = 'block';
+  document.getElementById('hearts-bar').style.display = 'block';
+  document.getElementById('game-progress').style.width = '100%';
+
+  renderHearts();
+  renderBattleCanvas();
+  triggerBattleAnimation('victory');
+
+  // Build per-stage summary
+  let stagesHtml = '';
+  questState.stages.forEach((stage, i) => {
+    const emoji = stage.enemy.emoji;
+    const name = stage.enemy.name;
+    const qCount = stage.questionIndices.length;
+    let correct = 0;
+    stage.questionIndices.forEach(qi => {
+      if (gameResults && gameResults[qi]) correct++;
+    });
+    const pct = Math.round((correct / qCount) * 100);
+    stagesHtml += `<div class="stage-summary-row">
+      <span>${emoji} ${name}</span>
+      <span class="stage-summary-score">${correct}/${qCount} (${pct}%)</span>
+    </div>`;
+  });
+
+  qEl.innerHTML = '';
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = `
+    <div class="quest-phase-card victory-card">
+      <div class="stage-label">🎉 Quest Complete!</div>
+      <div class="victory-title">⚔️ Sir Capybara is Victorious!</div>
+      <div class="big-score">${questState.totalCorrect}/${questState.totalAnswered}</div>
+      <div class="encouragement">${getEncouragement(questState.totalCorrect, questState.totalAnswered)}</div>
+      ${renderAdventureMapHTML()}
+      <div class="stage-summary">${stagesHtml}</div>
+      <button class="btn btn-primary btn-block quest-btn" onclick="resetGameQuiz()">🏠 Play Again</button>
+    </div>`;
+
+  if (gameRetryOnly.length === 0) logAttempt('gamequiz', gameActiveIndices, questState.totalCorrect, questState.totalAnswered, 0);
+}
+
+/** Render the DEFEAT screen. */
+function renderQuestDefeat() {
+  const qEl = document.getElementById('game-questions');
+  const resultsEl = document.getElementById('game-results');
+  document.getElementById('battle-strip').style.display = 'block';
+  document.getElementById('hearts-bar').style.display = 'block';
+
+  renderHearts();
+  renderBattleCanvas();
+
+  const stageReached = questState.currentStage + 1;
+  const totalStages = questState.stages.length;
+
+  qEl.innerHTML = '';
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = `
+    <div class="quest-phase-card defeat-card">
+      <div class="stage-label">💀 Quest Over</div>
+      <div class="defeat-title">Sir Capybara fought bravely but fell in battle.</div>
+      <div class="big-score">${questState.totalCorrect}/${questState.totalAnswered}</div>
+      <div class="stage-stats">
+        <span>Reached stage ${stageReached} of ${totalStages}</span>
+      </div>
+      ${renderAdventureMapHTML()}
+      <button class="btn btn-primary btn-block quest-btn" onclick="resetGameQuiz()">🔄 Try Again</button>
+    </div>`;
+
+  if (gameRetryOnly.length === 0) logAttempt('gamequiz', gameActiveIndices, questState.totalCorrect, questState.totalAnswered, 0);
+}
+
+/** Render the adventure map as an inline HTML block with a canvas. */
+function renderAdventureMapHTML() {
+  return `<div class="adventure-map-container">
+    <canvas id="adventure-map-canvas" width="600" height="80"></canvas>
+  </div>
+  <script-placeholder class="adventure-map-init"></script-placeholder>`;
+}
+
+/** Draw the adventure map on a canvas element. Call after DOM is updated. */
+function drawAdventureMap(canvasId) {
+  const c = document.getElementById(canvasId || 'adventure-map-canvas');
+  if (!c || !questState) return;
+  const ctx = c.getContext('2d');
+  const stages = questState.stages;
+  const current = questState.currentStage;
+  const phase = questState.phase;
+  const w = c.parentElement.getBoundingClientRect().width || 340;
+  const h = 80;
+
+  c.width = w * 2;
+  c.height = h * 2;
+  c.style.width = w + 'px';
+  c.style.height = h + 'px';
+  ctx.scale(2, 2);
+
+  // Background
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, w, h, 8);
+  ctx.fill();
+
+  const nodeCount = stages.length;
+  const padding = 36;
+  const usableW = w - padding * 2;
+  const nodeSpacing = usableW / Math.max(nodeCount - 1, 1);
+  const cy = h / 2;
+
+  // Draw connecting path
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(padding, cy);
+  ctx.lineTo(padding + nodeSpacing * (nodeCount - 1), cy);
+  ctx.stroke();
+
+  // Draw cleared portion of path (green)
+  if (current > 0) {
+    ctx.strokeStyle = '#4ade80';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(padding, cy);
+    ctx.lineTo(padding + nodeSpacing * Math.min(current, nodeCount - 1), cy);
+    ctx.stroke();
+  }
+
+  // Draw nodes
+  stages.forEach((stage, i) => {
+    const nx = padding + nodeSpacing * i;
+    const isCleared = i < current || (phase === 'VICTORY' && i <= current) || (phase === 'STAGE_CLEAR' && i === current);
+    const isCurrent = (i === current && phase !== 'VICTORY' && phase !== 'STAGE_CLEAR')
+      || (phase === 'STAGE_CLEAR' && i === current + 1);
+    const isBoss = stage.isBoss;
+
+    // Node circle
+    if (isCleared) {
+      ctx.fillStyle = '#4ade80';
+    } else if (isCurrent) {
+      ctx.fillStyle = isBoss ? '#e74c3c' : '#fbbf24';
+      // Glow ring for current
+      ctx.strokeStyle = isBoss ? '#ff6b6b' : '#fcd34d';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(nx, cy, 16, 0, Math.PI * 2); ctx.stroke();
+    } else {
+      ctx.fillStyle = '#555';
+    }
+    ctx.beginPath();
+    ctx.arc(nx, cy, isBoss ? 14 : 11, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Icon/label inside node
+    ctx.fillStyle = '#fff';
+    ctx.font = isBoss ? 'bold 14px sans-serif' : '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (isCleared) {
+      ctx.fillText('✓', nx, cy);
+    } else {
+      ctx.fillText(isBoss ? '🐉' : `${i + 1}`, nx, cy);
+    }
+
+    // Enemy emoji above node
+    ctx.font = '13px sans-serif';
+    ctx.fillStyle = isCleared ? '#4ade80' : isCurrent ? '#fbbf24' : '#777';
+    ctx.fillText(stage.enemy.emoji, nx, cy - 22);
+  });
+}
+
+/** Post-render hook: draw adventure map if canvas exists. */
+function refreshAdventureMap() {
+  setTimeout(() => drawAdventureMap(), 20);
+}
+
+// Override innerHTML setter calls with a MutationObserver to auto-draw adventure maps
+const _adventureMapObserver = new MutationObserver(() => {
+  if (document.getElementById('adventure-map-canvas')) {
+    drawAdventureMap();
+  }
+});
+document.addEventListener('DOMContentLoaded', () => {
+  const gameQ = document.getElementById('game-questions');
+  const gameR = document.getElementById('game-results');
+  if (gameQ) _adventureMapObserver.observe(gameQ, { childList: true, subtree: true });
+  if (gameR) _adventureMapObserver.observe(gameR, { childList: true, subtree: true });
+});
+
+
 
 /** Render the Zelda-style heart meter above the battle strip. */
 function renderHearts() {
@@ -1772,8 +2230,9 @@ function renderBattleCanvas() {
 
   // Draw characters
   drawCapybaraKnight(ctx, 70, 55);
-  // Use drawEnemy dispatcher for the current enemy (falls back to dragon)
-  const currentEnemyId = (typeof questState !== 'undefined' && questState.currentEnemy && questState.currentEnemy.id) ? questState.currentEnemy.id : 'dragon';
+  // Use drawEnemy dispatcher for the current stage enemy (falls back to dragon)
+  const enemy = getCurrentEnemy();
+  const currentEnemyId = enemy ? enemy.id : 'dragon';
   drawEnemy(ctx, w - 90, 45, currentEnemyId);
 }
 

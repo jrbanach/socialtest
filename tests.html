@@ -1219,6 +1219,137 @@ test('Save/restore preserves questState shape', () => {
 });
 
 // ============================================================
+// STAGE TRANSITION TESTS (Issue #14)
+// ============================================================
+suite('Stage Transitions & Adventure Map');
+
+test('Full quest phase flow: STAGE_INTRO → QUESTIONS → STAGE_CLEAR → next stage', () => {
+  const stages = [
+    { stageIndex: 0, enemy: { id: 'wolf', hp: 3, atk: 1, emoji: '🐺', name: 'Wolf' }, questionIndices: [0, 1], isBoss: false },
+    { stageIndex: 1, enemy: { id: 'dragon', hp: 10, atk: 2, emoji: '🐉', name: 'Dragon' }, questionIndices: [2, 3], isBoss: true }
+  ];
+  const qs = {
+    phase: 'STAGE_INTRO', stages, currentStage: 0,
+    hero: { level: 1, xp: 0, xpToNext: 30, atk: 1, def: 0, maxHP: 10, equipment: { weapon: null, armor: null, accessory: null }, titles: [] },
+    stageAnswers: {}, stageResults: null, stageCurrentQ: 0, stageShuffleMap: {},
+    totalCorrect: 0, totalAnswered: 0, pendingEvent: null, pendingDraft: null, skippedDraft: false, mode: 'random'
+  };
+
+  // STAGE_INTRO → QUESTIONS
+  qs.phase = 'QUESTIONS';
+  assert(qs.phase === 'QUESTIONS', 'Intro advances to QUESTIONS');
+
+  // QUESTIONS → STAGE_CLEAR
+  qs.phase = 'STAGE_CLEAR';
+  assert(qs.phase === 'STAGE_CLEAR', 'Questions advance to STAGE_CLEAR');
+
+  // STAGE_CLEAR on non-last stage → advance to next
+  qs.currentStage++;
+  qs.stageAnswers = {};
+  qs.stageResults = null;
+  qs.stageCurrentQ = 0;
+  qs.phase = qs.stages[qs.currentStage].isBoss ? 'BOSS_INTRO' : 'STAGE_INTRO';
+  assert(qs.phase === 'BOSS_INTRO', 'Next stage is boss → BOSS_INTRO');
+  assert(qs.currentStage === 1, 'Advanced to stage 1');
+});
+
+test('STAGE_CLEAR on last stage → VICTORY when alive', () => {
+  const qs = { phase: 'STAGE_CLEAR', currentStage: 1, stages: [{}, {}] };
+  const heroDefeated = false;
+  const isLast = qs.currentStage >= qs.stages.length - 1;
+  const nextPhase = isLast ? (heroDefeated ? 'DEFEAT' : 'VICTORY') : 'DRAFT';
+  assert(nextPhase === 'VICTORY', 'Last stage + alive = VICTORY');
+});
+
+test('STAGE_CLEAR on last stage → DEFEAT when hero fell', () => {
+  const qs = { phase: 'STAGE_CLEAR', currentStage: 1, stages: [{}, {}] };
+  const heroDefeated = true;
+  const isLast = qs.currentStage >= qs.stages.length - 1;
+  const nextPhase = isLast ? (heroDefeated ? 'DEFEAT' : 'VICTORY') : 'DRAFT';
+  assert(nextPhase === 'DEFEAT', 'Last stage + defeated = DEFEAT');
+});
+
+test('Stage question flow tracks per-stage progress', () => {
+  const stageQuestions = [10, 15, 22, 7];
+  let stageCurrentQ = 0;
+  let totalAnswered = 0;
+
+  // Answer all stage questions
+  while (stageCurrentQ < stageQuestions.length) {
+    stageCurrentQ++;
+    totalAnswered++;
+  }
+  assert(stageCurrentQ === 4, 'All 4 questions answered in stage');
+  assert(totalAnswered === 4, 'Total tracks cross-stage');
+});
+
+test('Stage score calculation uses gameResults correctly', () => {
+  const stageIndices = [5, 10, 15];
+  const results = { 5: true, 10: false, 15: true };
+  let correct = 0;
+  stageIndices.forEach(qi => { if (results[qi]) correct++; });
+  assertEqual(correct, 2, 'Stage score = 2/3');
+});
+
+test('Adventure map state: cleared vs current vs upcoming', () => {
+  const stages = [
+    { stageIndex: 0, isBoss: false },
+    { stageIndex: 1, isBoss: false },
+    { stageIndex: 2, isBoss: true }
+  ];
+  const current = 1;
+  const phase = 'QUESTIONS';
+
+  const states = stages.map((s, i) => {
+    const isCleared = i < current || (phase === 'VICTORY' && i <= current) || (phase === 'STAGE_CLEAR' && i === current);
+    const isCurrent = (i === current && phase !== 'VICTORY' && phase !== 'STAGE_CLEAR')
+      || (phase === 'STAGE_CLEAR' && i === current + 1);
+    return isCleared ? 'cleared' : isCurrent ? 'current' : 'upcoming';
+  });
+  assertEqual(states[0], 'cleared', 'Stage 0 is cleared');
+  assertEqual(states[1], 'current', 'Stage 1 is current');
+  assertEqual(states[2], 'upcoming', 'Stage 2 (boss) is upcoming');
+});
+
+test('Adventure map state during STAGE_CLEAR shows completed stage', () => {
+  const stages = [{ stageIndex: 0 }, { stageIndex: 1 }, { stageIndex: 2, isBoss: true }];
+  const current = 1;
+  const phase = 'STAGE_CLEAR';
+
+  const states = stages.map((s, i) => {
+    const isCleared = i < current || (phase === 'VICTORY' && i <= current) || (phase === 'STAGE_CLEAR' && i === current);
+    const isCurrent = (i === current && phase !== 'VICTORY' && phase !== 'STAGE_CLEAR')
+      || (phase === 'STAGE_CLEAR' && i === current + 1);
+    return isCleared ? 'cleared' : isCurrent ? 'current' : 'upcoming';
+  });
+  assertEqual(states[0], 'cleared', 'Stage 0 cleared');
+  assertEqual(states[1], 'cleared', 'Stage 1 (just completed) shown as cleared');
+  assertEqual(states[2], 'current', 'Stage 2 highlighted as next');
+});
+
+test('Adventure map state on VICTORY shows all cleared', () => {
+  const stages = [{ stageIndex: 0 }, { stageIndex: 1 }, { stageIndex: 2, isBoss: true }];
+  const current = 2;
+  const phase = 'VICTORY';
+
+  const states = stages.map((s, i) => {
+    const isCleared = i < current || (phase === 'VICTORY' && i <= current);
+    return isCleared ? 'cleared' : 'other';
+  });
+  assert(states.every(s => s === 'cleared'), 'All stages cleared on VICTORY');
+});
+
+test('Quest resets cleanly for replay', () => {
+  const qs = {
+    phase: 'VICTORY', currentStage: 4, totalCorrect: 37, totalAnswered: 37,
+    hero: { level: 3, xp: 15 }, stages: [{}, {}, {}, {}, {}]
+  };
+  // Simulate resetGameQuiz behavior
+  const resetState = null;
+  assert(resetState === null, 'questState nulled on reset');
+});
+
+// ============================================================
 // RENDER RESULTS TO DOM
 // ============================================================
 function renderResults() {

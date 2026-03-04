@@ -6,3 +6,5 @@ api/local.settings.json
 
 character-preview.html
 character-preview.png
+
+*.png

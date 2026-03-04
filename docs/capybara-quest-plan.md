@@ -1,20 +1,31 @@
 # Plan: Enhanced Capybara Battle — Multi-Stage Roguelike (Issue #10)
 
-## Session Status (saved 2026-03-03)
+## Session Status (saved 2026-03-04)
 
 ### What's Done
 - ✅ **#11 Stage Data Model** (PR #23 → merged to master) — ENEMY_ROSTER, POWERUP_POOL, EVENT_POOL, buildQuestStages(), QUIZ_REGISTRY with subject metadata, DEFAULT_HERO_STATS. 11 unit tests.
 - ✅ **#12 Refactor Game State** (PR #24 → merged to master) — questState object with 8-phase state machine, hero XP/leveling, equipment system with stacking bug fix, random events, save/load backward compatible. 10 unit tests.
 - ✅ **Branching strategy** — Created `develop` branch. Future feature PRs → develop → test locally → PR to master (deploys to Azure).
-
-### What's In Progress
-- 🔄 **#13 Enemy Canvas Art** (PR #26 → targets develop) — On branch `feature/enemy-roster`. All 5 enemies + upgraded hero drawn. Sub-agent just fixed sizing (wolf/skeleton too small, dragon not imposing enough) and added missing drawXEyes. **NEXT: Review the updated character-preview.html to approve art, then merge PR #26.**
+- ✅ **#13 Enemy Canvas Art** (PR #26 → merged to develop) — 5 enemies + upgraded hero, all Canvas API with gradients, 4 poses each, drawEnemy() dispatcher.
+- ✅ **#14 Stage Transitions** (branch `feature/stage-transitions` → targets develop) — Full quest flow wired up:
+  - `startGameQuiz()` now calls `startQuest()` for multi-stage adventure
+  - Phase router in `renderGameQuiz()` dispatches to STAGE_INTRO, QUESTIONS, STAGE_CLEAR, VICTORY, DEFEAT
+  - Stage intro screens with Canvas enemy preview, stats, and adventure map
+  - Boss intro screen with red styling for dragon stage
+  - Stage clear screen with per-stage score, adventure map progress
+  - Victory screen with all-stages summary breakdown
+  - Defeat screen with stage reached info
+  - Adventure map Canvas visualization (cleared=green ✓, current=gold glow, upcoming=grey, boss=dragon emoji)
+  - Fixed `renderBattleCanvas()` to use `getCurrentEnemy()` for per-stage enemies
+  - CSS fade-slide transitions between phases
+  - Mobile-first verified on iPhone 12 viewport (390×844)
+  - 9 new unit tests (98 total, all passing)
 
 ### What's Next (in order)
-1. Review updated character art in `character-preview.html` (just rebuilt with fixes)
-2. Merge PR #26 into develop
-3. **#14 Stage Transitions** — wire up the stage flow UI (adventure map, stage-clear screens)
-4. Then parallel: #15 Equipment UI, #18 Hero Progression, #17 Battle Animations
+1. PR `feature/stage-transitions` → develop
+2. Then parallel: **#15 Equipment Draft UI**, **#18 Hero XP/Leveling UI**, **#17 Battle Animations**
+3. **#16 Random Events** (needs #14, now done)
+4. Phase 3: #19 Boss Mechanics, #20 Persistence, #21 Tests, #22 Mobile Polish
 
 ### Key Decisions Made
 - **Quiz-agnostic engine**: QUIZ_REGISTRY wraps quiz data with id/subject/title/grade. `activeQuiz` variable swaps subjects.
