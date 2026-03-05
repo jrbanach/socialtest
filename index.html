@@ -103,6 +103,13 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
   h1 { font-size: 1.3rem; }
   .btn { padding: 10px 16px; font-size: 0.9rem; }
   .word-chip { font-size: 0.8rem; padding: 5px 10px; }
+  /* Compact battle strip on mobile to reduce scrolling */
+  .battle-strip { height: 100px; margin-bottom: 6px; }
+  .battle-strip canvas { height: 100px; }
+  .hearts-bar { margin-bottom: 4px; }
+  .xp-bar { margin-bottom: 4px; }
+  .jeopardy-clue { padding: 12px 14px; font-size: 1rem; margin-bottom: 8px; }
+  .game-q label { padding: 8px 10px; font-size: 0.9rem; }
 }
 
 /* Game Quiz - Battle Strip */
@@ -175,6 +182,10 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 @keyframes levelUpBounce { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Title Badges */
+.quest-titles { margin: 10px 0; }
+.title-badge { display: inline-block; background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1px solid #f59e0b; border-radius: 12px; padding: 4px 10px; font-size: 0.85rem; font-weight: 600; margin: 3px; }
 
 @media (max-width: 480px) {
   .draft-card { min-width: 100px; padding: 10px; }
@@ -1725,7 +1736,11 @@ function renderGameQuestion() {
   if (submitted) {
     const isCorrect = gameResults[qi];
     if (isCorrect) {
-      html += `<div style="margin-top:12px; padding:10px; background:#d4edda; border-radius:6px; color:#155724; font-weight:600;">✅ Correct! Great job!</div>`;
+      if (questState && questState._lastFireBreath) {
+        html += `<div style="margin-top:12px; padding:10px; background:#fff3cd; border-radius:6px; color:#856404; font-weight:600;">✅ Correct! But 🐉 the dragon's fire breath singed you! (-1 ❤️)</div>`;
+      } else {
+        html += `<div style="margin-top:12px; padding:10px; background:#d4edda; border-radius:6px; color:#155724; font-weight:600;">✅ Correct! Great job!</div>`;
+      }
     } else {
       html += `<div style="margin-top:12px; padding:10px; background:#f8d7da; border-radius:6px; color:#721c24; font-weight:600;">❌ Not quite. The correct answer is: <em>${esc(q.choices[q.correct])}</em></div>`;
     }
@@ -1783,6 +1798,15 @@ function gameSubmitOne() {
   }
 
   if (isCorrect) {
+    // Dragon boss: 20% chance fire breath hits even on correct answer
+    const enemy = getCurrentEnemy();
+    if (enemy && enemy.special === 'firebreath' && Math.random() < 0.2) {
+      heroHP = Math.max(0, heroHP - 1);
+      if (heroHP <= 0) heroDefeated = true;
+      questState._lastFireBreath = true; // flag for UI feedback
+    } else {
+      questState._lastFireBreath = false;
+    }
     triggerBattleAnimation('hero-attack');
   } else {
     // Check equipment effects before applying damage
@@ -1986,6 +2010,7 @@ function renderStageIntro() {
         <span>⭐ Lv.${questState.hero.level}</span>
       </div>
       ${renderEquippedBar()}
+      ${isBoss ? '<div style="margin:8px 0; padding:8px 12px; background:#fff3cd; border-radius:6px; color:#856404; font-size:0.85rem;">⚠️ <strong>Boss Power:</strong> Dragon fire breath can hit even when you answer correctly!</div>' : ''}
       ${renderAdventureMapHTML()}
       <button class="btn ${isBoss ? 'btn-danger' : 'btn-success'} btn-block quest-btn" onclick="beginStageBattle()">
         ${isBoss ? '⚔️ Face the Boss!' : '⚔️ Begin Battle!'}
@@ -2105,6 +2130,23 @@ function renderQuestVictory() {
   renderBattleCanvas();
   triggerBattleAnimation('victory');
 
+  // Award titles based on performance
+  const earnedTitles = [];
+  const totalStages = questState.stages.length;
+  const enemiesDefeated = questState.enemiesDefeated || 0;
+  const perfectRun = questState.totalCorrect === questState.totalAnswered;
+
+  if (enemiesDefeated >= totalStages) earnedTitles.push('🐉 Dragon Slayer');
+  if (perfectRun) earnedTitles.push('🌟 Perfect Scholar');
+  if (questState.hero.level >= 4) earnedTitles.push('⚔️ Seasoned Warrior');
+  if (!heroDefeated && heroHP === heroMaxHP) earnedTitles.push('🛡️ Untouchable');
+
+  // Merge with existing titles (avoid duplicates)
+  earnedTitles.forEach(t => {
+    if (!questState.hero.titles.includes(t)) questState.hero.titles.push(t);
+  });
+  saveProgress();
+
   // Build per-stage summary with defeated/escaped status
   const totalStages = questState.stages.length;
   const enemiesDefeated = questState.enemiesDefeated || 0;
@@ -2135,6 +2177,10 @@ function renderQuestVictory() {
     ? `<div class="quest-medal">${medal} — ${enemiesDefeated}/${totalStages} enemies defeated</div>`
     : `<div class="quest-medal" style="color:#888;">No enemies defeated — keep studying!</div>`;
 
+  const titlesHtml = earnedTitles.length > 0
+    ? `<div class="quest-titles"><div style="font-size:0.8rem; color:#888; margin-bottom:4px;">Titles Earned:</div>${earnedTitles.map(t => `<span class="title-badge">${t}</span>`).join(' ')}</div>`
+    : '';
+
   qEl.innerHTML = '';
   resultsEl.style.display = 'block';
   resultsEl.innerHTML = `
@@ -2144,6 +2190,7 @@ function renderQuestVictory() {
       <div class="big-score">${questState.totalCorrect}/${questState.totalAnswered}</div>
       <div class="encouragement">${getEncouragement(questState.totalCorrect, questState.totalAnswered)}</div>
       ${medalHtml}
+      ${titlesHtml}
       ${renderAdventureMapHTML()}
       <div class="stage-summary">${stagesHtml}</div>
       <button class="btn btn-primary btn-block quest-btn" onclick="resetGameQuiz()">🏠 Play Again</button>
@@ -2557,7 +2604,7 @@ function renderBattleCanvas() {
   if (!canvas) return;
   const rect = canvas.parentElement.getBoundingClientRect();
   const w = rect.width || 600;
-  const h = 140;
+  const h = rect.height || 140;
   canvas.width = w * 2;    // 2x for retina
   canvas.height = h * 2;
   canvas.style.width = w + 'px';

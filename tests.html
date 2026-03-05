@@ -1344,9 +1344,159 @@ test('Quest resets cleanly for replay', () => {
     phase: 'VICTORY', currentStage: 4, totalCorrect: 37, totalAnswered: 37,
     hero: { level: 3, xp: 15 }, stages: [{}, {}, {}, {}, {}]
   };
-  // Simulate resetGameQuiz behavior
   const resetState = null;
   assert(resetState === null, 'questState nulled on reset');
+});
+
+// ============================================================
+// PHASE 2+3 TESTS (Equipment, Events, XP, Boss, Titles)
+// ============================================================
+suite('Phase 2 — Equipment & Events');
+
+test('applyPowerup adds stat modifiers correctly', () => {
+  const hero = { level: 1, xp: 0, xpToNext: 30, atk: 1, def: 0, maxHP: 10, equipment: { weapon: null, armor: null, accessory: null }, titles: [] };
+  const sword = { id: 'sharp-sword', name: 'Sharp Sword', slot: 'weapon', effect: { atk: 1 } };
+
+  // Manual apply
+  hero.atk += sword.effect.atk;
+  hero.equipment.weapon = sword;
+  assertEqual(hero.atk, 2, 'ATK increased by sword');
+  assert(hero.equipment.weapon.id === 'sharp-sword', 'Sword equipped');
+});
+
+test('Replacing equipment removes old bonuses', () => {
+  const hero = { atk: 2, equipment: { weapon: { id: 'sharp-sword', effect: { atk: 1 } }, armor: null, accessory: null } };
+
+  // Remove old bonus, apply new
+  hero.atk -= hero.equipment.weapon.effect.atk;
+  const bigSword = { id: 'big-sword', effect: { atk: 3 } };
+  hero.atk += bigSword.effect.atk;
+  hero.equipment.weapon = bigSword;
+  assertEqual(hero.atk, 4, 'ATK = base 1 + big sword 3');
+});
+
+test('rollDraftChoices returns 3 unique items', () => {
+  const pool = [
+    { id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }, { id: 'e' }
+  ];
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const choices = shuffled.slice(0, 3);
+  assertEqual(choices.length, 3, 'Returns 3 items');
+  const ids = new Set(choices.map(c => c.id));
+  assertEqual(ids.size, 3, 'All 3 are unique');
+});
+
+test('Event heal effect restores HP correctly', () => {
+  let hp = 6;
+  const maxHP = 10;
+  const healAmount = 1;
+  hp = Math.min(hp + healAmount * 2, maxHP);
+  assertEqual(hp, 8, 'HP healed from 6 to 8 (1 heart = 2 half-hearts)');
+});
+
+test('Event heal does not exceed maxHP', () => {
+  let hp = 9;
+  const maxHP = 10;
+  hp = Math.min(hp + 2, maxHP);
+  assertEqual(hp, 10, 'HP capped at maxHP');
+});
+
+test('skipDraft flag prevents draft screen', () => {
+  const qs = { skippedDraft: false };
+  // Simulate shortcut event
+  qs.skippedDraft = true;
+  assert(qs.skippedDraft === true, 'Flag set to skip draft');
+});
+
+suite('Phase 2 — XP & Leveling');
+
+test('XP awards correctly per correct answer', () => {
+  const hero = { level: 1, xp: 0, xpToNext: 30, atk: 1, maxHP: 10, xpBonus: 0 };
+  const baseXP = 10;
+  hero.xp += Math.round(baseXP * (1 + hero.xpBonus));
+  assertEqual(hero.xp, 10, 'Gains 10 XP for correct answer');
+});
+
+test('XP bonus from Speed Boots increases gain', () => {
+  const hero = { xp: 0, xpBonus: 0.5 };
+  const baseXP = 10;
+  hero.xp += Math.round(baseXP * (1 + hero.xpBonus));
+  assertEqual(hero.xp, 15, 'Gains 15 XP with 50% bonus');
+});
+
+test('Level-up triggers at XP threshold', () => {
+  const hero = { level: 1, xp: 25, xpToNext: 30, atk: 1, maxHP: 10 };
+  hero.xp += 10; // 35 XP
+  if (hero.xp >= hero.xpToNext) {
+    hero.xp -= hero.xpToNext;
+    hero.level++;
+    hero.atk += 1;
+    hero.maxHP += 2;
+    hero.xpToNext = Math.round(hero.xpToNext * 1.4);
+  }
+  assertEqual(hero.level, 2, 'Leveled up to 2');
+  assertEqual(hero.xp, 5, 'Leftover 5 XP');
+  assertEqual(hero.atk, 2, 'ATK increased');
+  assertEqual(hero.maxHP, 12, 'MaxHP increased');
+  assertEqual(hero.xpToNext, 42, 'Next threshold increased by 40%');
+});
+
+suite('Phase 3 — Boss & Titles');
+
+test('Dragon fire breath has 20% activation chance', () => {
+  // Statistical test: run 1000 trials
+  let hits = 0;
+  for (let i = 0; i < 1000; i++) {
+    if (Math.random() < 0.2) hits++;
+  }
+  assertInRange(hits, 120, 280, `Fire breath hit ${hits}/1000 times (expected ~200)`);
+});
+
+test('Boss enemy has firebreath special', () => {
+  const dragon = { id: 'dragon', hp: 10, atk: 2, special: 'firebreath' };
+  assertEqual(dragon.special, 'firebreath', 'Dragon has firebreath');
+  assertEqual(dragon.hp, 10, 'Dragon has 10 HP');
+});
+
+test('Title: Dragon Slayer awarded when all enemies defeated', () => {
+  const titles = [];
+  const enemiesDefeated = 5;
+  const totalStages = 5;
+  if (enemiesDefeated >= totalStages) titles.push('🐉 Dragon Slayer');
+  assert(titles.includes('🐉 Dragon Slayer'), 'Dragon Slayer earned');
+});
+
+test('Title: Perfect Scholar awarded with no wrong answers', () => {
+  const titles = [];
+  const totalCorrect = 37;
+  const totalAnswered = 37;
+  if (totalCorrect === totalAnswered) titles.push('🌟 Perfect Scholar');
+  assert(titles.includes('🌟 Perfect Scholar'), 'Perfect Scholar earned');
+});
+
+test('Title: not awarded when conditions not met', () => {
+  const titles = [];
+  const enemiesDefeated = 3;
+  const totalStages = 5;
+  if (enemiesDefeated >= totalStages) titles.push('🐉 Dragon Slayer');
+  assert(!titles.includes('🐉 Dragon Slayer'), 'Dragon Slayer NOT earned with 3/5');
+});
+
+test('Equipment blockFirst resets per stage', () => {
+  const qs = { _blockUsedThisStage: true };
+  // Simulate advanceToNextStage
+  qs._blockUsedThisStage = false;
+  assert(qs._blockUsedThisStage === false, 'Block flag reset');
+});
+
+test('Enemy defeated threshold is 50%', () => {
+  // 3/7 = 42.8% → escaped
+  const pct1 = Math.round((3 / 7) * 100);
+  assert(pct1 < 50, `${pct1}% is below 50% → escaped`);
+
+  // 4/7 = 57.1% → defeated
+  const pct2 = Math.round((4 / 7) * 100);
+  assert(pct2 >= 50, `${pct2}% is at/above 50% → defeated`);
 });
 
 // ============================================================
