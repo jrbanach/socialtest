@@ -1940,6 +1940,10 @@ function renderStageClear() {
   document.getElementById('battle-strip').style.display = 'none';
   document.getElementById('hearts-bar').style.display = 'none';
 
+  // Nudge progress bar to reflect stage completion
+  const stagePct = ((questState.currentStage + 1) / questState.stages.length) * 100;
+  document.getElementById('game-progress').style.width = stagePct + '%';
+
   const pct = Math.round((score.correct / score.total) * 100);
   const enemyDefeated = pct >= 50;
 
