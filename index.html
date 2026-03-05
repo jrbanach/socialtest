@@ -1884,9 +1884,8 @@ function renderStageIntro() {
       <div class="stage-enemy-name">${enemy.emoji} ${enemy.name}</div>
       <div class="stage-enemy-desc">${enemy.desc || ''}</div>
       <div class="stage-info">
-        <span>❤️ HP: ${enemy.hp}</span>
-        <span>⚔️ ATK: ${enemy.atk}</span>
         <span>📝 ${stage.questionIndices.length} questions</span>
+        <span>⚔️ Strength: ${enemy.hp}</span>
       </div>
       ${renderAdventureMapHTML()}
       <button class="btn ${isBoss ? 'btn-danger' : 'btn-success'} btn-block quest-btn" onclick="beginStageBattle()">
@@ -2140,16 +2139,30 @@ function drawAdventureMap(canvasId) {
   stages.forEach((stage, i) => {
     const nx = padding + nodeSpacing * i;
     const isCleared = i < current || (phase === 'VICTORY' && i <= current) || (phase === 'STAGE_CLEAR' && i === current);
-    const isCurrent = (i === current && phase !== 'VICTORY' && phase !== 'STAGE_CLEAR')
+    const isCurrent = (i === current && phase !== 'VICTORY' && phase !== 'STAGE_CLEAR' && phase !== 'DEFEAT')
       || (phase === 'STAGE_CLEAR' && i === current + 1);
+    const isDeathStage = phase === 'DEFEAT' && i === current;
     const isBoss = stage.isBoss;
 
-    // Node circle
-    if (isCleared) {
-      ctx.fillStyle = '#4ade80';
+    // Determine if enemy was defeated (>=50% correct) for cleared stages
+    let enemyDefeated = false;
+    if (isCleared && typeof gameResults !== 'undefined' && gameResults) {
+      let correct = 0;
+      stage.questionIndices.forEach(qi => { if (gameResults[qi]) correct++; });
+      enemyDefeated = (correct / stage.questionIndices.length) >= 0.5;
+    }
+
+    // Node circle color
+    if (isDeathStage) {
+      ctx.fillStyle = '#e74c3c';
+      // Red glow ring
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(nx, cy, 16, 0, Math.PI * 2); ctx.stroke();
+    } else if (isCleared) {
+      ctx.fillStyle = enemyDefeated ? '#4ade80' : '#f59e0b'; // green if defeated, amber if escaped
     } else if (isCurrent) {
       ctx.fillStyle = isBoss ? '#e74c3c' : '#fbbf24';
-      // Glow ring for current
       ctx.strokeStyle = isBoss ? '#ff6b6b' : '#fcd34d';
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(nx, cy, 16, 0, Math.PI * 2); ctx.stroke();
@@ -2165,15 +2178,17 @@ function drawAdventureMap(canvasId) {
     ctx.font = isBoss ? 'bold 14px sans-serif' : '12px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if (isCleared) {
-      ctx.fillText('✓', nx, cy);
+    if (isDeathStage) {
+      ctx.fillText('✗', nx, cy);
+    } else if (isCleared) {
+      ctx.fillText(enemyDefeated ? '✓' : '💨', nx, cy);
     } else {
       ctx.fillText(isBoss ? '🐉' : `${i + 1}`, nx, cy);
     }
 
     // Enemy emoji above node
     ctx.font = '13px sans-serif';
-    ctx.fillStyle = isCleared ? '#4ade80' : isCurrent ? '#fbbf24' : '#777';
+    ctx.fillStyle = isDeathStage ? '#e74c3c' : isCleared ? (enemyDefeated ? '#4ade80' : '#f59e0b') : isCurrent ? '#fbbf24' : '#777';
     ctx.fillText(stage.enemy.emoji, nx, cy - 22);
   });
 }
