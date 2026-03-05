@@ -259,7 +259,10 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
   <div id="vocab" class="screen">
     <h2>📖 Vocabulary — Fill in the Blank</h2>
     <p style="margin-bottom:12px; color:#555;">Click a word from the word bank, then click the blank where it belongs. Click a filled blank to clear it.</p>
-    <div class="progress-bar"><div class="fill" id="vocab-progress"></div></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <div class="progress-bar" style="flex:1; margin-bottom:0;"><div class="fill" id="vocab-progress"></div></div>
+      <button class="btn btn-sm" style="margin-left:10px; padding:4px 10px; font-size:0.75rem; background:#888; color:#fff; border:none; border-radius:4px; cursor:pointer;" onclick="confirmRestart('vocab')">🔄 Restart</button>
+    </div>
     <div class="word-bank" id="word-bank"></div>
     <div id="vocab-questions"></div>
     <button class="btn btn-success btn-block" id="vocab-submit" onclick="submitVocab()">Check My Answers</button>
@@ -270,7 +273,10 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
   <div id="mc" class="screen">
     <h2>✏️ Multiple Choice</h2>
     <p style="margin-bottom:12px; color:#555;">Choose the best answer, then click Submit.</p>
-    <div class="progress-bar"><div class="fill" id="mc-progress"></div></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <div class="progress-bar" style="flex:1; margin-bottom:0;"><div class="fill" id="mc-progress"></div></div>
+      <button class="btn btn-sm" style="margin-left:10px; padding:4px 10px; font-size:0.75rem; background:#888; color:#fff; border:none; border-radius:4px; cursor:pointer;" onclick="confirmRestart('mc')">🔄 Restart</button>
+    </div>
     <div id="mc-questions"></div>
     <div id="mc-results" style="display:none;"></div>
   </div>
@@ -1509,6 +1515,14 @@ function resetMC() {
   document.getElementById('mc-results').style.display = 'none';
   saveProgress();
   renderMC();
+}
+
+/** Confirm and restart a quiz section. */
+function confirmRestart(section) {
+  if (confirm('Restart this section? Your progress will be cleared.')) {
+    if (section === 'vocab') resetVocab();
+    else if (section === 'mc') resetMC();
+  }
 }
 
 // ============================================================
