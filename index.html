@@ -103,13 +103,31 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
   h1 { font-size: 1.3rem; }
   .btn { padding: 10px 16px; font-size: 0.9rem; }
   .word-chip { font-size: 0.8rem; padding: 5px 10px; }
-  /* Compact battle strip on mobile to reduce scrolling */
-  .battle-strip { height: 100px; margin-bottom: 6px; }
-  .battle-strip canvas { height: 100px; }
-  .hearts-bar { margin-bottom: 4px; }
-  .xp-bar { margin-bottom: 4px; }
-  .jeopardy-clue { padding: 12px 14px; font-size: 1rem; margin-bottom: 8px; }
-  .game-q label { padding: 8px 10px; font-size: 0.9rem; }
+  /* Hide app header and nav during active battle */
+  body.battle-active h1, body.battle-active .subtitle, body.battle-active .nav, body.battle-active .game-header { display: none !important; }
+  body.battle-active .container { padding: 6px; }
+  /* Compact battle strip on mobile */
+  .battle-strip { height: 80px; margin-bottom: 4px; }
+  .battle-strip canvas { height: 80px; }
+  /* Merge hearts + XP into tighter layout */
+  .hearts-bar { margin-bottom: 2px; gap: 2px; }
+  .heart-icon { width: 18px; height: 16px; }
+  .xp-bar { margin-bottom: 3px; font-size: 0.7rem; }
+  /* Compact question card */
+  .jeopardy-clue { padding: 10px 12px; font-size: 0.95rem; margin-bottom: 6px; border-width: 2px; }
+  .jeopardy-clue .clue-label { font-size: 0.65rem; margin-bottom: 3px; }
+  .game-q label { padding: 7px 10px; font-size: 0.9rem; margin: 2px 0; }
+  .btn-block { padding: 10px 16px; margin-top: 6px; }
+  /* Tighter progress bar row */
+  .progress-bar { height: 6px; }
+  /* Compact quest phase cards */
+  .quest-phase-card { padding: 12px; }
+  .stage-enemy-name { font-size: 1.1rem; }
+  .stage-enemy-preview canvas { width: 140px !important; height: 140px !important; }
+  .stage-info { gap: 8px; font-size: 0.8rem; }
+  .quest-btn { padding: 12px 18px; font-size: 1rem; }
+  /* Hide section title/subtitle during active play */
+  .game-header { margin-bottom: 4px; }
 }
 
 /* Game Quiz - Battle Strip */
@@ -294,8 +312,8 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 
   <!-- Game Quiz Section -->
   <div id="gamequiz" class="screen">
-    <h2>🎮 Game Quiz — Capybara Battle</h2>
-    <p style="margin-bottom:12px; color:#555;">The answer is shown — pick the right term or question!</p>
+    <h2 class="game-header">🎮 Game Quiz — Capybara Battle</h2>
+    <p class="game-header" style="margin-bottom:12px; color:#555;">The answer is shown — pick the right term or question!</p>
 
     <!-- Settings dialog (shown before starting) -->
     <div id="game-settings" class="game-settings">
@@ -1674,6 +1692,9 @@ function renderGameQuestion() {
   // Show battle strip and hearts during questions
   document.getElementById('battle-strip').style.display = 'block';
   document.getElementById('hearts-bar').style.display = 'block';
+  // Hide section header on mobile during active battle to save space
+  document.querySelectorAll('.game-header').forEach(el => el.style.display = 'none');
+  document.body.classList.add('battle-active');
   // Re-render canvas after layout settles (fixes sizing when transitioning from display:none)
   requestAnimationFrame(() => renderBattleCanvas());
 
@@ -1946,6 +1967,8 @@ function resetGameQuiz() {
   // Restore battle strip and hearts visibility for next game
   document.getElementById('battle-strip').style.display = '';
   document.getElementById('hearts-bar').style.display = '';
+  document.querySelectorAll('.game-header').forEach(el => el.style.display = '');
+  document.body.classList.remove('battle-active');
   saveProgress();
   renderGameQuiz();
 }
@@ -1995,6 +2018,7 @@ function renderStageIntro() {
   // Hide battle strip and hearts for intro
   document.getElementById('battle-strip').style.display = 'none';
   document.getElementById('hearts-bar').style.display = 'none';
+  document.body.classList.add('battle-active');
 
   qEl.innerHTML = `
     <div class="quest-phase-card ${isBoss ? 'boss-intro' : 'stage-intro'}">
