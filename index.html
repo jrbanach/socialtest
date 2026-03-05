@@ -2148,8 +2148,6 @@ function renderQuestVictory() {
   saveProgress();
 
   // Build per-stage summary with defeated/escaped status
-  const totalStages = questState.stages.length;
-  const enemiesDefeated = questState.enemiesDefeated || 0;
   let stagesHtml = '';
   questState.stages.forEach((stage, i) => {
     const emoji = stage.enemy.emoji;
