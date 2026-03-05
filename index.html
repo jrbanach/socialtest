@@ -257,7 +257,10 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 
     <!-- Active quiz area (hidden until mode selected) -->
     <div id="game-active" style="display:none;">
-      <div class="progress-bar"><div class="fill" id="game-progress"></div></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div class="progress-bar" style="flex:1; margin-bottom:0;"><div class="fill" id="game-progress"></div></div>
+        <button class="btn btn-sm" style="margin-left:10px; padding:4px 10px; font-size:0.75rem; background:#888; color:#fff; border:none; border-radius:4px; cursor:pointer;" onclick="confirmQuitQuest()">🏠 Quit</button>
+      </div>
       <div class="hearts-bar" id="hearts-bar"></div>
       <div class="battle-strip" id="battle-strip">
         <canvas id="battle-canvas"></canvas>
@@ -1832,8 +1835,18 @@ function resetGameQuiz() {
   heroDefeated = false;
   questState = null;
   document.getElementById('game-results').style.display = 'none';
+  // Restore battle strip and hearts visibility for next game
+  document.getElementById('battle-strip').style.display = '';
+  document.getElementById('hearts-bar').style.display = '';
   saveProgress();
   renderGameQuiz();
+}
+
+/** Confirm and quit the current quest, returning to mode selection. */
+function confirmQuitQuest() {
+  if (confirm('Quit this quest? Your progress will be lost.')) {
+    resetGameQuiz();
+  }
 }
 
 // ============================================================
