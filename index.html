@@ -134,6 +134,53 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .quest-phase-card.enemy-escaped { border-color: #888; background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%); }
 .enemy-escaped-row { opacity: 0.65; }
 .quest-medal { font-size: 1.15rem; font-weight: 700; margin: 12px 0; padding: 10px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-radius: 8px; }
+
+/* Equipment Draft Cards */
+.draft-choices { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 12px 0; }
+.draft-card { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 2px solid #cbd5e1; border-radius: 12px; padding: 14px; min-width: 120px; flex: 1; max-width: 180px; cursor: pointer; transition: transform 0.15s, border-color 0.15s; text-align: center; }
+.draft-card:hover { transform: translateY(-3px); border-color: #4ade80; }
+.draft-emoji { font-size: 2rem; margin-bottom: 6px; }
+.draft-name { font-weight: 700; font-size: 0.95rem; color: #1a1a2e; margin-bottom: 4px; }
+.draft-desc { font-size: 0.8rem; color: #555; margin-bottom: 6px; }
+.draft-slot { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.draft-replace { font-size: 0.7rem; color: #e74c3c; margin-top: 4px; }
+.draft-subtitle { color: #666; margin-bottom: 12px; }
+
+/* Equipped Items Bar */
+.equipped-bar { display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap; font-size: 0.85rem; color: #555; margin: 8px 0; }
+.equipped-bar.compact { font-size: 0.8rem; }
+.equipped-tag { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px 8px; font-size: 0.8rem; }
+.equipped-tag.empty { color: #bbb; font-style: italic; }
+
+/* Random Event Cards */
+.event-card { text-align: center; }
+.event-emoji { font-size: 3rem; margin: 12px 0; }
+.event-name { font-size: 1.3rem; font-weight: 800; color: #1a1a2e; margin-bottom: 8px; }
+.event-desc { font-size: 0.95rem; color: #555; margin-bottom: 16px; line-height: 1.5; }
+
+/* XP Bar */
+.xp-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.75rem; }
+.xp-level { font-weight: 700; color: #fbbf24; min-width: 36px; }
+.xp-track { flex: 1; height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
+.xp-fill { height: 100%; background: linear-gradient(90deg, #fbbf24, #f59e0b); border-radius: 3px; transition: width 0.3s; }
+.xp-text { color: #888; min-width: 60px; text-align: right; }
+
+/* Level-Up Celebration Overlay */
+.level-up-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; animation: fadeIn 0.2s; }
+.level-up-card { background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%); border: 3px solid #fbbf24; border-radius: 16px; padding: 24px 32px; text-align: center; animation: levelUpBounce 0.5s ease-out; }
+.level-up-stars { font-size: 2.5rem; animation: spin 0.6s; }
+.level-up-title { font-size: 1.5rem; font-weight: 900; color: #b45309; margin: 8px 0 4px; }
+.level-up-level { font-size: 1.1rem; font-weight: 700; color: #92400e; }
+.level-up-stats { font-size: 0.9rem; color: #78350f; margin-top: 8px; }
+@keyframes levelUpBounce { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 480px) {
+  .draft-card { min-width: 100px; padding: 10px; }
+  .draft-emoji { font-size: 1.5rem; }
+  .level-up-card { padding: 18px 24px; }
+}
 .quest-btn { margin-top: 12px; padding: 14px 24px; font-size: 1.05rem; min-height: 48px; }
 
 /* Phase transition animation */
@@ -918,6 +965,8 @@ function advanceToNextStage() {
   questState.stageShuffleMap = {};
   questState.pendingEvent = null;
   questState.pendingDraft = null;
+  questState._blockUsedThisStage = false; // Reset shield block per stage
+  questState._firstHitThisStage = false;  // Reset fire amulet per stage
 
   const stage = getCurrentStage();
   if (stage && stage.isBoss) {
@@ -1009,8 +1058,9 @@ function awardQuestXP(isCorrect) {
     hero.atk += 1;
     hero.maxHP += 2;
     heroMaxHP = hero.maxHP;
-    heroHP = Math.min(heroHP + 2, heroMaxHP); // heal 1 heart on level-up
-    hero.xpToNext = Math.round(hero.xpToNext * 1.4); // increasing XP curve
+    heroHP = Math.min(heroHP + 2, heroMaxHP);
+    hero.xpToNext = Math.round(hero.xpToNext * 1.4);
+    showLevelUpCelebration(hero.level);
   }
 }
 
@@ -1496,6 +1546,7 @@ function renderGameQuiz() {
         return;
       case 'QUESTIONS':
         renderHearts();
+        renderXPBar();
         renderBattleCanvas();
         renderGameQuestion();
         return;
@@ -1503,14 +1554,10 @@ function renderGameQuiz() {
         renderStageClear();
         return;
       case 'EVENT':
-        // Phase 2 feature — skip to draft for now
-        advanceQuestPhase();
-        renderGameQuiz();
+        renderQuestEvent();
         return;
       case 'DRAFT':
-        // Phase 2 feature — skip to next stage for now
-        advanceQuestPhase();
-        renderGameQuiz();
+        renderEquipmentDraft();
         return;
       case 'VICTORY':
         renderQuestVictory();
@@ -1717,19 +1764,40 @@ function gameSubmitOne() {
     questState.stageResults[qi] = isCorrect;
     questState.totalAnswered++;
     if (isCorrect) questState.totalCorrect++;
+    // Award XP for correct answers
+    awardQuestXP(isCorrect);
   }
 
   if (isCorrect) {
     triggerBattleAnimation('hero-attack');
   } else {
-    // Wrong answer: reduce HP, check defeat
-    heroHP = Math.max(0, heroHP - 1);
-    if (heroHP <= 0) heroDefeated = true;
+    // Check equipment effects before applying damage
+    const dodgeChance = getEquipmentEffect('dodgeChance') || 0;
+    const blockFirst = getEquipmentEffect('blockFirst');
+
+    if (blockFirst && !questState._blockUsedThisStage) {
+      // Iron Shield: block first wrong answer per stage
+      questState._blockUsedThisStage = true;
+      // No HP loss — show shield animation hint
+    } else if (dodgeChance > 0 && Math.random() < dodgeChance) {
+      // Lucky Clover: chance to dodge
+      // No HP loss
+    } else {
+      heroHP = Math.max(0, heroHP - 1);
+      if (heroHP <= 0) heroDefeated = true;
+    }
     triggerBattleAnimation('dragon-attack');
+  }
+
+  // Passive heal: Pet Companion heals every N questions
+  const passiveHeal = getEquipmentEffect('passiveHeal');
+  if (passiveHeal && questState.totalAnswered % passiveHeal === 0) {
+    heroHP = Math.min(heroHP + 1, heroMaxHP);
   }
 
   saveProgress();
   renderHearts();
+  renderXPBar();
   renderGameQuestion();
 }
 
@@ -1901,7 +1969,9 @@ function renderStageIntro() {
       <div class="stage-info">
         <span>📝 ${stage.questionIndices.length} questions</span>
         <span>⚔️ Strength: ${enemy.hp}</span>
+        <span>⭐ Lv.${questState.hero.level}</span>
       </div>
+      ${renderEquippedBar()}
       ${renderAdventureMapHTML()}
       <button class="btn ${isBoss ? 'btn-danger' : 'btn-success'} btn-block quest-btn" onclick="beginStageBattle()">
         ${isBoss ? '⚔️ Face the Boss!' : '⚔️ Begin Battle!'}
@@ -2096,6 +2166,198 @@ function renderQuestDefeat() {
     </div>`;
 
   if (gameRetryOnly.length === 0) logAttempt('gamequiz', gameActiveIndices, questState.totalCorrect, questState.totalAnswered, 0);
+}
+
+// ============================================================
+// EQUIPMENT DRAFT UI (#15)
+// ============================================================
+
+/** Render the equipment draft screen — pick 1 of 3 power-ups. */
+function renderEquipmentDraft() {
+  const qEl = document.getElementById('game-questions');
+  document.getElementById('battle-strip').style.display = 'none';
+  document.getElementById('hearts-bar').style.display = 'none';
+
+  const choices = questState.pendingDraft || rollDraftChoices();
+  questState.pendingDraft = choices;
+
+  let cardsHtml = choices.map((item, i) => {
+    const slotLabel = item.slot === 'consumable' ? 'Use immediately' : `Equips to: ${item.slot}`;
+    const currentEquip = item.slot !== 'consumable' && questState.hero.equipment[item.slot];
+    const replaceHint = currentEquip ? `<div class="draft-replace">Replaces: ${currentEquip.emoji} ${currentEquip.name}</div>` : '';
+    return `<button class="draft-card" onclick="selectDraftItem(${i})">
+      <div class="draft-emoji">${item.emoji}</div>
+      <div class="draft-name">${item.name}</div>
+      <div class="draft-desc">${item.desc}</div>
+      <div class="draft-slot">${slotLabel}</div>
+      ${replaceHint}
+    </button>`;
+  }).join('');
+
+  // Show currently equipped items
+  const eq = questState.hero.equipment;
+  const equippedHtml = ['weapon', 'armor', 'accessory'].map(slot => {
+    const item = eq[slot];
+    return item ? `<span class="equipped-tag">${item.emoji} ${item.name}</span>` : `<span class="equipped-tag empty">${slot}</span>`;
+  }).join('');
+
+  qEl.innerHTML = `
+    <div class="quest-phase-card draft-card-container">
+      <div class="stage-label">⚔️ Choose Your Reward</div>
+      <div class="draft-subtitle">Pick one power-up to aid your quest!</div>
+      <div class="equipped-bar">Equipped: ${equippedHtml}</div>
+      <div class="draft-choices">${cardsHtml}</div>
+      <button class="btn btn-sm" style="margin-top:12px; background:#666; color:#fff; border:none; border-radius:4px; padding:6px 14px; cursor:pointer;" onclick="skipDraft()">Skip →</button>
+    </div>`;
+}
+
+/** Player selects a power-up from the draft. */
+function selectDraftItem(index) {
+  const item = questState.pendingDraft[index];
+  applyPowerup(item);
+  advanceQuestPhase(); // DRAFT → next STAGE_INTRO
+  renderGameQuiz();
+}
+
+/** Player skips the draft without picking. */
+function skipDraft() {
+  advanceQuestPhase();
+  renderGameQuiz();
+}
+
+// ============================================================
+// RANDOM EVENT UI (#16)
+// ============================================================
+
+/** Render the random event screen between stages. */
+function renderQuestEvent() {
+  const qEl = document.getElementById('game-questions');
+  document.getElementById('battle-strip').style.display = 'none';
+  document.getElementById('hearts-bar').style.display = 'none';
+
+  const event = questState.pendingEvent;
+  if (!event) {
+    advanceQuestPhase();
+    renderGameQuiz();
+    return;
+  }
+
+  let actionHtml = '';
+  switch (event.type) {
+    case 'choice':
+      if (event.effect.healHearts) {
+        actionHtml = `<button class="btn btn-success btn-block quest-btn" onclick="acceptEvent()">🏕️ Rest & Heal (+${event.effect.healHearts} ❤️)</button>`;
+      } else if (event.effect.skipDraft) {
+        actionHtml = `
+          <button class="btn btn-warning btn-block quest-btn" onclick="acceptEvent()">🗺️ Take the Shortcut (skip power-up)</button>
+          <button class="btn btn-primary btn-block quest-btn" onclick="declineEvent()">🚶 Stay on the Path</button>`;
+      }
+      break;
+    case 'trade':
+      actionHtml = `
+        <button class="btn btn-primary btn-block quest-btn" onclick="acceptEvent()">🎪 Browse Wares</button>
+        <button class="btn btn-sm" style="margin-top:8px; background:#666; color:#fff; border:none; border-radius:4px; padding:6px 14px; cursor:pointer;" onclick="declineEvent()">Walk Past →</button>`;
+      break;
+    case 'minibattle':
+      actionHtml = `<button class="btn btn-danger btn-block quest-btn" onclick="acceptEvent()">⚔️ Fight! (+${event.effect.xpReward} XP)</button>`;
+      break;
+  }
+
+  qEl.innerHTML = `
+    <div class="quest-phase-card event-card">
+      <div class="stage-label">🎲 Random Event!</div>
+      <div class="event-emoji">${event.emoji}</div>
+      <div class="event-name">${event.name}</div>
+      <div class="event-desc">${getEventDescription(event)}</div>
+      ${actionHtml}
+    </div>`;
+}
+
+/** Get a fun description for each event type. */
+function getEventDescription(event) {
+  switch (event.id) {
+    case 'camp': return 'You find a cozy campfire in the forest. The warmth restores your energy!';
+    case 'merchant': return 'A mysterious merchant appears with rare wares. Want to trade?';
+    case 'ambush': return 'Bandits leap from the bushes! Answer their riddles to earn bonus XP!';
+    case 'shortcut': return 'You spot a hidden path through the trees. It\'s faster, but you\'ll miss the next power-up.';
+    default: return '';
+  }
+}
+
+/** Accept the current event and apply its effects. */
+function acceptEvent() {
+  const event = questState.pendingEvent;
+  if (event) {
+    applyEventEffect(event);
+    // For ambush, award XP directly
+    if (event.effect.xpReward) {
+      questState.hero.xp += event.effect.xpReward;
+      // Check level-up
+      awardQuestXP(false); // triggers level check without adding base XP
+    }
+  }
+  advanceQuestPhase();
+  renderGameQuiz();
+}
+
+/** Decline the current event and move on. */
+function declineEvent() {
+  questState.pendingEvent = null;
+  advanceQuestPhase();
+  renderGameQuiz();
+}
+
+// ============================================================
+// XP BAR & LEVEL-UP UI (#18)
+// ============================================================
+
+/** Render the XP bar below hearts during battle. */
+function renderXPBar() {
+  let bar = document.getElementById('xp-bar');
+  if (!bar) {
+    // Create XP bar element if it doesn't exist
+    const heartsBar = document.getElementById('hearts-bar');
+    if (!heartsBar) return;
+    bar = document.createElement('div');
+    bar.id = 'xp-bar';
+    bar.className = 'xp-bar';
+    heartsBar.parentNode.insertBefore(bar, heartsBar.nextSibling);
+  }
+  if (!questState) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+
+  const hero = questState.hero;
+  const pct = Math.min((hero.xp / hero.xpToNext) * 100, 100);
+  bar.innerHTML = `
+    <span class="xp-level">Lv.${hero.level}</span>
+    <div class="xp-track"><div class="xp-fill" style="width:${pct}%"></div></div>
+    <span class="xp-text">${hero.xp}/${hero.xpToNext} XP</span>`;
+}
+
+/** Show a level-up celebration overlay. */
+function showLevelUpCelebration(newLevel) {
+  const overlay = document.createElement('div');
+  overlay.className = 'level-up-overlay';
+  overlay.innerHTML = `
+    <div class="level-up-card">
+      <div class="level-up-stars">⭐</div>
+      <div class="level-up-title">Level Up!</div>
+      <div class="level-up-level">Level ${newLevel}</div>
+      <div class="level-up-stats">⚔️ ATK +1 &nbsp; ❤️ HP +1</div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 1800);
+}
+
+/** Render equipped items as a compact bar on stage intro. */
+function renderEquippedBar() {
+  if (!questState) return '';
+  const eq = questState.hero.equipment;
+  const items = ['weapon', 'armor', 'accessory']
+    .map(slot => eq[slot] ? `<span class="equipped-tag">${eq[slot].emoji}</span>` : '')
+    .filter(s => s).join('');
+  if (!items) return '';
+  return `<div class="equipped-bar compact">${items} equipped</div>`;
 }
 
 /** Render the adventure map as an inline HTML block with a canvas. */
