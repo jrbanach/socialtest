@@ -1602,6 +1602,8 @@ function renderGameQuestion() {
   // Show battle strip and hearts during questions
   document.getElementById('battle-strip').style.display = 'block';
   document.getElementById('hearts-bar').style.display = 'block';
+  // Re-render canvas after layout settles (fixes sizing when transitioning from display:none)
+  requestAnimationFrame(() => renderBattleCanvas());
 
   // Determine question source: stage-based or legacy
   let indices, currentQ;
