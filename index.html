@@ -130,6 +130,10 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .stage-summary-score { font-weight: 600; color: #2a5aa0; }
 .victory-title { font-size: 1.3rem; font-weight: 800; color: #2E8B57; margin: 8px 0; }
 .defeat-title { font-size: 1.1rem; font-weight: 600; color: #666; margin: 8px 0 16px; }
+.enemy-escaped-text { color: #888 !important; }
+.quest-phase-card.enemy-escaped { border-color: #888; background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%); }
+.enemy-escaped-row { opacity: 0.65; }
+.quest-medal { font-size: 1.15rem; font-weight: 700; margin: 12px 0; padding: 10px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-radius: 8px; }
 .quest-btn { margin-top: 12px; padding: 14px 24px; font-size: 1.05rem; min-height: 48px; }
 
 /* Phase transition animation */
@@ -1659,12 +1663,11 @@ function renderGameQuestion() {
     } else {
       html += `<div style="margin-top:12px; padding:10px; background:#f8d7da; border-radius:6px; color:#721c24; font-weight:600;">❌ Not quite. The correct answer is: <em>${esc(q.choices[q.correct])}</em></div>`;
     }
-    // Show defeat message if hero just died
+    // Show defeat — immediate Quest Over, no Keep Going
     if (heroDefeated && heroHP <= 0) {
       html += `<div style="margin-top:12px; padding:12px; background:#fff3cd; border-radius:6px; color:#856404; font-weight:600; text-align:center;">
         💀 Sir Capybara has been defeated!<br>
-        <button class="btn btn-warning btn-sm" style="margin-top:8px; margin-right:8px;" onclick="resetGameQuiz()">🔄 Restart</button>
-        <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="gameContinueAfterDefeat()">Keep Going →</button>
+        <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="triggerQuestDefeat()">Quest Over →</button>
       </div>`;
     } else {
       html += `<button class="btn btn-primary btn-block" onclick="gameNext()">Next →</button>`;
@@ -1914,6 +1917,15 @@ function beginStageBattle() {
   renderGameQuiz();
 }
 
+/** Immediately end the quest when hero HP reaches 0. */
+function triggerQuestDefeat() {
+  if (questState) {
+    questState.phase = 'DEFEAT';
+    saveProgress();
+  }
+  renderGameQuiz();
+}
+
 /** Render the STAGE_CLEAR screen with per-stage score and adventure map. */
 function renderStageClear() {
   const stage = getCurrentStage();
@@ -1930,14 +1942,27 @@ function renderStageClear() {
   document.getElementById('hearts-bar').style.display = 'none';
 
   const pct = Math.round((score.correct / score.total) * 100);
+  const enemyDefeated = pct >= 50;
+
+  // Track defeated enemies for medal system
+  if (!questState.enemiesDefeated) questState.enemiesDefeated = 0;
+  if (enemyDefeated) questState.enemiesDefeated++;
+
+  const outcomeText = enemyDefeated
+    ? `${enemy.emoji} ${enemy.name} Defeated!`
+    : `${enemy.emoji} ${enemy.name} Escaped...`;
+  const outcomeClass = enemyDefeated ? 'stage-clear' : 'stage-clear enemy-escaped';
+
   const encouragement = pct === 100 ? '🌟 Perfect Stage!' :
     pct >= 80 ? '⚡ Excellent work!' :
-    pct >= 60 ? '👍 Good job!' : '💪 Keep going!';
+    pct >= 60 ? '👍 Good job!' :
+    pct >= 50 ? '👊 Enemy down, but barely!' :
+    pct >= 30 ? '😬 The enemy got away... keep studying!' : '📚 Tough round. You\'ll get them next time!';
 
   qEl.innerHTML = `
-    <div class="quest-phase-card stage-clear">
+    <div class="quest-phase-card ${outcomeClass}">
       <div class="stage-label">Stage ${stageNum} Complete!</div>
-      <div class="stage-clear-enemy">${enemy.emoji} ${enemy.name} Defeated!</div>
+      <div class="stage-clear-enemy ${enemyDefeated ? '' : 'enemy-escaped-text'}">${outcomeText}</div>
       <div class="stage-score">
         <div class="big-score">${score.correct}/${score.total}</div>
         <div class="encouragement">${encouragement}</div>
@@ -1978,7 +2003,9 @@ function renderQuestVictory() {
   renderBattleCanvas();
   triggerBattleAnimation('victory');
 
-  // Build per-stage summary
+  // Build per-stage summary with defeated/escaped status
+  const totalStages = questState.stages.length;
+  const enemiesDefeated = questState.enemiesDefeated || 0;
   let stagesHtml = '';
   questState.stages.forEach((stage, i) => {
     const emoji = stage.enemy.emoji;
@@ -1989,11 +2016,22 @@ function renderQuestVictory() {
       if (gameResults && gameResults[qi]) correct++;
     });
     const pct = Math.round((correct / qCount) * 100);
-    stagesHtml += `<div class="stage-summary-row">
-      <span>${emoji} ${name}</span>
+    const defeated = pct >= 50;
+    const statusIcon = defeated ? '⚔️' : '💨';
+    const statusClass = defeated ? '' : 'enemy-escaped-row';
+    stagesHtml += `<div class="stage-summary-row ${statusClass}">
+      <span>${statusIcon} ${emoji} ${name}</span>
       <span class="stage-summary-score">${correct}/${qCount} (${pct}%)</span>
     </div>`;
   });
+
+  // Medal based on enemies defeated
+  const medal = enemiesDefeated >= totalStages ? '🥇 Gold' :
+    enemiesDefeated >= Math.ceil(totalStages * 0.6) ? '🥈 Silver' :
+    enemiesDefeated >= 1 ? '🥉 Bronze' : '—';
+  const medalHtml = medal !== '—'
+    ? `<div class="quest-medal">${medal} — ${enemiesDefeated}/${totalStages} enemies defeated</div>`
+    : `<div class="quest-medal" style="color:#888;">No enemies defeated — keep studying!</div>`;
 
   qEl.innerHTML = '';
   resultsEl.style.display = 'block';
@@ -2003,6 +2041,7 @@ function renderQuestVictory() {
       <div class="victory-title">⚔️ Sir Capybara is Victorious!</div>
       <div class="big-score">${questState.totalCorrect}/${questState.totalAnswered}</div>
       <div class="encouragement">${getEncouragement(questState.totalCorrect, questState.totalAnswered)}</div>
+      ${medalHtml}
       ${renderAdventureMapHTML()}
       <div class="stage-summary">${stagesHtml}</div>
       <button class="btn btn-primary btn-block quest-btn" onclick="resetGameQuiz()">🏠 Play Again</button>
