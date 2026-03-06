@@ -214,6 +214,8 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .quiz-pick-subject { font-weight: 700; font-size: 0.95rem; color: #1a1a2e; }
 .quiz-pick-title { font-size: 0.8rem; color: #555; margin-top: 2px; }
 .quiz-pick-grade { font-size: 0.7rem; color: #888; margin-top: 4px; }
+.quiz-pick-sections { font-size: 0.75rem; margin-top: 4px; }
+.quiz-pick-active-badge { font-size: 0.7rem; color: #4ade80; font-weight: 700; margin-bottom: 2px; }
 
 @media (max-width: 480px) {
   .draft-card { min-width: 100px; padding: 10px; }
@@ -714,7 +716,181 @@ const QUIZ_REGISTRY = [
     vocab: DEFAULT_VOCAB,
     mc: DEFAULT_MC,
     jeopardy: DEFAULT_JEOPARDY,
-    enemies: null  // null = use default ENEMY_ROSTER
+    enemies: null
+  },
+  {
+    id: 'science-minerals',
+    subject: 'Science',
+    title: 'Minerals',
+    grade: 5,
+    sections: ['vocab', 'mc', 'gamequiz'],
+    vocab: [
+      { term: "mineral", definition: "A naturally occurring, inorganic solid with a crystal structure and definite chemical composition" },
+      { term: "naturally occurring", definition: "Made by Earth, not made by humans" },
+      { term: "inorganic", definition: "Not made of living matter" },
+      { term: "crystal", definition: "A regular repeating pattern of atoms" },
+      { term: "color", definition: "A mineral property used to help identify a mineral by looking at it" },
+      { term: "luster", definition: "The way a mineral's surface reflects light" },
+      { term: "metallic", definition: "A type of luster that is shiny and metal-like" },
+      { term: "nonmetallic", definition: "A type of luster that can be glassy, pearly, or waxy" },
+      { term: "streak", definition: "The powder form of a mineral, tested by rubbing across a streak plate" },
+      { term: "streak plate", definition: "Unglazed porcelain used to test a mineral's streak color" },
+      { term: "hardness", definition: "A mineral's ability to resist being scratched" },
+      { term: "Mohs Hardness Scale", definition: "A scale from 1 to 10 that ranks minerals by hardness, where 1 is softest and 10 is hardest" },
+      { term: "cleavage", definition: "When a mineral breaks into flat, smooth sheets" },
+      { term: "fracture", definition: "When a mineral breaks into jagged, rough pieces" }
+    ],
+    mc: [
+      { question: "How many property tests are needed at minimum to identify a mineral?", choices: ["1 test", "2 tests", "3 tests", "5 tests"], correct: 2 },
+      { question: "What is the chemical formula for halite?", choices: ["H2O", "CO2", "NaCl", "FeO"], correct: 2 },
+      { question: "What is the crystal shape of halite?", choices: ["Hexagonal", "Cubic", "Triangular", "Flat"], correct: 1 },
+      { question: "Which mineral is always yellow in color?", choices: ["Quartz", "Calcite", "Sulfur", "Halite"], correct: 2 },
+      { question: "Which mineral comes in many colors including clear, pink, brown, blue, and purple?", choices: ["Halite", "Gypsum", "Calcite", "Quartz"], correct: 3 },
+      { question: "What type of luster does pyrite have?", choices: ["Glassy", "Pearly", "Waxy", "Metallic"], correct: 3 },
+      { question: "Which mineral can have BOTH metallic and nonmetallic luster?", choices: ["Pyrite", "Quartz", "Hematite", "Galena"], correct: 2 },
+      { question: "What is used to test a mineral's streak?", choices: ["Glass plate", "Copper plate", "Streak plate", "Fingernail"], correct: 2 },
+      { question: "On the Mohs Hardness Scale, which mineral is the softest?", choices: ["Gypsum", "Talc", "Calcite", "Graphite"], correct: 1 },
+      { question: "On the Mohs Hardness Scale, which mineral is the hardest?", choices: ["Quartz", "Topaz", "Corundum", "Diamond"], correct: 3 },
+      { question: "What hardness can a fingernail scratch up to?", choices: ["1.5", "2.5", "3.5", "4.5"], correct: 1 },
+      { question: "What hardness can a glass plate scratch up to?", choices: ["3", "4", "5", "6"], correct: 3 },
+      { question: "Which of these minerals has cleavage (breaks into flat sheets)?", choices: ["Quartz", "Pyrite", "Mica", "Hematite"], correct: 2 },
+      { question: "Which of these minerals has fracture (breaks into jagged pieces)?", choices: ["Halite", "Calcite", "Feldspar", "Quartz"], correct: 3 },
+      { question: "Which mineral fizzes when hydrochloric acid is placed on it?", choices: ["Magnetite", "Fluorite", "Calcite", "Pyrite"], correct: 2 },
+      { question: "Which mineral is magnetic?", choices: ["Galena", "Graphite", "Magnetite", "Hematite"], correct: 2 },
+      { question: "Which mineral glows under black light?", choices: ["Calcite", "Fluorite", "Quartz", "Sulfur"], correct: 1 },
+      { question: "Which mineral produces a double image when you look through it?", choices: ["Quartz", "Halite", "Gypsum", "Calcite"], correct: 3 }
+    ],
+    jeopardy: [
+      { question: "A naturally occurring, inorganic solid with a crystal structure and definite chemical composition", choices: ["Rock", "Mineral", "Crystal", "Lava"], correct: 1, category: "vocab" },
+      { question: "Made by Earth, not made by humans", choices: ["Inorganic", "Naturally occurring", "Crystal", "Mineral"], correct: 1, category: "vocab" },
+      { question: "Not made of living matter", choices: ["Naturally occurring", "Organic", "Inorganic", "Sedimentary"], correct: 2, category: "vocab" },
+      { question: "A regular repeating pattern of atoms", choices: ["Mineral", "Luster", "Streak", "Crystal"], correct: 3, category: "vocab" },
+      { question: "A mineral property used to help identify a mineral by looking at it", choices: ["Streak", "Hardness", "Color", "Luster"], correct: 2, category: "vocab" },
+      { question: "The way a mineral's surface reflects light", choices: ["Color", "Streak", "Luster", "Hardness"], correct: 2, category: "vocab" },
+      { question: "A type of luster that is shiny and metal-like", choices: ["Nonmetallic", "Waxy", "Glassy", "Metallic"], correct: 3, category: "vocab" },
+      { question: "A type of luster that can be glassy, pearly, or waxy", choices: ["Metallic", "Nonmetallic", "Streak", "Fracture"], correct: 1, category: "vocab" },
+      { question: "The powder form of a mineral, tested by rubbing across a plate", choices: ["Hardness", "Cleavage", "Color", "Streak"], correct: 3, category: "vocab" },
+      { question: "Unglazed porcelain used to test a mineral's streak color", choices: ["Glass plate", "Copper plate", "Streak plate", "Mohs plate"], correct: 2, category: "vocab" },
+      { question: "A mineral's ability to resist being scratched", choices: ["Fracture", "Cleavage", "Luster", "Hardness"], correct: 3, category: "vocab" },
+      { question: "A scale from 1 to 10 that ranks minerals by hardness", choices: ["Richter Scale", "Mohs Hardness Scale", "Mineral Scale", "Streak Scale"], correct: 1, category: "vocab" },
+      { question: "When a mineral breaks into flat, smooth sheets", choices: ["Fracture", "Streak", "Cleavage", "Luster"], correct: 2, category: "vocab" },
+      { question: "When a mineral breaks into jagged, rough pieces", choices: ["Cleavage", "Fracture", "Hardness", "Streak"], correct: 1, category: "vocab" },
+      { question: "You need at least this many property tests to identify a mineral", choices: ["5 tests", "2 tests", "3 tests", "1 test"], correct: 2, category: "mc" },
+      { question: "This mineral is always yellow", choices: ["Quartz", "Calcite", "Sulfur", "Halite"], correct: 2, category: "mc" },
+      { question: "This mineral can have BOTH metallic and nonmetallic luster", choices: ["Pyrite", "Hematite", "Galena", "Quartz"], correct: 1, category: "mc" },
+      { question: "Talc has a hardness of 1 and this mineral has a hardness of 10", choices: ["Quartz", "Topaz", "Diamond", "Corundum"], correct: 2, category: "mc" },
+      { question: "A fingernail can scratch minerals up to this hardness", choices: ["1.5", "2.5", "3.5", "5"], correct: 1, category: "mc" },
+      { question: "A glass plate can scratch minerals up to this hardness", choices: ["3", "4", "5", "6"], correct: 3, category: "mc" },
+      { question: "This mineral fizzes when hydrochloric acid is placed on it", choices: ["Magnetite", "Calcite", "Fluorite", "Pyrite"], correct: 1, category: "mc" },
+      { question: "This mineral is magnetic", choices: ["Galena", "Graphite", "Hematite", "Magnetite"], correct: 3, category: "mc" },
+      { question: "This mineral glows under black light", choices: ["Fluorite", "Calcite", "Sulfur", "Quartz"], correct: 0, category: "mc" },
+      { question: "This mineral produces a double image when you look through it", choices: ["Quartz", "Calcite", "Halite", "Gypsum"], correct: 1, category: "mc" },
+      { question: "Halite has this crystal shape and is made of NaCl", choices: ["Hexagonal", "Triangular", "Cubic", "Flat"], correct: 2, category: "mc" },
+      { question: "Quartz can be many colors: clear, white, pink, brown, blue, and purple", choices: ["Sulfur", "Quartz", "Halite", "Calcite"], correct: 1, category: "mc" },
+      { question: "Pyrite, galena, magnetite, and graphite all have this type of luster", choices: ["Glassy", "Pearly", "Waxy", "Metallic"], correct: 3, category: "mc" },
+      { question: "Mica, gypsum, calcite, galena, halite, and feldspar all have this property", choices: ["Fracture", "Streak", "Cleavage", "Metallic luster"], correct: 2, category: "mc" }
+    ],
+    enemies: null
+  },
+  {
+    id: 'science-rocks',
+    subject: 'Science',
+    title: 'Rocks & Rock Cycle',
+    grade: 5,
+    sections: ['vocab', 'mc', 'gamequiz'],
+    vocab: [
+      { term: "rock", definition: "A natural solid made of one or more minerals, classified by how it forms" },
+      { term: "igneous rock", definition: "Rock that forms when molten material such as lava or magma cools and hardens" },
+      { term: "magma", definition: "Melted rock found below Earth's surface" },
+      { term: "lava", definition: "Melted rock found above Earth's surface" },
+      { term: "intrusive igneous rock", definition: "Rock that forms under Earth's surface when magma cools slowly, creating large crystals" },
+      { term: "extrusive igneous rock", definition: "Rock that forms above Earth's surface when lava cools quickly, creating small or no crystals" },
+      { term: "silica", definition: "A mineral component in igneous rocks; high silica makes light-colored rock and low silica makes dark-colored rock" },
+      { term: "sedimentary rock", definition: "Rock that forms when sediments are compacted and cemented together" },
+      { term: "weathering", definition: "The process of breaking rock into smaller pieces called sediment" },
+      { term: "erosion", definition: "The process of moving sediment from one place to another" },
+      { term: "deposition", definition: "Laying sediment down in a new location where it settles out of water or wind" },
+      { term: "clastic", definition: "A type of sedimentary rock formed from sediments compacted and cemented together" },
+      { term: "chemical sedimentary rock", definition: "Rock that forms when mineral-rich water evaporates, leaving minerals behind" },
+      { term: "organic sedimentary rock", definition: "Rock formed from the remains of living things compacted and cemented together" },
+      { term: "stalactite", definition: "A formation that hangs down from the ceiling of a cavern" },
+      { term: "stalagmite", definition: "A formation that builds up from the ground of a cavern" },
+      { term: "metamorphic rock", definition: "Rock that forms when existing rock undergoes extreme heat and pressure" },
+      { term: "foliated", definition: "A type of metamorphic rock where minerals band together to create stripes" },
+      { term: "nonfoliated", definition: "A type of metamorphic rock where minerals are not arranged in stripes" },
+      { term: "rock cycle", definition: "The continuous process in which one type of rock changes into another type of rock" }
+    ],
+    mc: [
+      { question: "Granite and gabbro are examples of what type of igneous rock?", choices: ["Extrusive", "Intrusive", "Metamorphic", "Sedimentary"], correct: 1 },
+      { question: "Which rock has no crystals and looks like glass?", choices: ["Granite", "Basalt", "Obsidian", "Pumice"], correct: 2 },
+      { question: "Basalt is an extrusive igneous rock with what size crystals?", choices: ["Large crystals", "Small crystals", "No crystals", "Banded crystals"], correct: 1 },
+      { question: "What causes pumice and scoria to have holes in them?", choices: ["Erosion", "Crystals falling out", "Gas bubbles", "Acid rain"], correct: 2 },
+      { question: "If an igneous rock is light in color, what does it contain?", choices: ["Low silica", "High silica", "Lots of iron", "No minerals"], correct: 1 },
+      { question: "What type of sedimentary rock is sandstone?", choices: ["Organic", "Chemical", "Clastic", "Metamorphic"], correct: 2 },
+      { question: "What type of sedimentary rock is formed from the remains of living things?", choices: ["Clastic", "Chemical", "Igneous", "Organic"], correct: 3 },
+      { question: "Coal is formed from the remains of what?", choices: ["Shells", "Plants", "Bones", "Sand"], correct: 1 },
+      { question: "Coquina is formed from the remains of what?", choices: ["Plants", "Fish", "Shells", "Mud"], correct: 2 },
+      { question: "Conglomerate is a clastic sedimentary rock made from what?", choices: ["Sand", "Clay", "Pebbles", "Shells"], correct: 2 },
+      { question: "Shale is a fine-grained clastic sedimentary rock made from what?", choices: ["Sand", "Pebbles", "Shells", "Clay"], correct: 3 },
+      { question: "What hangs down from the ceiling of a cavern?", choices: ["Stalagmite", "Stalactite", "Limestone", "Conglomerate"], correct: 1 },
+      { question: "What builds up from the ground of a cavern?", choices: ["Stalactite", "Stalagmite", "Sandstone", "Coquina"], correct: 1 },
+      { question: "Where do metamorphic rocks commonly form?", choices: ["In rivers and lakes", "Under mountains, near volcanoes, and under the ocean floor", "On top of mountains", "In the atmosphere"], correct: 1 },
+      { question: "Which metamorphic rock forms from limestone?", choices: ["Slate", "Quartzite", "Gneiss", "Marble"], correct: 3 },
+      { question: "Which metamorphic rock forms from granite?", choices: ["Gneiss", "Marble", "Slate", "Quartzite"], correct: 0 },
+      { question: "Which metamorphic rock forms from shale?", choices: ["Marble", "Quartzite", "Schist", "Slate"], correct: 3 },
+      { question: "Which metamorphic rock forms from sandstone and has foliation?", choices: ["Marble", "Quartzite", "Schist", "Slate"], correct: 2 },
+      { question: "Quartzite is a nonfoliated metamorphic rock formed from what?", choices: ["Granite", "Limestone", "Shale", "Sandstone"], correct: 3 },
+      { question: "What are granite and marble commonly used for?", choices: ["Road salt", "Fossil fuel", "Countertops and building", "Garden mulch"], correct: 2 },
+      { question: "What is coal used for?", choices: ["Building countertops", "Making glass", "Fossil fuel for heat and electricity", "Garden paths"], correct: 2 },
+      { question: "What is rock salt used for?", choices: ["Building monuments", "Roads and walkways in winter", "Making jewelry", "Fossil fuel"], correct: 1 },
+      { question: "In the rock cycle, what forms when melted rock cools and hardens?", choices: ["Sedimentary rock", "Metamorphic rock", "Igneous rock", "Mineral"], correct: 2 },
+      { question: "In the rock cycle, what forms when rock is weathered, eroded, deposited, compacted and cemented?", choices: ["Igneous rock", "Metamorphic rock", "Minerals", "Sedimentary rock"], correct: 3 },
+      { question: "In the rock cycle, what forms when rock undergoes extreme heat and pressure?", choices: ["Igneous rock", "Sedimentary rock", "Magma", "Metamorphic rock"], correct: 3 }
+    ],
+    jeopardy: [
+      { question: "A natural solid made of one or more minerals, classified by how it forms", choices: ["Mineral", "Crystal", "Rock", "Sediment"], correct: 2, category: "vocab" },
+      { question: "Rock that forms when molten material such as lava or magma cools and hardens", choices: ["Sedimentary rock", "Metamorphic rock", "Igneous rock", "Organic rock"], correct: 2, category: "vocab" },
+      { question: "Melted rock found below Earth's surface", choices: ["Lava", "Sediment", "Magma", "Mineral"], correct: 2, category: "vocab" },
+      { question: "Melted rock found above Earth's surface", choices: ["Magma", "Lava", "Sediment", "Mineral"], correct: 1, category: "vocab" },
+      { question: "Rock that forms under Earth's surface when magma cools slowly, creating large crystals", choices: ["Extrusive igneous rock", "Sedimentary rock", "Intrusive igneous rock", "Metamorphic rock"], correct: 2, category: "vocab" },
+      { question: "Rock that forms above Earth's surface when lava cools quickly, creating small or no crystals", choices: ["Intrusive igneous rock", "Extrusive igneous rock", "Metamorphic rock", "Clastic rock"], correct: 1, category: "vocab" },
+      { question: "A mineral component; high amounts make igneous rock light-colored, low amounts make it dark", choices: ["Iron", "Calcium", "Silica", "Carbon"], correct: 2, category: "vocab" },
+      { question: "Rock that forms when sediments are compacted and cemented together", choices: ["Igneous rock", "Metamorphic rock", "Sedimentary rock", "Mineral"], correct: 2, category: "vocab" },
+      { question: "The process of breaking rock into smaller pieces called sediment", choices: ["Erosion", "Deposition", "Weathering", "Compaction"], correct: 2, category: "vocab" },
+      { question: "The process of moving sediment from one place to another", choices: ["Weathering", "Deposition", "Compaction", "Erosion"], correct: 3, category: "vocab" },
+      { question: "Laying sediment down in a new location where it settles out of water or wind", choices: ["Erosion", "Weathering", "Deposition", "Cementation"], correct: 2, category: "vocab" },
+      { question: "A type of sedimentary rock formed from sediments compacted and cemented together", choices: ["Chemical", "Organic", "Metamorphic", "Clastic"], correct: 3, category: "vocab" },
+      { question: "Rock that forms when mineral-rich water evaporates, leaving minerals behind", choices: ["Clastic sedimentary rock", "Organic sedimentary rock", "Chemical sedimentary rock", "Igneous rock"], correct: 2, category: "vocab" },
+      { question: "Rock formed from the remains of living things compacted and cemented together", choices: ["Chemical sedimentary rock", "Organic sedimentary rock", "Clastic sedimentary rock", "Metamorphic rock"], correct: 1, category: "vocab" },
+      { question: "A formation that hangs down from the ceiling of a cavern", choices: ["Stalagmite", "Stalactite", "Conglomerate", "Fossil"], correct: 1, category: "vocab" },
+      { question: "A formation that builds up from the ground of a cavern", choices: ["Stalactite", "Fossil", "Stalagmite", "Limestone"], correct: 2, category: "vocab" },
+      { question: "Rock that forms when existing rock undergoes extreme heat and pressure", choices: ["Igneous rock", "Sedimentary rock", "Organic rock", "Metamorphic rock"], correct: 3, category: "vocab" },
+      { question: "A type of metamorphic rock where minerals band together to create stripes", choices: ["Nonfoliated", "Clastic", "Extrusive", "Foliated"], correct: 3, category: "vocab" },
+      { question: "A type of metamorphic rock where minerals are not arranged in stripes", choices: ["Foliated", "Nonfoliated", "Clastic", "Intrusive"], correct: 1, category: "vocab" },
+      { question: "The continuous process in which one type of rock changes into another type of rock", choices: ["Water cycle", "Erosion cycle", "Rock cycle", "Mineral cycle"], correct: 2, category: "vocab" },
+      { question: "Granite and gabbro are examples of this type of igneous rock", choices: ["Extrusive", "Organic", "Sedimentary", "Intrusive"], correct: 3, category: "mc" },
+      { question: "This rock has no crystals and looks like glass", choices: ["Pumice", "Obsidian", "Granite", "Basalt"], correct: 1, category: "mc" },
+      { question: "Gas bubbles cause holes in these two rocks", choices: ["Granite and basalt", "Pumice and scoria", "Obsidian and gabbro", "Sandstone and shale"], correct: 1, category: "mc" },
+      { question: "High silica content makes an igneous rock this color", choices: ["Dark", "Red", "Light", "Green"], correct: 2, category: "mc" },
+      { question: "Sandstone is made from sand and is this type of sedimentary rock", choices: ["Chemical", "Organic", "Metamorphic", "Clastic"], correct: 3, category: "mc" },
+      { question: "Coal is formed from plant remains and is this type of sedimentary rock", choices: ["Clastic", "Organic", "Chemical", "Igneous"], correct: 1, category: "mc" },
+      { question: "Coquina is formed from the remains of these", choices: ["Plants", "Bones", "Shells", "Sand"], correct: 2, category: "mc" },
+      { question: "Conglomerate is a coarse-grained clastic rock made from these", choices: ["Sand", "Clay", "Shells", "Pebbles"], correct: 3, category: "mc" },
+      { question: "Shale is a fine-grained clastic rock made from this", choices: ["Sand", "Pebbles", "Clay", "Shells"], correct: 2, category: "mc" },
+      { question: "Metamorphic rocks commonly form in these locations", choices: ["Rivers and lakes", "Under mountains, near volcanoes, under ocean floor", "On top of mountains", "In deserts"], correct: 1, category: "mc" },
+      { question: "Marble is a metamorphic rock formed from this rock", choices: ["Granite", "Shale", "Sandstone", "Limestone"], correct: 3, category: "mc" },
+      { question: "Gneiss is a foliated metamorphic rock formed from this rock", choices: ["Limestone", "Shale", "Granite", "Sandstone"], correct: 2, category: "mc" },
+      { question: "Slate is a foliated metamorphic rock formed from this rock", choices: ["Granite", "Sandstone", "Limestone", "Shale"], correct: 3, category: "mc" },
+      { question: "Schist has foliation and is formed from this rock", choices: ["Granite", "Sandstone", "Shale", "Limestone"], correct: 1, category: "mc" },
+      { question: "Quartzite is a nonfoliated metamorphic rock formed from this", choices: ["Granite", "Limestone", "Shale", "Sandstone"], correct: 3, category: "mc" },
+      { question: "Granite and marble are commonly used for these", choices: ["Road salt", "Fossil fuel", "Countertops and building", "Garden mulch"], correct: 2, category: "mc" },
+      { question: "Coal is used as this", choices: ["Road salt", "Building material", "Fossil fuel for heat and electricity", "Garden stone"], correct: 2, category: "mc" },
+      { question: "Rock salt is used for this", choices: ["Building monuments", "Roads and walkways in winter", "Making jewelry", "Fossil fuel"], correct: 1, category: "mc" },
+      { question: "In the rock cycle, melted rock cools and hardens to form this", choices: ["Sedimentary rock", "Metamorphic rock", "Igneous rock", "Mineral"], correct: 2, category: "mc" },
+      { question: "In the rock cycle, weathering, erosion, deposition, compaction, and cementation form this", choices: ["Igneous rock", "Sedimentary rock", "Metamorphic rock", "Magma"], correct: 1, category: "mc" },
+      { question: "In the rock cycle, extreme heat and pressure form this", choices: ["Igneous rock", "Sedimentary rock", "Magma", "Metamorphic rock"], correct: 3, category: "mc" }
+    ],
+    enemies: null
   }
 ];
 
@@ -722,7 +898,7 @@ const QUIZ_REGISTRY = [
 let activeQuiz = QUIZ_REGISTRY[0];
 
 // Parent settings: which quiz is active + lock toggle
-let quizSettings = { activeQuizId: QUIZ_REGISTRY[0].id, locked: true };
+let quizSettings = { activeQuizId: QUIZ_REGISTRY[0].id, locked: true, visibleQuizIds: QUIZ_REGISTRY.map(q => q.id) };
 
 // ============================================================
 function getStorageKey() { return 'socialtest_progress_' + activeQuiz.id; }
@@ -755,6 +931,18 @@ function switchQuiz(quizId) {
   updateNavBar();
   updateQuizHeader();
   showScreen('home');
+}
+
+/** Player-facing quiz switch with confirmation if progress exists. */
+function playerSwitchQuiz(quizId) {
+  if (quizId === activeQuiz.id) return; // already active
+  const hasProgress = vocabResults || mcResults || gameResults || questState;
+  if (hasProgress) {
+    if (!confirm('Switching quizzes will reset your current progress in Vocabulary, Multiple Choice, and Game Quiz. Are you sure?')) {
+      return;
+    }
+  }
+  switchQuiz(quizId);
 }
 
 /** Update nav bar visibility based on active quiz sections. */
@@ -1210,14 +1398,14 @@ let saveInFlight = false;
  * Uses cache:no-store to avoid stale browser cache (kids-schedule lesson).
  */
 async function loadData() {
+  const quizParam = activeQuiz ? `?quiz=${activeQuiz.id}` : '';
   try {
-    const r = await fetch(API_URL + '/questions', { cache: 'no-store' });
+    const r = await fetch(API_URL + '/questions' + quizParam, { cache: 'no-store' });
     if (r.ok) {
       const d = await r.json();
-      vocabData = d.vocab || DEFAULT_VOCAB;
-      mcData = d.mc || DEFAULT_MC;
-      jeopardyData = d.jeopardy || DEFAULT_JEOPARDY;
-      // Write-through: keep localStorage fresh
+      vocabData = d.vocab || (activeQuiz ? activeQuiz.vocab : DEFAULT_VOCAB) || [];
+      mcData = d.mc || (activeQuiz ? activeQuiz.mc : DEFAULT_MC) || [];
+      jeopardyData = d.jeopardy || (activeQuiz ? activeQuiz.jeopardy : DEFAULT_JEOPARDY) || [];
       localStorage.setItem(getDataKey(), JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData }));
       return;
     }
@@ -1226,13 +1414,14 @@ async function loadData() {
   const saved = localStorage.getItem(getDataKey());
   if (saved) {
     const d = JSON.parse(saved);
-    vocabData = d.vocab || DEFAULT_VOCAB;
-    mcData = d.mc || DEFAULT_MC;
-    jeopardyData = d.jeopardy || DEFAULT_JEOPARDY;
+    vocabData = d.vocab || [];
+    mcData = d.mc || [];
+    jeopardyData = d.jeopardy || [];
   } else {
-    vocabData = JSON.parse(JSON.stringify(DEFAULT_VOCAB));
-    mcData = JSON.parse(JSON.stringify(DEFAULT_MC));
-    jeopardyData = JSON.parse(JSON.stringify(DEFAULT_JEOPARDY));
+    // Final fallback: inline defaults from active quiz
+    vocabData = JSON.parse(JSON.stringify(activeQuiz ? activeQuiz.vocab || [] : DEFAULT_VOCAB));
+    mcData = JSON.parse(JSON.stringify(activeQuiz ? activeQuiz.mc || [] : DEFAULT_MC));
+    jeopardyData = JSON.parse(JSON.stringify(activeQuiz ? activeQuiz.jeopardy || [] : DEFAULT_JEOPARDY));
   }
 }
 
@@ -1244,8 +1433,9 @@ async function saveData() {
   const payload = { vocab: vocabData, mc: mcData, jeopardy: jeopardyData };
   localStorage.setItem(getDataKey(), JSON.stringify(payload));
   saveInFlight = true;
+  const quizParam = activeQuiz ? `?quiz=${activeQuiz.id}` : '';
   try {
-    const r = await fetch(API_URL + '/questions', {
+    const r = await fetch(API_URL + '/questions' + quizParam, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -1322,17 +1512,22 @@ function showScreen(id) {
 }
 
 function renderHome() {
-  // Render quiz picker if unlocked and multiple quizzes exist
+  // Render quiz picker if unlocked
   const pickerEl = document.getElementById('quiz-picker');
   if (pickerEl) {
-    if (!quizSettings.locked && QUIZ_REGISTRY.length >= 1) {
-      let pickerHtml = '<div style="text-align:center; margin-bottom:8px; font-size:0.85rem; color:#666;">Select a quiz:</div><div class="quiz-picker-grid">';
-      QUIZ_REGISTRY.forEach(q => {
+    const visibleIds = quizSettings.visibleQuizIds || QUIZ_REGISTRY.map(q => q.id);
+    const visibleQuizzes = QUIZ_REGISTRY.filter(q => visibleIds.includes(q.id));
+
+    if (!quizSettings.locked && visibleQuizzes.length >= 1) {
+      let pickerHtml = '<div style="text-align:center; margin-bottom:8px; font-size:0.85rem; color:#666;">Select a quiz to study:</div><div class="quiz-picker-grid">';
+      visibleQuizzes.forEach(q => {
         const isActive = q.id === activeQuiz.id;
-        pickerHtml += `<button class="quiz-pick-card ${isActive ? 'active' : ''}" onclick="switchQuiz('${q.id}')">
+        pickerHtml += `<button class="quiz-pick-card ${isActive ? 'active' : ''}" onclick="playerSwitchQuiz('${q.id}')">
+          ${isActive ? '<div class="quiz-pick-active-badge">● Active</div>' : ''}
           <div class="quiz-pick-subject">${q.subject}</div>
           <div class="quiz-pick-title">${q.title}</div>
           <div class="quiz-pick-grade">Grade ${q.grade}</div>
+          <div class="quiz-pick-sections">${(q.sections || []).map(s => s === 'vocab' ? '📖' : s === 'mc' ? '✏️' : '🎮').join(' ')}</div>
         </button>`;
       });
       pickerHtml += '</div>';
@@ -4430,16 +4625,22 @@ function showParentTab(tab) {
 /** Render the Quiz Settings panel in Parent Mode. */
 function renderQuizSettingsPanel() {
   const el = document.getElementById('parent-quizsettings');
+  const visibleIds = quizSettings.visibleQuizIds || [activeQuiz.id];
   let html = '<h3>📋 Quiz Settings</h3>';
 
-  // Quiz selector
-  html += '<div style="margin-bottom:16px;"><label style="font-weight:600;">Active Quiz:</label><br>';
-  html += '<select id="parent-quiz-select" onchange="parentSwitchQuiz(this.value)" style="width:100%; padding:8px; border-radius:6px; border:1px solid #ccc; font-size:1rem; margin-top:4px;">';
+  // Multi-select: which quizzes the player can see
+  html += '<div style="margin-bottom:16px;"><label style="font-weight:600;">Quizzes visible to player:</label>';
+  html += '<div style="font-size:0.8rem; color:#888; margin:4px 0 8px;">Check the quizzes the player should be able to study. Unchecked quizzes are hidden.</div>';
   QUIZ_REGISTRY.forEach(q => {
-    const sel = q.id === activeQuiz.id ? 'selected' : '';
-    html += `<option value="${q.id}" ${sel}>${q.subject} — ${q.title} (Grade ${q.grade})</option>`;
+    const checked = visibleIds.includes(q.id) ? 'checked' : '';
+    const isActive = q.id === activeQuiz.id;
+    html += `<label style="display:block; padding:8px 10px; margin:4px 0; background:${isActive ? '#f0fff4' : '#f8f9fa'}; border:1px solid ${isActive ? '#4ade80' : '#ddd'}; border-radius:6px; cursor:pointer;">
+      <input type="checkbox" value="${q.id}" ${checked} onchange="toggleQuizVisibility('${q.id}', this.checked)" style="margin-right:8px; transform:scale(1.2);">
+      <strong>${q.subject}</strong> — ${q.title} (Grade ${q.grade})
+      ${isActive ? ' <span style="color:#4ade80; font-size:0.8rem;">● Active</span>' : ''}
+    </label>`;
   });
-  html += '</select></div>';
+  html += '</div>';
 
   // Lock toggle
   html += `<div style="margin-bottom:16px;">
@@ -4447,29 +4648,42 @@ function renderQuizSettingsPanel() {
       <input type="checkbox" id="parent-quiz-lock" ${quizSettings.locked ? 'checked' : ''} onchange="toggleQuizLock(this.checked)" style="margin-right:8px; transform:scale(1.2);">
       Lock quiz selection (player can't switch)
     </label>
-    <div style="font-size:0.8rem; color:#888; margin-top:4px;">When locked, the player only sees the quiz you selected above.</div>
+    <div style="font-size:0.8rem; color:#888; margin-top:4px;">When locked, only the currently active quiz is shown. No picker on home screen.</div>
   </div>`;
 
-  // Quiz info
+  // Current active quiz info
   const sections = activeQuiz.sections || [];
   html += `<div style="margin-bottom:16px;">
-    <label style="font-weight:600;">Active Quiz Info:</label>
+    <label style="font-weight:600;">Currently Active Quiz:</label>
     <div style="margin-top:4px; font-size:0.9rem; color:#555;">
-      <div>📚 Subject: ${activeQuiz.subject}</div>
-      <div>📝 Title: ${activeQuiz.title}</div>
-      <div>🎓 Grade: ${activeQuiz.grade}</div>
+      <div>📚 ${activeQuiz.subject} — ${activeQuiz.title}</div>
       <div>📂 Sections: ${sections.join(', ') || 'all'}</div>
-      <div>📖 Vocab questions: ${(activeQuiz.vocab || []).length}</div>
-      <div>✏️ MC questions: ${(activeQuiz.mc || []).length}</div>
-      <div>🎮 Game questions: ${(activeQuiz.jeopardy || []).length}</div>
+      <div>📖 Vocab: ${(activeQuiz.vocab || []).length} | ✏️ MC: ${(activeQuiz.mc || []).length} | 🎮 Game: ${(activeQuiz.jeopardy || []).length}</div>
     </div>
   </div>`;
 
-  html += `<div style="margin-top:16px; padding:12px; background:#f0f4ff; border-radius:8px; font-size:0.85rem; color:#555;">
+  html += `<div style="padding:12px; background:#f0f4ff; border-radius:8px; font-size:0.85rem; color:#555;">
     💡 To add a new quiz, use the quiz JSON template in <code>docs/quiz-template.json</code> and add it to the QUIZ_REGISTRY array in index.html.
   </div>`;
 
   el.innerHTML = html;
+}
+
+/** Toggle a quiz's visibility in the player picker. */
+function toggleQuizVisibility(quizId, visible) {
+  if (!quizSettings.visibleQuizIds) {
+    quizSettings.visibleQuizIds = QUIZ_REGISTRY.map(q => q.id);
+  }
+  if (visible && !quizSettings.visibleQuizIds.includes(quizId)) {
+    quizSettings.visibleQuizIds.push(quizId);
+  } else if (!visible) {
+    quizSettings.visibleQuizIds = quizSettings.visibleQuizIds.filter(id => id !== quizId);
+    // Must have at least one visible
+    if (quizSettings.visibleQuizIds.length === 0) {
+      quizSettings.visibleQuizIds.push(activeQuiz.id);
+    }
+  }
+  localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
 }
 
 function parentSwitchQuiz(quizId) {
@@ -4479,7 +4693,7 @@ function parentSwitchQuiz(quizId) {
 function toggleQuizLock(locked) {
   quizSettings.locked = locked;
   localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
-  renderHome(); // refresh quiz picker visibility
+  renderHome();
 }
 
 function renderAnswerKey() {
@@ -4797,8 +5011,9 @@ async function logAttempt(section, mode, score, total, duration) {
   local.push(record);
   localStorage.setItem('socialtest_history', JSON.stringify(local));
   // Save to API (fire and forget, no feedback to player)
+  const quizParam = activeQuiz ? `?quiz=${activeQuiz.id}` : '';
   try {
-    await fetch(API_URL + '/history', {
+    await fetch(API_URL + '/history' + quizParam, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(record),
@@ -4806,61 +5021,82 @@ async function logAttempt(section, mode, score, total, duration) {
   } catch { /* silent */ }
 }
 
-/** Render history panel in parent mode. */
+/** Render history panel in parent mode — grouped by quiz. */
 async function renderHistoryPanel() {
   const el = document.getElementById('parent-history');
   el.innerHTML = '<p style="color:#888;">Loading history...</p>';
-  let history = [];
-  try {
-    const r = await fetch(API_URL + '/history', { cache: 'no-store' });
-    if (r.ok) history = await r.json();
-    else throw new Error();
-  } catch {
-    history = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
+  const sectionNames = { vocab: '📖 Vocabulary', mc: '✏️ Multiple Choice', gamequiz: '🎮 Game Quiz' };
+
+  // Fetch history for all registered quizzes
+  const allHistory = [];
+  for (const quiz of QUIZ_REGISTRY) {
+    const quizParam = `?quiz=${quiz.id}`;
+    let history = [];
+    try {
+      const r = await fetch(API_URL + '/history' + quizParam, { cache: 'no-store' });
+      if (r.ok) history = await r.json();
+      else throw new Error();
+    } catch {
+      // Fallback: try legacy key for first quiz, else empty
+      if (quiz.id === QUIZ_REGISTRY[0].id) {
+        try {
+          const r2 = await fetch(API_URL + '/history', { cache: 'no-store' });
+          if (r2.ok) history = await r2.json();
+        } catch {}
+      }
+      if (history.length === 0) {
+        history = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
+      }
+    }
+    if (history.length > 0) {
+      allHistory.push({ quiz, history });
+    }
   }
-  if (history.length === 0) {
+
+  if (allHistory.length === 0) {
     el.innerHTML = '<p style="color:#888;">No quiz attempts recorded yet.</p>';
     return;
   }
-  // Sort newest first
-  history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  // Build high scores per section
-  const sections = ['vocab', 'mc', 'gamequiz'];
-  const sectionNames = { vocab: '📖 Vocabulary', mc: '✏️ Multiple Choice', gamequiz: '🎮 Game Quiz' };
-  let html = '<h3>🏆 High Scores</h3>';
-  sections.forEach(s => {
-    const sectionHistory = history.filter(h => h.section === s);
-    if (sectionHistory.length === 0) return;
-    const best = sectionHistory.reduce((a, b) => a.percentage >= b.percentage ? a : b);
-    html += `<div class="answer-key-item"><span class="term">${sectionNames[s]}</span> — Best: <strong>${best.score}/${best.total} (${best.percentage}%)</strong> by ${esc(best.playerName)}</div>`;
+
+  let html = '';
+  allHistory.forEach(({ quiz, history }) => {
+    history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    html += `<div style="margin-bottom:20px; padding:12px; background:#f8f9fa; border-radius:8px; border-left:4px solid ${quiz.id === activeQuiz.id ? '#4ade80' : '#ddd'};">`;
+    html += `<h3 style="margin:0 0 8px; font-size:1rem;">${quiz.subject} — ${quiz.title}</h3>`;
+
+    // High scores per section
+    const sections = ['vocab', 'mc', 'gamequiz'];
+    sections.forEach(s => {
+      const sectionHist = history.filter(h => h.section === s);
+      if (sectionHist.length === 0) return;
+      const best = sectionHist.reduce((a, b) => a.percentage >= b.percentage ? a : b);
+      html += `<div style="font-size:0.9rem; margin:2px 0;">🏆 ${sectionNames[s]}: <strong>${best.score}/${best.total} (${best.percentage}%)</strong> — ${esc(best.playerName)}</div>`;
+    });
+
+    // Recent attempts (last 5)
+    html += `<div style="margin-top:8px; font-size:0.8rem; color:#666;">Recent:</div>`;
+    history.slice(0, 5).forEach(h => {
+      const date = new Date(h.timestamp).toLocaleDateString();
+      html += `<div style="font-size:0.8rem; color:#555; padding:2px 0;">${esc(h.playerName)} — ${sectionNames[h.section] || h.section}: ${h.score}/${h.total} (${h.percentage}%) — ${date}</div>`;
+    });
+    if (history.length > 5) {
+      html += `<div style="font-size:0.75rem; color:#999;">...and ${history.length - 5} more</div>`;
+    }
+    html += '</div>';
   });
-  html += '<h3 style="margin-top:20px;">📋 Recent Attempts</h3>';
-  html += '<div style="max-height:400px; overflow-y:auto;">';
-  history.slice(0, 50).forEach(h => {
-    const date = new Date(h.timestamp).toLocaleDateString();
-    const time = new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    html += `<div class="answer-key-item" style="display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <strong>${esc(h.playerName)}</strong> — ${sectionNames[h.section] || h.section}
-        ${h.mode ? `<span style="color:#888; font-size:0.8rem;">(${h.mode})</span>` : ''}
-      </div>
-      <div style="text-align:right;">
-        <strong>${h.score}/${h.total}</strong> <span style="color:#888;">(${h.percentage}%)</span>
-        <div style="font-size:0.75rem; color:#999;">${date} ${time}</div>
-      </div>
-    </div>`;
-  });
-  html += '</div>';
+
   el.innerHTML = html;
 }
 
-/** Render high scores on the home screen. */
+/** Render high scores on the home screen (for active quiz only). */
 async function renderHighScores() {
   const el = document.getElementById('high-scores');
   if (!el) return;
   let history = [];
+  const quizParam = activeQuiz ? `?quiz=${activeQuiz.id}` : '';
   try {
-    const r = await fetch(API_URL + '/history', { cache: 'no-store' });
+    const r = await fetch(API_URL + '/history' + quizParam, { cache: 'no-store' });
     if (r.ok) history = await r.json();
     else throw new Error();
   } catch {
