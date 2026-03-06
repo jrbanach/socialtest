@@ -7,9 +7,15 @@ function historyBlobName(request) {
   return quizId ? `history-${quizId}.json` : "history.json";
 }
 
+/** Legacy fallback for the original quiz. */
+function historyLegacyFallback(request) {
+  const quizId = request.query.get("quiz");
+  return (quizId === 'colonial-america-ch5-6') ? 'history.json' : null;
+}
+
 /**
  * GET /api/history?quiz=<id> — Read quiz attempt history.
- * Returns array of attempt records.
+ * Falls back to legacy blob for the original Social Studies quiz.
  */
 app.http("getHistory", {
   methods: ["GET"],
@@ -17,7 +23,14 @@ app.http("getHistory", {
   route: "history",
   handler: async (request, context) => {
     try {
-      const data = await readBlob(historyBlobName(request), []);
+      let data = await readBlob(historyBlobName(request), []);
+      if (data.length === 0) {
+        const fallback = historyLegacyFallback(request);
+        if (fallback) {
+          const legacy = await readBlob(fallback, []);
+          if (legacy.length > 0) data = legacy;
+        }
+      }
       return { jsonBody: data };
     } catch (e) {
       context.error("Failed to read history:", e.message);

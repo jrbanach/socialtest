@@ -7,9 +7,15 @@ function questionsBlobName(request) {
   return quizId ? `questions-${quizId}.json` : "questions.json";
 }
 
+/** Legacy fallback blob name for the original quiz. */
+function questionsLegacyFallback(request) {
+  const quizId = request.query.get("quiz");
+  return (quizId === 'colonial-america-ch5-6') ? 'questions.json' : null;
+}
+
 /**
  * GET /api/questions?quiz=<id> — Read quiz questions from blob storage.
- * Returns the current questions or empty default structure.
+ * Falls back to legacy blob name for the original Social Studies quiz.
  */
 app.http("getQuestions", {
   methods: ["GET"],
@@ -17,8 +23,16 @@ app.http("getQuestions", {
   route: "questions",
   handler: async (request, context) => {
     try {
-      const data = await readBlob(questionsBlobName(request), { vocab: [], mc: [], jeopardy: [] });
-      return { jsonBody: data };
+      let data = await readBlob(questionsBlobName(request), null);
+      // If quiz-specific blob is empty/missing, try legacy fallback
+      if (!data || (data.vocab && data.vocab.length === 0)) {
+        const fallback = questionsLegacyFallback(request);
+        if (fallback) {
+          const legacy = await readBlob(fallback, null);
+          if (legacy && legacy.vocab && legacy.vocab.length > 0) data = legacy;
+        }
+      }
+      return { jsonBody: data || { vocab: [], mc: [], jeopardy: [] } };
     } catch (e) {
       context.error("Failed to read questions:", e.message);
       return { status: 500, jsonBody: { error: "Failed to read questions" } };
