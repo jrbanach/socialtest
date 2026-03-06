@@ -385,16 +385,16 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
       <button class="btn btn-sm btn-danger" onclick="closeParentMode()">✕ Close</button>
     </div>
     <div class="parent-tabs">
+      <button class="btn btn-sm btn-primary" id="tab-quizsettings" onclick="showParentTab('quizsettings')">📋 Quiz Settings</button>
       <button class="btn btn-sm btn-primary" id="tab-answers" onclick="showParentTab('answers')">Answer Key</button>
       <button class="btn btn-sm btn-primary" id="tab-edit" onclick="showParentTab('edit')">Edit Questions</button>
       <button class="btn btn-sm btn-primary" id="tab-gamequiz" onclick="showParentTab('gamequiz')">Edit Game Quiz</button>
-      <button class="btn btn-sm btn-primary" id="tab-quizsettings" onclick="showParentTab('quizsettings')">📋 Quiz Settings</button>
       <button class="btn btn-sm btn-primary" id="tab-history" onclick="showParentTab('history')">📊 History</button>
     </div>
-    <div id="parent-answers"></div>
+    <div id="parent-quizsettings"></div>
+    <div id="parent-answers" style="display:none;"></div>
     <div id="parent-edit" style="display:none;"></div>
     <div id="parent-gamequiz" style="display:none;"></div>
-    <div id="parent-quizsettings" style="display:none;"></div>
     <div id="parent-history" style="display:none;"></div>
   </div>
 </div>
