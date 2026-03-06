@@ -903,7 +903,7 @@ let quizSettings = { activeQuizId: QUIZ_REGISTRY[0].id, locked: true, visibleQui
 // ============================================================
 function getStorageKey() { return 'socialtest_progress_' + activeQuiz.id; }
 function getDataKey() { return 'socialtest_data_' + activeQuiz.id; }
-const API_URL = "https://socialtest-api.azurewebsites.net/api";
+const API_URL = "/api";
 
 /** Switch to a different quiz by ID. Resets progress and reloads data. */
 function switchQuiz(quizId) {
