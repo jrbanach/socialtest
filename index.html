@@ -1518,7 +1518,7 @@ function renderHome() {
     const visibleIds = quizSettings.visibleQuizIds || QUIZ_REGISTRY.map(q => q.id);
     const visibleQuizzes = QUIZ_REGISTRY.filter(q => visibleIds.includes(q.id));
 
-    if (!quizSettings.locked && visibleQuizzes.length >= 1) {
+    if (visibleQuizzes.length > 1) {
       let pickerHtml = '<div style="text-align:center; margin-bottom:8px; font-size:0.85rem; color:#666;">Select a quiz to study:</div><div class="quiz-picker-grid">';
       visibleQuizzes.forEach(q => {
         const isActive = q.id === activeQuiz.id;
@@ -4642,15 +4642,6 @@ function renderQuizSettingsPanel() {
   });
   html += '</div>';
 
-  // Lock toggle
-  html += `<div style="margin-bottom:16px;">
-    <label style="font-weight:600;">
-      <input type="checkbox" id="parent-quiz-lock" ${quizSettings.locked ? 'checked' : ''} onchange="toggleQuizLock(this.checked)" style="margin-right:8px; transform:scale(1.2);">
-      Lock quiz selection (player can't switch)
-    </label>
-    <div style="font-size:0.8rem; color:#888; margin-top:4px;">When locked, only the currently active quiz is shown. No picker on home screen.</div>
-  </div>`;
-
   // Current active quiz info
   const sections = activeQuiz.sections || [];
   html += `<div style="margin-bottom:16px;">
@@ -4688,12 +4679,6 @@ function toggleQuizVisibility(quizId, visible) {
 
 function parentSwitchQuiz(quizId) {
   switchQuiz(quizId);
-}
-
-function toggleQuizLock(locked) {
-  quizSettings.locked = locked;
-  localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
-  renderHome();
 }
 
 function renderAnswerKey() {
