@@ -385,7 +385,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
       <button class="btn btn-sm btn-danger" onclick="closeParentMode()">✕ Close</button>
     </div>
     <div class="parent-tabs">
-      <button class="btn btn-sm btn-primary active-tab" id="tab-answers" onclick="showParentTab('answers')">Answer Key</button>
+      <button class="btn btn-sm btn-primary" id="tab-answers" onclick="showParentTab('answers')">Answer Key</button>
       <button class="btn btn-sm btn-primary" id="tab-edit" onclick="showParentTab('edit')">Edit Questions</button>
       <button class="btn btn-sm btn-primary" id="tab-gamequiz" onclick="showParentTab('gamequiz')">Edit Game Quiz</button>
       <button class="btn btn-sm btn-primary" id="tab-quizsettings" onclick="showParentTab('quizsettings')">📋 Quiz Settings</button>
@@ -1325,7 +1325,7 @@ function renderHome() {
   // Render quiz picker if unlocked and multiple quizzes exist
   const pickerEl = document.getElementById('quiz-picker');
   if (pickerEl) {
-    if (!quizSettings.locked && QUIZ_REGISTRY.length > 1) {
+    if (!quizSettings.locked && QUIZ_REGISTRY.length >= 1) {
       let pickerHtml = '<div style="text-align:center; margin-bottom:8px; font-size:0.85rem; color:#666;">Select a quiz:</div><div class="quiz-picker-grid">';
       QUIZ_REGISTRY.forEach(q => {
         const isActive = q.id === activeQuiz.id;
@@ -4402,7 +4402,7 @@ function checkPassword() {
     if (hash === PARENT_PW_HASH) {
       closePasswordModal();
       document.getElementById('parent-overlay').classList.add('active');
-      showParentTab('answers');
+      showParentTab('quizsettings');
     } else {
       document.getElementById('pw-error').style.display = 'block';
     }
@@ -4479,6 +4479,7 @@ function parentSwitchQuiz(quizId) {
 function toggleQuizLock(locked) {
   quizSettings.locked = locked;
   localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
+  renderHome(); // refresh quiz picker visibility
 }
 
 function renderAnswerKey() {
