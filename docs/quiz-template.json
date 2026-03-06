@@ -1,0 +1,48 @@
+{
+  "_comment": "Quiz Template — Copy this file and fill in your content. See field descriptions below.",
+  "_usage": "1. Fill in the metadata fields (id, subject, title, grade). 2. Set 'sections' to the quiz modes you want. 3. Add questions to the arrays. 4. Add this object to the QUIZ_REGISTRY array in index.html.",
+
+  "id": "your-quiz-id",
+  "subject": "Subject Name",
+  "title": "Quiz Title — Chapter/Unit",
+  "grade": 5,
+
+  "sections": ["vocab", "mc", "gamequiz"],
+  "_sections_help": "Which quiz modes to enable. Options: 'vocab' (fill-in-the-blank), 'mc' (multiple choice), 'gamequiz' (Capybara Quest battle). Include only the ones that apply — e.g. ['mc', 'gamequiz'] for a quiz with no vocab.",
+
+  "vocab": [
+    {
+      "term": "The vocabulary word",
+      "definition": "The definition shown as the clue. Player drags the term to match."
+    }
+  ],
+  "_vocab_help": "Array of {term, definition} objects. Set to [] or omit if this quiz has no vocab section. Each term appears in the word bank; the definition appears as a blank to fill.",
+
+  "mc": [
+    {
+      "question": "The question text",
+      "choices": ["Choice A", "Choice B", "Choice C", "Choice D"],
+      "correct": 0
+    }
+  ],
+  "_mc_help": "Array of {question, choices[], correct} objects. 'correct' is the 0-based index of the right answer (0=A, 1=B, 2=C, 3=D). Always provide exactly 4 choices. Set to [] or omit if no MC section.",
+
+  "jeopardy": [
+    {
+      "question": "The answer/clue shown to the player (Jeopardy-style: answer is shown, player picks the question)",
+      "choices": ["Choice A", "Choice B", "Choice C", "Choice D"],
+      "correct": 0,
+      "category": "vocab"
+    },
+    {
+      "question": "Another clue — this one is definition-based",
+      "choices": ["Choice A", "Choice B", "Choice C", "Choice D"],
+      "correct": 2,
+      "category": "mc"
+    }
+  ],
+  "_jeopardy_help": "Combined question set used by the Game Quiz (Capybara Quest). Each item has a 'category' field: 'vocab' for vocabulary-based questions, 'mc' for definition-based questions. This controls which Game Quiz modes are available (Vocab Only, Defs Only, Random Mix, Full Study). If your quiz only has one type, all questions can use the same category — the game will auto-hide inapplicable mode buttons.",
+
+  "enemies": null,
+  "_enemies_help": "Set to null to use the default enemy roster (Wolf → Skeleton → Wizard → Dark Knight → Dragon). Or provide a custom array of 2-5 enemies: [{id, name, emoji, hp, atk, special, desc}]. The last enemy is always the boss."
+}

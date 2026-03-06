@@ -206,6 +206,15 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .quest-titles { margin: 10px 0; }
 .title-badge { display: inline-block; background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1px solid #f59e0b; border-radius: 12px; padding: 4px 10px; font-size: 0.85rem; font-weight: 600; margin: 3px; }
 
+/* Quiz Picker */
+.quiz-picker-grid { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.quiz-pick-card { background: #fff; border: 2px solid #ddd; border-radius: 10px; padding: 12px 16px; min-width: 140px; flex: 1; max-width: 200px; cursor: pointer; transition: border-color 0.2s, transform 0.15s; text-align: center; }
+.quiz-pick-card:hover { border-color: #2a5aa0; transform: translateY(-2px); }
+.quiz-pick-card.active { border-color: #4ade80; background: #f0fff4; }
+.quiz-pick-subject { font-weight: 700; font-size: 0.95rem; color: #1a1a2e; }
+.quiz-pick-title { font-size: 0.8rem; color: #555; margin-top: 2px; }
+.quiz-pick-grade { font-size: 0.7rem; color: #888; margin-top: 4px; }
+
 @media (max-width: 480px) {
   .draft-card { min-width: 100px; padding: 10px; }
   .draft-emoji { font-size: 1.5rem; }
@@ -262,8 +271,8 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 <body>
 
 <div class="container">
-  <h1>📚 Social Studies Quiz</h1>
-  <p class="subtitle">Chapters 5 &amp; 6 — Colonial America</p>
+  <h1>📚 Study Quiz</h1>
+  <p class="subtitle" id="quiz-subject-header">Social Studies — Colonial America — Ch 5 &amp; 6</p>
 
   <!-- Navigation -->
   <div class="nav">
@@ -276,6 +285,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 
   <!-- Home Screen -->
   <div id="home" class="screen active">
+    <div id="quiz-picker" style="display:none; margin-bottom:16px;"></div>
     <div class="score-box">
       <div id="player-greeting"></div>
       <p class="score-label">Welcome!</p>
@@ -378,11 +388,13 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
       <button class="btn btn-sm btn-primary active-tab" id="tab-answers" onclick="showParentTab('answers')">Answer Key</button>
       <button class="btn btn-sm btn-primary" id="tab-edit" onclick="showParentTab('edit')">Edit Questions</button>
       <button class="btn btn-sm btn-primary" id="tab-gamequiz" onclick="showParentTab('gamequiz')">Edit Game Quiz</button>
+      <button class="btn btn-sm btn-primary" id="tab-quizsettings" onclick="showParentTab('quizsettings')">📋 Quiz Settings</button>
       <button class="btn btn-sm btn-primary" id="tab-history" onclick="showParentTab('history')">📊 History</button>
     </div>
     <div id="parent-answers"></div>
     <div id="parent-edit" style="display:none;"></div>
     <div id="parent-gamequiz" style="display:none;"></div>
+    <div id="parent-quizsettings" style="display:none;"></div>
     <div id="parent-history" style="display:none;"></div>
   </div>
 </div>
@@ -688,28 +700,98 @@ const DEFAULT_JEOPARDY = [
 ];
 
 // ============================================================
-// QUIZ REGISTRY — Wraps quiz content with metadata so the engine
-// can support multiple subjects. Add new quizzes by creating
-// additional registry entries with the same shape.
+// QUIZ REGISTRY — Array of quiz definitions. Each quiz declares
+// its content, supported sections, and metadata. Add new quizzes
+// by pushing additional entries with the same shape.
 // ============================================================
-const QUIZ_REGISTRY = {
-  id: 'colonial-america-ch5-6',
-  subject: 'Social Studies',
-  title: '5th Grade Colonial America — Chapters 5 & 6',
-  grade: 5,
-  vocab: DEFAULT_VOCAB,
-  mc: DEFAULT_MC,
-  jeopardy: DEFAULT_JEOPARDY
-};
+const QUIZ_REGISTRY = [
+  {
+    id: 'colonial-america-ch5-6',
+    subject: 'Social Studies',
+    title: 'Colonial America — Ch 5 & 6',
+    grade: 5,
+    sections: ['vocab', 'mc', 'gamequiz'],
+    vocab: DEFAULT_VOCAB,
+    mc: DEFAULT_MC,
+    jeopardy: DEFAULT_JEOPARDY,
+    enemies: null  // null = use default ENEMY_ROSTER
+  }
+];
 
 // Active quiz — all engine code reads from this.
-// Future: swap this via a quiz picker UI.
-let activeQuiz = QUIZ_REGISTRY;
+let activeQuiz = QUIZ_REGISTRY[0];
+
+// Parent settings: which quiz is active + lock toggle
+let quizSettings = { activeQuizId: QUIZ_REGISTRY[0].id, locked: true };
 
 // ============================================================
-const STORAGE_KEY = "socialtest_progress";
-const DATA_KEY = "socialtest_data";
+function getStorageKey() { return 'socialtest_progress_' + activeQuiz.id; }
+function getDataKey() { return 'socialtest_data_' + activeQuiz.id; }
 const API_URL = "https://socialtest-api.azurewebsites.net/api";
+
+/** Switch to a different quiz by ID. Resets progress and reloads data. */
+function switchQuiz(quizId) {
+  const quiz = QUIZ_REGISTRY.find(q => q.id === quizId);
+  if (!quiz) return;
+  activeQuiz = quiz;
+  quizSettings.activeQuizId = quizId;
+  localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
+
+  // Reload data from quiz defaults (API override later)
+  vocabData = quiz.vocab || [];
+  mcData = quiz.mc || [];
+  jeopardyData = quiz.jeopardy || [];
+
+  // Reset all quiz state
+  vocabAnswers = {}; vocabResults = null; vocabRetryOnly = [];
+  mcAnswers = {}; mcResults = null; mcRetryOnly = []; mcCurrentQ = 0; mcShuffleMap = {};
+  gameAnswers = {}; gameResults = null; gameRetryOnly = []; gameCurrentQ = 0;
+  gameMode = null; gameActiveIndices = []; gameShuffleMap = {};
+  heroHP = 10; heroMaxHP = 10; heroDefeated = false;
+  questState = null;
+
+  // Load any saved progress for this quiz
+  loadProgress();
+  updateNavBar();
+  updateQuizHeader();
+  showScreen('home');
+}
+
+/** Update nav bar visibility based on active quiz sections. */
+function updateNavBar() {
+  const sections = activeQuiz.sections || ['vocab', 'mc', 'gamequiz'];
+  const navBtns = {
+    vocab: document.querySelector('[onclick*="vocab"]'),
+    mc: document.querySelector('[onclick*="\'mc\'"]'),
+    gamequiz: document.querySelector('[onclick*="gamequiz"]')
+  };
+  Object.entries(navBtns).forEach(([key, btn]) => {
+    if (btn) btn.style.display = sections.includes(key) ? '' : 'none';
+  });
+
+  // Also update game mode buttons if game settings visible
+  updateGameModeButtons();
+}
+
+/** Hide game mode buttons that don't apply to the current quiz. */
+function updateGameModeButtons() {
+  if (!activeQuiz || !activeQuiz.jeopardy) return;
+  const hasVocab = activeQuiz.jeopardy.some(q => q.category === 'vocab');
+  const hasMC = activeQuiz.jeopardy.some(q => q.category === 'mc');
+  // Find mode buttons by their onclick content
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    const onclick = btn.getAttribute('onclick') || '';
+    if (onclick.includes("'vocab'") && !hasVocab) btn.style.display = 'none';
+    else if (onclick.includes("'defs'") && !hasMC) btn.style.display = 'none';
+    else btn.style.display = '';
+  });
+}
+
+/** Update the quiz title in the app header. */
+function updateQuizHeader() {
+  const el = document.getElementById('quiz-subject-header');
+  if (el) el.textContent = activeQuiz.subject + ' — ' + activeQuiz.title;
+}
 
 // ============================================================
 // QUEST ENGINE — Quiz-Agnostic Stage & Enemy System
@@ -1136,12 +1218,12 @@ async function loadData() {
       mcData = d.mc || DEFAULT_MC;
       jeopardyData = d.jeopardy || DEFAULT_JEOPARDY;
       // Write-through: keep localStorage fresh
-      localStorage.setItem(DATA_KEY, JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData }));
+      localStorage.setItem(getDataKey(), JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData }));
       return;
     }
   } catch (e) { /* offline — fall through */ }
   // Fallback: localStorage
-  const saved = localStorage.getItem(DATA_KEY);
+  const saved = localStorage.getItem(getDataKey());
   if (saved) {
     const d = JSON.parse(saved);
     vocabData = d.vocab || DEFAULT_VOCAB;
@@ -1160,7 +1242,7 @@ async function loadData() {
  */
 async function saveData() {
   const payload = { vocab: vocabData, mc: mcData, jeopardy: jeopardyData };
-  localStorage.setItem(DATA_KEY, JSON.stringify(payload));
+  localStorage.setItem(getDataKey(), JSON.stringify(payload));
   saveInFlight = true;
   try {
     const r = await fetch(API_URL + '/questions', {
@@ -1189,7 +1271,7 @@ function showSaveToast(msg) {
 }
 
 function loadProgress() {
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = localStorage.getItem(getStorageKey());
   if (saved) {
     const p = JSON.parse(saved);
     vocabAnswers = p.vocabAnswers || {};
@@ -1219,7 +1301,7 @@ function loadProgress() {
 }
 
 function saveProgress() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  localStorage.setItem(getStorageKey(), JSON.stringify({
     vocabAnswers, mcAnswers, vocabResults, mcResults, vocabRetryOnly, mcRetryOnly, mcCurrentQ,
     gameAnswers, gameResults, gameRetryOnly, gameCurrentQ, gameMode, gameActiveIndices,
     heroHP, heroMaxHP, heroDefeated,
@@ -1240,6 +1322,27 @@ function showScreen(id) {
 }
 
 function renderHome() {
+  // Render quiz picker if unlocked and multiple quizzes exist
+  const pickerEl = document.getElementById('quiz-picker');
+  if (pickerEl) {
+    if (!quizSettings.locked && QUIZ_REGISTRY.length > 1) {
+      let pickerHtml = '<div style="text-align:center; margin-bottom:8px; font-size:0.85rem; color:#666;">Select a quiz:</div><div class="quiz-picker-grid">';
+      QUIZ_REGISTRY.forEach(q => {
+        const isActive = q.id === activeQuiz.id;
+        pickerHtml += `<button class="quiz-pick-card ${isActive ? 'active' : ''}" onclick="switchQuiz('${q.id}')">
+          <div class="quiz-pick-subject">${q.subject}</div>
+          <div class="quiz-pick-title">${q.title}</div>
+          <div class="quiz-pick-grade">Grade ${q.grade}</div>
+        </button>`;
+      });
+      pickerHtml += '</div>';
+      pickerEl.innerHTML = pickerHtml;
+      pickerEl.style.display = 'block';
+    } else {
+      pickerEl.style.display = 'none';
+    }
+  }
+
   const el = document.getElementById('home-progress');
   let html = '';
   if (vocabResults) {
@@ -4311,18 +4414,71 @@ function closeParentMode() {
 }
 
 function showParentTab(tab) {
-  document.getElementById('tab-answers').classList.toggle('active-tab', tab === 'answers');
-  document.getElementById('tab-edit').classList.toggle('active-tab', tab === 'edit');
-  document.getElementById('tab-gamequiz').classList.toggle('active-tab', tab === 'gamequiz');
-  document.getElementById('tab-history').classList.toggle('active-tab', tab === 'history');
-  document.getElementById('parent-answers').style.display = tab === 'answers' ? 'block' : 'none';
-  document.getElementById('parent-edit').style.display = tab === 'edit' ? 'block' : 'none';
-  document.getElementById('parent-gamequiz').style.display = tab === 'gamequiz' ? 'block' : 'none';
-  document.getElementById('parent-history').style.display = tab === 'history' ? 'block' : 'none';
+  ['answers', 'edit', 'gamequiz', 'quizsettings', 'history'].forEach(t => {
+    const tabBtn = document.getElementById('tab-' + t);
+    const panel = document.getElementById('parent-' + t);
+    if (tabBtn) tabBtn.classList.toggle('active-tab', tab === t);
+    if (panel) panel.style.display = tab === t ? 'block' : 'none';
+  });
   if (tab === 'answers') renderAnswerKey();
   if (tab === 'edit') renderEditPanel();
   if (tab === 'gamequiz') renderGameQuizEditPanel();
+  if (tab === 'quizsettings') renderQuizSettingsPanel();
   if (tab === 'history') renderHistoryPanel();
+}
+
+/** Render the Quiz Settings panel in Parent Mode. */
+function renderQuizSettingsPanel() {
+  const el = document.getElementById('parent-quizsettings');
+  let html = '<h3>📋 Quiz Settings</h3>';
+
+  // Quiz selector
+  html += '<div style="margin-bottom:16px;"><label style="font-weight:600;">Active Quiz:</label><br>';
+  html += '<select id="parent-quiz-select" onchange="parentSwitchQuiz(this.value)" style="width:100%; padding:8px; border-radius:6px; border:1px solid #ccc; font-size:1rem; margin-top:4px;">';
+  QUIZ_REGISTRY.forEach(q => {
+    const sel = q.id === activeQuiz.id ? 'selected' : '';
+    html += `<option value="${q.id}" ${sel}>${q.subject} — ${q.title} (Grade ${q.grade})</option>`;
+  });
+  html += '</select></div>';
+
+  // Lock toggle
+  html += `<div style="margin-bottom:16px;">
+    <label style="font-weight:600;">
+      <input type="checkbox" id="parent-quiz-lock" ${quizSettings.locked ? 'checked' : ''} onchange="toggleQuizLock(this.checked)" style="margin-right:8px; transform:scale(1.2);">
+      Lock quiz selection (player can't switch)
+    </label>
+    <div style="font-size:0.8rem; color:#888; margin-top:4px;">When locked, the player only sees the quiz you selected above.</div>
+  </div>`;
+
+  // Quiz info
+  const sections = activeQuiz.sections || [];
+  html += `<div style="margin-bottom:16px;">
+    <label style="font-weight:600;">Active Quiz Info:</label>
+    <div style="margin-top:4px; font-size:0.9rem; color:#555;">
+      <div>📚 Subject: ${activeQuiz.subject}</div>
+      <div>📝 Title: ${activeQuiz.title}</div>
+      <div>🎓 Grade: ${activeQuiz.grade}</div>
+      <div>📂 Sections: ${sections.join(', ') || 'all'}</div>
+      <div>📖 Vocab questions: ${(activeQuiz.vocab || []).length}</div>
+      <div>✏️ MC questions: ${(activeQuiz.mc || []).length}</div>
+      <div>🎮 Game questions: ${(activeQuiz.jeopardy || []).length}</div>
+    </div>
+  </div>`;
+
+  html += `<div style="margin-top:16px; padding:12px; background:#f0f4ff; border-radius:8px; font-size:0.85rem; color:#555;">
+    💡 To add a new quiz, use the quiz JSON template in <code>docs/quiz-template.json</code> and add it to the QUIZ_REGISTRY array in index.html.
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+function parentSwitchQuiz(quizId) {
+  switchQuiz(quizId);
+}
+
+function toggleQuizLock(locked) {
+  quizSettings.locked = locked;
+  localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
 }
 
 function renderAnswerKey() {
@@ -4461,8 +4617,8 @@ function editJeopardyChoice(qi, ci, value) {
 
 function resetToDefaults() {
   if (confirm('This will reset all questions to the original defaults and clear saved progress. Are you sure?')) {
-    localStorage.removeItem(DATA_KEY);
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(getDataKey());
+    localStorage.removeItem(getStorageKey());
     vocabData = JSON.parse(JSON.stringify(DEFAULT_VOCAB));
     mcData = JSON.parse(JSON.stringify(DEFAULT_MC));
     jeopardyData = JSON.parse(JSON.stringify(DEFAULT_JEOPARDY));
@@ -4727,8 +4883,29 @@ async function renderHighScores() {
 // INIT
 // ============================================================
 (async function init() {
+  // Load quiz settings (which quiz is active, lock state)
+  const savedSettings = localStorage.getItem('socialtest_quiz_settings');
+  if (savedSettings) {
+    try {
+      quizSettings = JSON.parse(savedSettings);
+      const quiz = QUIZ_REGISTRY.find(q => q.id === quizSettings.activeQuizId);
+      if (quiz) activeQuiz = quiz;
+    } catch (e) {}
+  }
+  // Migrate old localStorage if it exists (pre-multi-quiz format)
+  const oldProgress = localStorage.getItem('socialtest_progress');
+  if (oldProgress && !localStorage.getItem(getStorageKey())) {
+    localStorage.setItem(getStorageKey(), oldProgress);
+  }
+  const oldData = localStorage.getItem('socialtest_data');
+  if (oldData && !localStorage.getItem(getDataKey())) {
+    localStorage.setItem(getDataKey(), oldData);
+  }
+
   await loadData();
   loadProgress();
+  updateNavBar();
+  updateQuizHeader();
   renderHome();
   initPlayer();
   renderHighScores();
