@@ -1403,9 +1403,10 @@ async function loadData() {
     const r = await fetch(API_URL + '/questions' + quizParam, { cache: 'no-store' });
     if (r.ok) {
       const d = await r.json();
-      vocabData = d.vocab || (activeQuiz ? activeQuiz.vocab : DEFAULT_VOCAB) || [];
-      mcData = d.mc || (activeQuiz ? activeQuiz.mc : DEFAULT_MC) || [];
-      jeopardyData = d.jeopardy || (activeQuiz ? activeQuiz.jeopardy : DEFAULT_JEOPARDY) || [];
+      const hasData = d.vocab && d.vocab.length > 0;
+      vocabData = (hasData ? d.vocab : null) || (activeQuiz ? activeQuiz.vocab : DEFAULT_VOCAB) || [];
+      mcData = (hasData ? d.mc : null) || (activeQuiz ? activeQuiz.mc : DEFAULT_MC) || [];
+      jeopardyData = (hasData ? d.jeopardy : null) || (activeQuiz ? activeQuiz.jeopardy : DEFAULT_JEOPARDY) || [];
       localStorage.setItem(getDataKey(), JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData }));
       return;
     }
