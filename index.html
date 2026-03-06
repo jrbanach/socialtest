@@ -4624,10 +4624,20 @@ function showParentTab(tab) {
 }
 
 /** Render the Quiz Settings panel in Parent Mode. */
-function renderQuizSettingsPanel() {
+async function renderQuizSettingsPanel() {
   const el = document.getElementById('parent-quizsettings');
   const visibleIds = quizSettings.visibleQuizIds || [activeQuiz.id];
+
+  // Check API connectivity
+  let apiStatus = '🔴 Offline (using local data)';
+  let apiColor = '#f8d7da';
+  try {
+    const r = await fetch(API_URL + '/questions?quiz=_ping', { cache: 'no-store', signal: AbortSignal.timeout(3000) });
+    if (r.ok) { apiStatus = '🟢 Connected to Azure Storage'; apiColor = '#d4edda'; }
+  } catch {}
+
   let html = '<h3>📋 Quiz Settings</h3>';
+  html += `<div style="margin-bottom:12px; padding:8px 12px; background:${apiColor}; border-radius:6px; font-size:0.85rem; font-weight:600;">${apiStatus}</div>`;
 
   // Multi-select: which quizzes the player can see
   html += '<div style="margin-bottom:16px;"><label style="font-weight:600;">Quizzes visible to player:</label>';
