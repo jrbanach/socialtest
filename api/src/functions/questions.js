@@ -1,5 +1,5 @@
 const { app } = require("@azure/functions");
-const { readBlob, writeBlob } = require("../blobHelper");
+const { readBlob, writeBlob, deleteBlob } = require("../blobHelper");
 
 /** Resolve blob name from quiz query param. Backward compat: no param = legacy 'questions.json'. */
 function questionsBlobName(request) {
@@ -59,6 +59,24 @@ app.http("putQuestions", {
     } catch (e) {
       context.error("Failed to write questions:", e.message);
       return { status: 500, jsonBody: { error: "Failed to save questions" } };
+    }
+  },
+});
+
+/**
+ * DELETE /api/questions?quiz=<id> — Delete a quiz's questions blob.
+ */
+app.http("deleteQuestions", {
+  methods: ["DELETE"],
+  authLevel: "anonymous",
+  route: "questions",
+  handler: async (request, context) => {
+    try {
+      await deleteBlob(questionsBlobName(request));
+      return { jsonBody: { ok: true } };
+    } catch (e) {
+      context.error("Failed to delete questions:", e.message);
+      return { status: 500, jsonBody: { error: "Failed to delete questions" } };
     }
   },
 });

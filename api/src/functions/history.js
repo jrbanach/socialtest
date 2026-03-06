@@ -1,5 +1,5 @@
 const { app } = require("@azure/functions");
-const { readBlob, writeBlob } = require("../blobHelper");
+const { readBlob, writeBlob, deleteBlob } = require("../blobHelper");
 
 /** Resolve blob name from quiz query param. Backward compat: no param = legacy 'history.json'. */
 function historyBlobName(request) {
@@ -60,6 +60,24 @@ app.http("postHistory", {
     } catch (e) {
       context.error("Failed to write history:", e.message);
       return { status: 500, jsonBody: { error: "Failed to save history" } };
+    }
+  },
+});
+
+/**
+ * DELETE /api/history?quiz=<id> — Delete a quiz's history blob.
+ */
+app.http("deleteHistory", {
+  methods: ["DELETE"],
+  authLevel: "anonymous",
+  route: "history",
+  handler: async (request, context) => {
+    try {
+      await deleteBlob(historyBlobName(request));
+      return { jsonBody: { ok: true } };
+    } catch (e) {
+      context.error("Failed to delete history:", e.message);
+      return { status: 500, jsonBody: { error: "Failed to delete history" } };
     }
   },
 });

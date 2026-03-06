@@ -4623,6 +4623,72 @@ function showParentTab(tab) {
   if (tab === 'history') renderHistoryPanel();
 }
 
+// --- Parent editor state: which quiz is being viewed/edited (independent of activeQuiz) ---
+let parentEditingQuizId = null;
+let parentEditVocab = [];
+let parentEditMC = [];
+let parentEditJeopardy = [];
+
+/** Get the quiz currently being edited in parent mode. */
+function getParentEditingQuiz() {
+  return QUIZ_REGISTRY.find(q => q.id === (parentEditingQuizId || activeQuiz.id)) || activeQuiz;
+}
+
+/** Load quiz data for parent editing (from API or inline defaults). */
+async function loadParentEditQuiz(quizId) {
+  parentEditingQuizId = quizId;
+  const quiz = QUIZ_REGISTRY.find(q => q.id === quizId);
+  if (!quiz) return;
+  try {
+    const r = await fetch(API_URL + '/questions?quiz=' + quizId, { cache: 'no-store' });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.vocab && d.vocab.length > 0) {
+        parentEditVocab = d.vocab;
+        parentEditMC = d.mc || [];
+        parentEditJeopardy = d.jeopardy || [];
+        return;
+      }
+    }
+  } catch {}
+  // Fallback to inline defaults
+  parentEditVocab = JSON.parse(JSON.stringify(quiz.vocab || []));
+  parentEditMC = JSON.parse(JSON.stringify(quiz.mc || []));
+  parentEditJeopardy = JSON.parse(JSON.stringify(quiz.jeopardy || []));
+}
+
+/** Save parent-edited quiz data to the correct quiz blob. */
+async function saveParentEditData() {
+  const payload = { vocab: parentEditVocab, mc: parentEditMC, jeopardy: parentEditJeopardy };
+  // If editing the active quiz, also update the live data
+  if (parentEditingQuizId === activeQuiz.id) {
+    vocabData = parentEditVocab;
+    mcData = parentEditMC;
+    jeopardyData = parentEditJeopardy;
+    localStorage.setItem(getDataKey(), JSON.stringify(payload));
+  }
+  try {
+    await fetch(API_URL + '/questions?quiz=' + parentEditingQuizId, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    showSaveToast('✅ Saved');
+  } catch { showSaveToast('⚠ Saved locally'); }
+}
+
+/** Build a quiz selector dropdown for parent editor tabs. */
+function buildParentQuizDropdown(onchangeFn) {
+  const currentId = parentEditingQuizId || activeQuiz.id;
+  let html = '<select onchange="' + onchangeFn + '(this.value)" style="width:100%; padding:8px; border-radius:6px; border:1px solid #ccc; font-size:0.95rem; margin-bottom:12px;">';
+  QUIZ_REGISTRY.forEach(q => {
+    const sel = q.id === currentId ? 'selected' : '';
+    const badge = q.id === activeQuiz.id ? ' (Active)' : '';
+    html += `<option value="${q.id}" ${sel}>${q.subject} — ${q.title}${badge}</option>`;
+  });
+  html += '</select>';
+  return html;
+}
+
 /** Render the Quiz Settings panel in Parent Mode. */
 async function renderQuizSettingsPanel() {
   const el = document.getElementById('parent-quizsettings');
@@ -4645,11 +4711,15 @@ async function renderQuizSettingsPanel() {
   QUIZ_REGISTRY.forEach(q => {
     const checked = visibleIds.includes(q.id) ? 'checked' : '';
     const isActive = q.id === activeQuiz.id;
-    html += `<label style="display:block; padding:8px 10px; margin:4px 0; background:${isActive ? '#f0fff4' : '#f8f9fa'}; border:1px solid ${isActive ? '#4ade80' : '#ddd'}; border-radius:6px; cursor:pointer;">
-      <input type="checkbox" value="${q.id}" ${checked} onchange="toggleQuizVisibility('${q.id}', this.checked)" style="margin-right:8px; transform:scale(1.2);">
-      <strong>${q.subject}</strong> — ${q.title} (Grade ${q.grade})
-      ${isActive ? ' <span style="color:#4ade80; font-size:0.8rem;">● Active</span>' : ''}
-    </label>`;
+    const canDelete = QUIZ_REGISTRY.length > 1;
+    html += `<div style="display:flex; align-items:center; padding:8px 10px; margin:4px 0; background:${isActive ? '#f0fff4' : '#f8f9fa'}; border:1px solid ${isActive ? '#4ade80' : '#ddd'}; border-radius:6px;">
+      <label style="flex:1; cursor:pointer; margin:0;">
+        <input type="checkbox" value="${q.id}" ${checked} onchange="toggleQuizVisibility('${q.id}', this.checked)" style="margin-right:8px; transform:scale(1.2);">
+        <strong>${q.subject}</strong> — ${q.title}
+        ${isActive ? ' <span style="color:#4ade80; font-size:0.8rem;">● Active</span>' : ''}
+      </label>
+      ${canDelete ? `<button onclick="deleteQuiz('${q.id}')" style="background:#dc3545; color:#fff; border:none; border-radius:4px; padding:3px 8px; font-size:0.7rem; cursor:pointer; margin-left:8px;" title="Delete quiz">🗑</button>` : ''}
+    </div>`;
   });
   html += '</div>';
 
@@ -4692,13 +4762,53 @@ function parentSwitchQuiz(quizId) {
   switchQuiz(quizId);
 }
 
-function renderAnswerKey() {
-  let html = '<h3>📖 Vocabulary Answers</h3>';
-  vocabData.forEach((v, i) => {
+/** Delete a quiz from the registry and clean up its data. */
+async function deleteQuiz(quizId) {
+  if (QUIZ_REGISTRY.length <= 1) { alert('Cannot delete the last quiz.'); return; }
+  const quiz = QUIZ_REGISTRY.find(q => q.id === quizId);
+  if (!quiz) return;
+  if (!confirm(`Delete "${quiz.subject} — ${quiz.title}"? This will remove all questions and history for this quiz.`)) return;
+
+  // Remove from registry
+  const idx = QUIZ_REGISTRY.findIndex(q => q.id === quizId);
+  QUIZ_REGISTRY.splice(idx, 1);
+
+  // Remove from visibility
+  if (quizSettings.visibleQuizIds) {
+    quizSettings.visibleQuizIds = quizSettings.visibleQuizIds.filter(id => id !== quizId);
+  }
+  localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
+
+  // Clear per-quiz localStorage
+  localStorage.removeItem('socialtest_progress_' + quizId);
+  localStorage.removeItem('socialtest_data_' + quizId);
+
+  // Try to delete blobs via API
+  try {
+    await fetch(API_URL + '/questions?quiz=' + quizId, { method: 'DELETE' });
+    await fetch(API_URL + '/history?quiz=' + quizId, { method: 'DELETE' });
+  } catch {}
+
+  // If deleted the active quiz, switch to first available
+  if (activeQuiz.id === quizId) {
+    switchQuiz(QUIZ_REGISTRY[0].id);
+  }
+  renderQuizSettingsPanel();
+}
+
+async function renderAnswerKey() {
+  const el = document.getElementById('parent-answers');
+  el.innerHTML = '<p style="color:#888;">Loading...</p>';
+  if (!parentEditingQuizId) parentEditingQuizId = activeQuiz.id;
+  await loadParentEditQuiz(parentEditingQuizId);
+
+  let html = buildParentQuizDropdown('switchAnswerKeyQuiz');
+  html += '<h3>📖 Vocabulary Answers</h3>';
+  parentEditVocab.forEach((v, i) => {
     html += `<div class="answer-key-item"><span class="term">${esc(v.term)}</span> — ${esc(v.definition)}</div>`;
   });
   html += '<h3 style="margin-top:20px;">✏️ Multiple Choice Answers</h3>';
-  mcData.forEach((q, i) => {
+  parentEditMC.forEach((q, i) => {
     html += `<div class="answer-key-item">
       <strong>${i + 1}. ${esc(q.question)}</strong><br>
       <span class="correct-answer">✓ ${esc(q.choices[q.correct])}</span>
@@ -4706,124 +4816,132 @@ function renderAnswerKey() {
   });
   html += '<h3 style="margin-top:20px;">🎮 Game Quiz Answers</h3>';
   html += '<h4 style="color:#555; margin:8px 0;">📖 Vocabulary-Based</h4>';
-  jeopardyData.filter(q => q.category === 'vocab').forEach((q, i) => {
+  parentEditJeopardy.filter(q => q.category === 'vocab').forEach((q, i) => {
     html += `<div class="answer-key-item">
       <strong>${i + 1}. ${esc(q.question)}</strong><br>
       <span class="correct-answer">✓ ${esc(q.choices[q.correct])}</span>
     </div>`;
   });
   html += '<h4 style="color:#555; margin:12px 0 8px;">✏️ Definition-Based</h4>';
-  jeopardyData.filter(q => q.category === 'mc').forEach((q, i) => {
+  parentEditJeopardy.filter(q => q.category === 'mc').forEach((q, i) => {
     html += `<div class="answer-key-item">
       <strong>${i + 1}. ${esc(q.question)}</strong><br>
       <span class="correct-answer">✓ ${esc(q.choices[q.correct])}</span>
     </div>`;
   });
-  document.getElementById('parent-answers').innerHTML = html;
+  el.innerHTML = html;
 }
+function switchAnswerKeyQuiz(quizId) { parentEditingQuizId = quizId; renderAnswerKey(); }
 
-function renderEditPanel() {
-  let html = '<h3>📖 Edit Vocabulary</h3>';
-  vocabData.forEach((v, i) => {
+async function renderEditPanel() {
+  const el = document.getElementById('parent-edit');
+  el.innerHTML = '<p style="color:#888;">Loading...</p>';
+  if (!parentEditingQuizId) parentEditingQuizId = activeQuiz.id;
+  await loadParentEditQuiz(parentEditingQuizId);
+
+  let html = buildParentQuizDropdown('switchEditQuiz');
+  html += '<h3>📖 Edit Vocabulary</h3>';
+  parentEditVocab.forEach((v, i) => {
     html += `<div class="edit-group">
       <label>Term</label>
-      <input type="text" value="${esc(v.term)}" onchange="editVocab(${i}, 'term', this.value)">
+      <input type="text" value="${esc(v.term)}" onchange="editParentVocab(${i}, 'term', this.value)">
       <label>Definition</label>
-      <textarea onchange="editVocab(${i}, 'definition', this.value)">${esc(v.definition)}</textarea>
+      <textarea onchange="editParentVocab(${i}, 'definition', this.value)">${esc(v.definition)}</textarea>
     </div>`;
   });
 
   html += '<h3 style="margin-top:20px;">✏️ Edit Multiple Choice</h3>';
-  mcData.forEach((q, i) => {
+  parentEditMC.forEach((q, i) => {
     html += `<div class="edit-group">
       <label>Question ${i + 1}</label>
-      <input type="text" value="${esc(q.question)}" onchange="editMC(${i}, 'question', this.value)">`;
+      <input type="text" value="${esc(q.question)}" onchange="editParentMC(${i}, 'question', this.value)">`;
     q.choices.forEach((c, ci) => {
       const isCorrect = ci === q.correct;
       html += `<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; width:100%;">
-        <input type="radio" name="edit-correct-${i}" class="radio-correct" style="flex-shrink:0; width:18px; height:18px;" ${isCorrect ? 'checked' : ''} onchange="editMC(${i}, 'correct', ${ci})">
-        <input type="text" value="${esc(c)}" onchange="editMCChoice(${i}, ${ci}, this.value)" style="flex:1; min-width:0;">
+        <input type="radio" name="edit-correct-${i}" class="radio-correct" style="flex-shrink:0; width:18px; height:18px;" ${isCorrect ? 'checked' : ''} onchange="editParentMC(${i}, 'correct', ${ci})">
+        <input type="text" value="${esc(c)}" onchange="editParentMCChoice(${i}, ${ci}, this.value)" style="flex:1; min-width:0;">
       </div>`;
     });
     html += '</div>';
   });
 
   html += `<button class="btn btn-danger btn-block" style="margin-top:16px;" onclick="resetToDefaults()">🔄 Reset All to Defaults</button>`;
-  document.getElementById('parent-edit').innerHTML = html;
+  el.innerHTML = html;
 }
+function switchEditQuiz(quizId) { parentEditingQuizId = quizId; renderEditPanel(); }
 
-function editVocab(i, field, value) {
-  vocabData[i][field] = value;
-  saveData();
+function editParentVocab(i, field, value) {
+  parentEditVocab[i][field] = value;
+  saveParentEditData();
 }
-
-function editMC(i, field, value) {
-  if (field === 'correct') mcData[i].correct = value;
-  else mcData[i][field] = value;
-  saveData();
+function editParentMC(i, field, value) {
+  if (field === 'correct') parentEditMC[i].correct = value;
+  else parentEditMC[i][field] = value;
+  saveParentEditData();
 }
-
-function editMCChoice(qi, ci, value) {
-  mcData[qi].choices[ci] = value;
-  saveData();
+function editParentMCChoice(qi, ci, value) {
+  parentEditMC[qi].choices[ci] = value;
+  saveParentEditData();
 }
 
 /**
  * Render the Game Quiz edit panel in Parent Mode.
  * Split into two sub-sections: Vocab-based and MC-based (Definition-based).
  */
-function renderGameQuizEditPanel() {
-  let html = '<h3>🎮 Edit Game Quiz Questions</h3>';
+async function renderGameQuizEditPanel() {
+  const el = document.getElementById('parent-gamequiz');
+  el.innerHTML = '<p style="color:#888;">Loading...</p>';
+  if (!parentEditingQuizId) parentEditingQuizId = activeQuiz.id;
+  await loadParentEditQuiz(parentEditingQuizId);
 
-  // Vocab-based sub-section
+  let html = buildParentQuizDropdown('switchGameQuizEdit');
+  html += '<h3>🎮 Edit Game Quiz Questions</h3>';
+
   html += '<h4 style="color:#2a5aa0; margin:12px 0 8px;">📖 Vocabulary-Based Questions</h4>';
-  jeopardyData.forEach((q, i) => {
+  parentEditJeopardy.forEach((q, i) => {
     if (q.category !== 'vocab') return;
     html += `<div class="edit-group">
       <label>Clue (definition shown to student)</label>
-      <textarea onchange="editJeopardy(${i}, 'question', this.value)">${esc(q.question)}</textarea>`;
+      <textarea onchange="editParentJeopardy(${i}, 'question', this.value)">${esc(q.question)}</textarea>`;
     q.choices.forEach((c, ci) => {
       const isCorrect = ci === q.correct;
       html += `<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; width:100%;">
-        <input type="radio" name="edit-jep-correct-${i}" class="radio-correct" style="flex-shrink:0; width:18px; height:18px;" ${isCorrect ? 'checked' : ''} onchange="editJeopardy(${i}, 'correct', ${ci})">
-        <input type="text" value="${esc(c)}" onchange="editJeopardyChoice(${i}, ${ci}, this.value)" style="flex:1; min-width:0;">
+        <input type="radio" name="edit-jep-correct-${i}" class="radio-correct" style="flex-shrink:0; width:18px; height:18px;" ${isCorrect ? 'checked' : ''} onchange="editParentJeopardy(${i}, 'correct', ${ci})">
+        <input type="text" value="${esc(c)}" onchange="editParentJeopardyChoice(${i}, ${ci}, this.value)" style="flex:1; min-width:0;">
       </div>`;
     });
     html += '</div>';
   });
 
-  // MC-based sub-section
   html += '<h4 style="color:#2a5aa0; margin:20px 0 8px;">✏️ Definition-Based Questions</h4>';
-  jeopardyData.forEach((q, i) => {
+  parentEditJeopardy.forEach((q, i) => {
     if (q.category !== 'mc') return;
     html += `<div class="edit-group">
       <label>Clue (answer shown to student)</label>
-      <textarea onchange="editJeopardy(${i}, 'question', this.value)">${esc(q.question)}</textarea>`;
+      <textarea onchange="editParentJeopardy(${i}, 'question', this.value)">${esc(q.question)}</textarea>`;
     q.choices.forEach((c, ci) => {
       const isCorrect = ci === q.correct;
       html += `<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; width:100%;">
-        <input type="radio" name="edit-jep-correct-${i}" class="radio-correct" style="flex-shrink:0; width:18px; height:18px;" ${isCorrect ? 'checked' : ''} onchange="editJeopardy(${i}, 'correct', ${ci})">
-        <input type="text" value="${esc(c)}" onchange="editJeopardyChoice(${i}, ${ci}, this.value)" style="flex:1; min-width:0;">
+        <input type="radio" name="edit-jep-correct-${i}" class="radio-correct" style="flex-shrink:0; width:18px; height:18px;" ${isCorrect ? 'checked' : ''} onchange="editParentJeopardy(${i}, 'correct', ${ci})">
+        <input type="text" value="${esc(c)}" onchange="editParentJeopardyChoice(${i}, ${ci}, this.value)" style="flex:1; min-width:0;">
       </div>`;
     });
     html += '</div>';
   });
 
   html += `<button class="btn btn-danger btn-block" style="margin-top:16px;" onclick="resetToDefaults()">🔄 Reset All to Defaults</button>`;
-  document.getElementById('parent-gamequiz').innerHTML = html;
+  el.innerHTML = html;
 }
+function switchGameQuizEdit(quizId) { parentEditingQuizId = quizId; renderGameQuizEditPanel(); }
 
-/** Edit a jeopardy question field (question text or correct index). */
-function editJeopardy(i, field, value) {
-  if (field === 'correct') jeopardyData[i].correct = value;
-  else jeopardyData[i][field] = value;
-  saveData();
+function editParentJeopardy(i, field, value) {
+  if (field === 'correct') parentEditJeopardy[i].correct = value;
+  else parentEditJeopardy[i][field] = value;
+  saveParentEditData();
 }
-
-/** Edit a jeopardy question choice text. */
-function editJeopardyChoice(qi, ci, value) {
-  jeopardyData[qi].choices[ci] = value;
-  saveData();
+function editParentJeopardyChoice(qi, ci, value) {
+  parentEditJeopardy[qi].choices[ci] = value;
+  saveParentEditData();
 }
 
 function resetToDefaults() {

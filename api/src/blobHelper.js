@@ -52,4 +52,17 @@ async function streamToString(stream) {
   return Buffer.concat(chunks).toString("utf-8");
 }
 
-module.exports = { readBlob, writeBlob };
+/**
+ * Delete a JSON blob. Silently succeeds if blob doesn't exist.
+ */
+async function deleteBlob(name) {
+  const container = getClient().getContainerClient(CONTAINER);
+  const blob = container.getBlockBlobClient(name);
+  try {
+    await blob.deleteIfExists();
+  } catch (e) {
+    if (e.statusCode !== 404) throw e;
+  }
+}
+
+module.exports = { readBlob, writeBlob, deleteBlob };
