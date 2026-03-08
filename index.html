@@ -71,8 +71,8 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .parent-panel { max-width: 720px; margin: 20px auto; background: #fff; border-radius: 12px; padding: 20px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; }
 .parent-panel .edit-group { overflow: hidden; }
 .parent-panel h2 { color: #333; }
-.parent-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.parent-tabs .btn { flex: 1; }
+.parent-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.parent-tabs .btn { flex: 1 1 auto; min-width: 0; white-space: nowrap; font-size: 0.85rem; padding: 8px 10px; }
 .parent-tabs .btn.active-tab { background: #1a3a6b; color: #fff; }
 .answer-key-item { padding: 10px; border-bottom: 1px solid #eee; }
 .answer-key-item:last-child { border-bottom: none; }
@@ -103,6 +103,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
   h1 { font-size: 1.3rem; }
   .btn { padding: 10px 16px; font-size: 0.9rem; }
   .word-chip { font-size: 0.8rem; padding: 5px 10px; }
+  .parent-tabs .btn { flex: 1 1 45%; font-size: 0.8rem; padding: 7px 6px; }
   /* Hide app header and nav during active battle */
   body.battle-active h1, body.battle-active .subtitle, body.battle-active .nav, body.battle-active .game-header { display: none !important; }
   body.battle-active .container { padding: 6px; }
