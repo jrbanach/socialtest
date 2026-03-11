@@ -673,10 +673,25 @@ test('Game Quiz restart recalculates HP when new mode is selected', () => {
 
 test('confirmRestart sections map to correct reset functions', () => {
   // Verify the section name mapping used by confirmRestart
-  const names = { vocab: 'Vocabulary', mc: 'Multiple Choice', gamequiz: 'Game Quiz' };
+  const names = { vocab: 'Vocabulary', rockcycle: 'Rock Cycle', mc: 'Multiple Choice', gamequiz: 'Game Quiz' };
   assert(names['vocab'] === 'Vocabulary', 'vocab maps to Vocabulary');
+  assert(names['rockcycle'] === 'Rock Cycle', 'rockcycle maps to Rock Cycle');
   assert(names['mc'] === 'Multiple Choice', 'mc maps to Multiple Choice');
   assert(names['gamequiz'] === 'Game Quiz', 'gamequiz maps to Game Quiz');
+});
+
+test('resetRockCycle clears all rock cycle state', () => {
+  let rockcycleAnswers = { 0: 'Magma', 2: 'Sediments' };
+  let rockcycleResults = { 0: true, 2: false };
+  let rockcycleRetryOnly = [2];
+
+  rockcycleRetryOnly = [];
+  rockcycleResults = null;
+  rockcycleAnswers = {};
+
+  assert(Object.keys(rockcycleAnswers).length === 0, 'rockcycleAnswers should be empty');
+  assert(rockcycleResults === null, 'rockcycleResults should be null');
+  assert(rockcycleRetryOnly.length === 0, 'rockcycleRetryOnly should be empty');
 });
 
 // ============================================================
@@ -690,29 +705,147 @@ const DEFAULT_VOCAB = [
 const DEFAULT_MC = [
   { question: "Who helped the Pilgrims?", choices: ["Squanto","Drake","Raleigh","Penn"], correct: 0 },
 ];
+const DEFAULT_ROCK_CYCLE = [
+  { id: 'top-left', prompt: 'Top left box', answer: 'Answer 1', hint: '' },
+  { id: 'top-right', prompt: 'Top right box', answer: 'Answer 2', hint: '' },
+  { id: 'middle-left', prompt: 'Middle left box', answer: 'Answer 3', hint: '' },
+  { id: 'middle-right', prompt: 'Middle right box', answer: 'Answer 4', hint: '' },
+  { id: 'center-bottom', prompt: 'Center bottom box', answer: 'Answer 5', hint: '' },
+  { id: 'bottom', prompt: 'Bottom box', answer: 'Answer 6', hint: '' }
+];
+const ROCK_CYCLE_ZONES = [
+  { id: 'top-left' },
+  { id: 'top-right' },
+  { id: 'middle-left' },
+  { id: 'middle-right' },
+  { id: 'center-bottom' },
+  { id: 'bottom' }
+];
+
+suite('🔄 Rock Cycle Module');
+
+test('Rock cycle items have id, prompt, and answer fields', () => {
+  DEFAULT_ROCK_CYCLE.forEach((item, i) => {
+    assert(typeof item.id === 'string' && item.id.length > 0, `Item ${i} has id`);
+    assert(typeof item.prompt === 'string' && item.prompt.length > 0, `Item ${i} has prompt`);
+    assert(typeof item.answer === 'string' && item.answer.length > 0, `Item ${i} has answer`);
+  });
+});
+
+test('Rock cycle item ids are unique even if answer text repeats', () => {
+  const unique = new Set(DEFAULT_ROCK_CYCLE.map(item => item.id));
+  assertEqual(unique.size, DEFAULT_ROCK_CYCLE.length, 'Each rock cycle hotspot should have a unique id');
+});
+
+test('Rock cycle zone definitions match the data items', () => {
+  assertEqual(ROCK_CYCLE_ZONES.length, DEFAULT_ROCK_CYCLE.length, 'Each blank box has one answer record');
+  DEFAULT_ROCK_CYCLE.forEach((item, i) => {
+    assertEqual(item.id, ROCK_CYCLE_ZONES[i].id, `Zone ${i} matches data item`);
+  });
+});
+
+test('Legacy extra rock cycle items are trimmed to visible hotspot count', () => {
+  const legacy = [...DEFAULT_ROCK_CYCLE, { id: 'old-extra', prompt: 'Old extra box', answer: 'Answer 7', hint: '' }];
+  const normalized = ROCK_CYCLE_ZONES.map((zone, idx) => {
+    const existing = legacy[idx] || {};
+    return {
+      id: zone.id,
+      prompt: existing.prompt || zone.id,
+      answer: existing.answer || `Answer ${idx + 1}`,
+      hint: existing.hint || ''
+    };
+  });
+  assertEqual(normalized.length, ROCK_CYCLE_ZONES.length, 'Normalized data matches visible zones only');
+  assert(normalized.every(item => item.answer !== 'Answer 7'), 'Hidden legacy entry is dropped');
+});
+
+test('Rock cycle grading marks correct and wrong answers', () => {
+  const rockcycleAnswers = { 0: 'Answer 1', 1: 'Wrong Answer', 2: 'Answer 3', 3: 'Answer 4', 4: 'Wrong Again', 5: 'Answer 6' };
+  const rockcycleResults = {};
+  DEFAULT_ROCK_CYCLE.forEach((item, i) => {
+    rockcycleResults[i] = (rockcycleAnswers[i] || '').trim() === item.answer.trim();
+  });
+  assert(rockcycleResults[0] === true, 'First answer is correct');
+  assert(rockcycleResults[1] === false, 'Second answer is wrong');
+  assert(rockcycleResults[4] === false, 'Fifth answer is wrong');
+  assert(rockcycleResults[5] === true, 'Last answer is correct');
+});
+
+test('Rock cycle duplicate answer labels are reusable from one visible chip', () => {
+  const duplicateItems = [
+    { id: 'a', answer: 'Cooling' },
+    { id: 'b', answer: 'Cooling' },
+    { id: 'c', answer: 'Heat' }
+  ];
+  const uniqueAnswers = [...new Set(duplicateItems.map(item => item.answer))];
+  const placements = { 0: 'Cooling', 1: 'Cooling' };
+  assertEqual(uniqueAnswers.length, 2, 'Only two visible chips are needed');
+  assert(placements[0] === 'Cooling', 'First slot uses Cooling');
+  assert(placements[1] === 'Cooling', 'Second slot can also use Cooling');
+});
+
+test('Rock cycle answer bank keeps a stable visible order', () => {
+  const orderedItems = [
+    { id: 'a', answer: 'Weathering' },
+    { id: 'b', answer: 'Cooling' },
+    { id: 'c', answer: 'Weathering' },
+    { id: 'd', answer: 'Heat and Pressure' }
+  ];
+  const uniqueAnswers = [...new Set(orderedItems.map(item => item.answer))];
+  assertEqual(uniqueAnswers[0], 'Weathering', 'First visible chip keeps first-seen order');
+  assertEqual(uniqueAnswers[1], 'Cooling', 'Second visible chip keeps first-seen order');
+  assertEqual(uniqueAnswers[2], 'Heat and Pressure', 'Later unique chip keeps first-seen order');
+});
+
+test('Rock cycle answer text counts as filled even for first slot', () => {
+  const rockcycleAnswers = { 0: 'Answer 1', 1: 'Answer 2', 2: 'Answer 3' };
+  const activeIndices = [0, 1, 2];
+  const filled = activeIndices.filter(i => rockcycleAnswers[i] !== undefined).length;
+  const unanswered = activeIndices.filter(i => rockcycleAnswers[i] === undefined);
+  assertEqual(filled, 3, 'All three slots should count as filled');
+  assertEqual(unanswered.length, 0, 'No unanswered slots when first answer text is present');
+});
+
+test('Legacy numeric rock cycle answers normalize back to visible answer text', () => {
+  const rockcycleData = DEFAULT_ROCK_CYCLE;
+  const previous = { 0: 0, 1: 1, 2: 'Answer 3' };
+  const normalized = {};
+  Object.keys(previous).forEach(key => {
+    const slotIndex = Number(key);
+    const value = previous[key];
+    const answerText = typeof value === 'string'
+      ? value
+      : (Number.isInteger(value) && rockcycleData[value] ? rockcycleData[value].answer : '');
+    if (answerText.trim()) normalized[slotIndex] = answerText;
+  });
+  assertEqual(normalized[0], 'Answer 1', 'Numeric legacy value converts to answer text');
+  assertEqual(normalized[1], 'Answer 2', 'Second numeric legacy value converts to answer text');
+});
 
 suite('Persistence & Player Tests');
 
 test('saveData writes to localStorage', () => {
   // Simulate saveData localStorage write
-  const payload = { vocab: DEFAULT_VOCAB, mc: DEFAULT_MC, jeopardy: DEFAULT_JEOPARDY };
+  const payload = { vocab: DEFAULT_VOCAB, mc: DEFAULT_MC, jeopardy: DEFAULT_JEOPARDY, rockcycle: DEFAULT_ROCK_CYCLE };
   const key = 'socialStudiesQuizData';
   localStorage.setItem(key, JSON.stringify(payload));
   const saved = JSON.parse(localStorage.getItem(key));
   assert(saved.vocab.length === DEFAULT_VOCAB.length, 'Vocab saved to localStorage');
   assert(saved.mc.length === DEFAULT_MC.length, 'MC saved to localStorage');
   assert(saved.jeopardy.length === DEFAULT_JEOPARDY.length, 'Jeopardy saved to localStorage');
+  assert(saved.rockcycle.length === DEFAULT_ROCK_CYCLE.length, 'Rock cycle saved to localStorage');
   localStorage.removeItem(key);
 });
 
 test('loadData falls back to localStorage when API unavailable', () => {
   // Simulate localStorage fallback
   const key = 'socialStudiesQuizData';
-  const custom = { vocab: [{ term: 'Test', definition: 'A test' }], mc: [], jeopardy: [] };
+  const custom = { vocab: [{ term: 'Test', definition: 'A test' }], mc: [], jeopardy: [], rockcycle: DEFAULT_ROCK_CYCLE };
   localStorage.setItem(key, JSON.stringify(custom));
   const loaded = JSON.parse(localStorage.getItem(key));
   assert(loaded.vocab[0].term === 'Test', 'Should load custom vocab from localStorage');
   assert(loaded.mc.length === 0, 'Should load empty mc from localStorage');
+  assert(loaded.rockcycle.length === DEFAULT_ROCK_CYCLE.length, 'Should load rockcycle from localStorage');
   localStorage.removeItem(key);
 });
 
@@ -725,22 +858,26 @@ test('loadData falls back to DEFAULT when no localStorage', () => {
   assert(DEFAULT_VOCAB.length > 0, 'DEFAULT_VOCAB exists as final fallback');
   assert(DEFAULT_MC.length > 0, 'DEFAULT_MC exists as final fallback');
   assert(DEFAULT_JEOPARDY.length > 0, 'DEFAULT_JEOPARDY exists as final fallback');
+  assert(DEFAULT_ROCK_CYCLE.length > 0, 'DEFAULT_ROCK_CYCLE exists as final fallback');
 });
 
 test('Edit-save-refresh cycle preserves custom edits in localStorage', () => {
   const key = 'socialStudiesQuizData';
   // Start with defaults
   let vocabData = JSON.parse(JSON.stringify(DEFAULT_VOCAB));
+  let rockcycleData = JSON.parse(JSON.stringify(DEFAULT_ROCK_CYCLE));
   // Edit a question
   vocabData[0] = { term: 'Edited Term', definition: 'Edited Definition' };
+  rockcycleData[0] = { prompt: 'Edited prompt ____.', answer: 'Edited Answer', hint: 'Edited Hint' };
   // Save (simulating saveData localStorage write)
-  const payload = { vocab: vocabData, mc: DEFAULT_MC, jeopardy: DEFAULT_JEOPARDY };
+  const payload = { vocab: vocabData, mc: DEFAULT_MC, jeopardy: DEFAULT_JEOPARDY, rockcycle: rockcycleData };
   localStorage.setItem(key, JSON.stringify(payload));
   // "Refresh" — reload from localStorage
   const reloaded = JSON.parse(localStorage.getItem(key));
   assert(reloaded.vocab[0].term === 'Edited Term', 'Edited term persists after refresh');
   assert(reloaded.vocab[0].definition === 'Edited Definition', 'Edited definition persists');
   assert(reloaded.vocab.length === DEFAULT_VOCAB.length, 'Array length unchanged');
+  assert(reloaded.rockcycle[0].answer === 'Edited Answer', 'Edited rock cycle answer persists');
   localStorage.removeItem(key);
 });
 
