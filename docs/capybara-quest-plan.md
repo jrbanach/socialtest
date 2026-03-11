@@ -1,46 +1,37 @@
 # Plan: Enhanced Capybara Battle — Multi-Stage Roguelike (Issue #10)
 
-## Session Status (saved 2026-03-04)
+## Session Status (saved 2026-03-09)
 
 ### What's Done
-- ✅ **#11 Stage Data Model** (PR #23 → merged to master) — ENEMY_ROSTER, POWERUP_POOL, EVENT_POOL, buildQuestStages(), QUIZ_REGISTRY with subject metadata, DEFAULT_HERO_STATS. 11 unit tests.
-- ✅ **#12 Refactor Game State** (PR #24 → merged to master) — questState object with 8-phase state machine, hero XP/leveling, equipment system with stacking bug fix, random events, save/load backward compatible. 10 unit tests.
-- ✅ **Branching strategy** — Created `develop` branch. Future feature PRs → develop → test locally → PR to master (deploys to Azure).
-- ✅ **#13 Enemy Canvas Art** (PR #26 → merged to develop) — 5 enemies + upgraded hero, all Canvas API with gradients, 4 poses each, drawEnemy() dispatcher.
-- ✅ **#14 Stage Transitions** (branch `feature/stage-transitions` → targets develop) — Full quest flow wired up:
-  - `startGameQuiz()` now calls `startQuest()` for multi-stage adventure
-  - Phase router in `renderGameQuiz()` dispatches to STAGE_INTRO, QUESTIONS, STAGE_CLEAR, VICTORY, DEFEAT
-  - Stage intro screens with Canvas enemy preview, stats, and adventure map
-  - Boss intro screen with red styling for dragon stage
-  - Stage clear screen with per-stage score, adventure map progress
-  - Victory screen with all-stages summary breakdown
-  - Defeat screen with stage reached info
-  - Adventure map Canvas visualization (cleared=green ✓, current=gold glow, upcoming=grey, boss=dragon emoji)
-  - Fixed `renderBattleCanvas()` to use `getCurrentEnemy()` for per-stage enemies
-  - CSS fade-slide transitions between phases
-  - Mobile-first verified on iPhone 12 viewport (390×844)
-  - 9 new unit tests (98 total, all passing)
+- ✅ **Capybara Quest — ALL PHASES COMPLETE** (#10-#22 closed) — Multi-stage roguelike with 5 enemies, equipment drafts, XP/leveling, random events, boss mechanics, titles/achievements, mobile polish, full test coverage.
+- ✅ **#25 Mid-quiz restart** — Restart buttons added to vocab and MC sections.
+- ✅ **Multi-quiz support** — Quiz registry, quiz picker UX, science quizzes (minerals & rocks), API multi-quiz, grouped history, parent quiz selector.
+- ✅ **#29 #30 Parent editor** — Quiz selector + delete quiz capability in Parent Mode.
+- ✅ **#31 Parent mode mobile tabs** (PR #32 → merged via #33) — Tabs now wrap on mobile with flex-wrap.
+- ✅ **Branch cleanup** — Deleted stale local/remote branches. Only `master` and `develop` remain.
+- ✅ **API switched to SWA managed functions** — Simplified deployment.
 
-### What's Next (in order)
-1. PR `feature/stage-transitions` → develop
-2. Then parallel: **#15 Equipment Draft UI**, **#18 Hero XP/Leveling UI**, **#17 Battle Animations**
-3. **#16 Random Events** (needs #14, now done)
-4. Phase 3: #19 Boss Mechanics, #20 Persistence, #21 Tests, #22 Mobile Polish
+### What's Open
+- 🔓 **#27 Sprite art upgrade** (enhancement, post-plan) — Replace procedural Canvas art with sprite PNGs for cartoony Capybara Go look. No architecture change needed.
+
+### Git State
+- `master` and `develop` both at `0fbeeaa` (synced)
+- Working tree clean, no uncommitted changes
+- All feature branches cleaned up
 
 ### Key Decisions Made
 - **Quiz-agnostic engine**: QUIZ_REGISTRY wraps quiz data with id/subject/title/grade. `activeQuiz` variable swaps subjects.
 - **Mobile-first**: Primary target is Safari on iPhone 12
 - **Develop branch**: Feature branches → PR into develop → test → PR into master (auto-deploys)
 - **Procedural Canvas art for now**: Shipping with Canvas-drawn characters. Sprite image upgrade tracked as Issue #27 (post-plan).
-- **No mid-quiz reset button**: Pre-existing bug tracked as Issue #25 (post-plan). Workaround: `localStorage.removeItem('socialtest_progress')` in browser console.
-- **Azure cost control**: Blob storage + simple functions only, no web apps
+- **Azure cost control**: Blob storage + SWA managed functions only, no separate web apps
+- **Multi-quiz architecture**: Quiz picker on home screen, per-quiz history/scores, parent can add/delete quizzes
 
 ### GitHub Issues
-- #10 Parent epic (Capybara Quest)
-- #11-#22 Child issues by phase (Phase 1: #11-14, Phase 2: #15-18, Phase 3: #19-22)
-- #25 Mid-quiz reset button (bug, post-plan)
-- #26 PR: Enemy Canvas art (open, targets develop)
-- #27 Sprite art upgrade (enhancement, post-plan)
+- #10-#22 All closed (Capybara Quest complete)
+- #25 Closed (restart buttons)
+- #27 Open (sprite art upgrade — post-plan enhancement)
+- #29-#31 Closed (parent editor + mobile tabs)
 
 ### Project Location
 - Code: `C:\Users\jrban\githubprojects\socialtest` (moved from C:\projects during this session)
