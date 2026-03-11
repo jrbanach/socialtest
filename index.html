@@ -50,6 +50,21 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .vocab-q .answer-slot.correct { border-color: #28a745; background: #d4edda; color: #155724; }
 .vocab-q .answer-slot.wrong { border-color: #dc3545; background: #f8d7da; color: #721c24; }
 
+/* Rock cycle image board */
+.rockcycle-board { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 12px; }
+.rockcycle-selected { min-height: 24px; text-align: center; font-weight: 600; color: #2a5aa0; margin-bottom: 10px; }
+.rockcycle-image-wrap { position: relative; width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #d7d1ca; background: #efebe7; }
+.rockcycle-image-wrap img { display: block; width: 100%; height: auto; }
+.rockcycle-zone { position: absolute; border: 2px dashed transparent; border-radius: 10px; background: rgba(255,255,255,0.82); color: #1a3a6b; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; padding: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.14); transition: transform 0.12s, background 0.2s, border-color 0.2s; }
+.rockcycle-zone:hover { transform: scale(1.02); background: rgba(240,244,255,0.94); border-color: #2a5aa0; }
+.rockcycle-zone.filled { border-color: #2a5aa0; background: rgba(224,232,245,0.94); }
+.rockcycle-zone.correct { border-color: #28a745; background: rgba(212,237,218,0.96); color: #155724; }
+.rockcycle-zone.wrong { border-color: #dc3545; background: rgba(248,215,218,0.96); color: #721c24; }
+.rockcycle-zone.locked { cursor: default; opacity: 0.88; }
+.rockcycle-zone.locked:hover { transform: none; border-color: #2a5aa0; }
+.rockcycle-zone-text { font-size: 0.78rem; font-weight: 700; line-height: 1.1; text-wrap: balance; }
+.rockcycle-legend { margin-top: 10px; font-size: 0.82rem; color: #666; text-align: center; }
+
 /* MC question */
 .mc-q { background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .mc-q .question-text { font-weight: 600; margin-bottom: 10px; font-size: 1rem; }
@@ -104,6 +119,10 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
   .btn { padding: 10px 16px; font-size: 0.9rem; }
   .word-chip { font-size: 0.8rem; padding: 5px 10px; }
   .parent-tabs .btn { flex: 1 1 45%; font-size: 0.8rem; padding: 7px 6px; }
+  .rockcycle-board { padding: 10px; }
+  .rockcycle-zone { border-radius: 8px; padding: 2px; }
+  .rockcycle-zone-text { font-size: 0.6rem; }
+  .rockcycle-legend { font-size: 0.75rem; }
   /* Hide app header and nav during active battle */
   body.battle-active h1, body.battle-active .subtitle, body.battle-active .nav, body.battle-active .game-header { display: none !important; }
   body.battle-active .container { padding: 6px; }
@@ -282,6 +301,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     <button class="btn btn-primary" onclick="showScreen('home')">🏠 Home</button>
     <button class="btn btn-primary" onclick="showScreen('vocab')">📖 Vocabulary</button>
     <button class="btn btn-primary" onclick="showScreen('mc')">✏️ Multiple Choice</button>
+    <button class="btn btn-primary" onclick="showScreen('rockcycle')">🔄 Rock Cycle</button>
     <button class="btn btn-primary" onclick="showScreen('gamequiz')">🎮 Game Quiz</button>
     <button class="btn btn-warning" onclick="openParentMode()">🔒 Parent</button>
   </div>
@@ -322,6 +342,23 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     </div>
     <div id="mc-questions"></div>
     <div id="mc-results" style="display:none;"></div>
+  </div>
+
+  <!-- Rock Cycle Section -->
+  <div id="rockcycle" class="screen">
+    <h2>🔄 Rock Cycle — Fill in the Diagram</h2>
+    <p style="margin-bottom:12px; color:#555;">Tap an answer from the bank, then tap the matching blank box on the rock cycle image.</p>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <div class="progress-bar" style="flex:1; margin-bottom:0;"><div class="fill" id="rockcycle-progress"></div></div>
+      <button class="btn btn-sm" style="margin-left:10px; padding:4px 10px; font-size:0.75rem; background:#888; color:#fff; border:none; border-radius:4px; cursor:pointer;" onclick="confirmRestart('rockcycle')">🔄 Restart</button>
+    </div>
+    <div class="score-box" style="margin-bottom:12px; padding:12px;">
+      <p style="margin:0; color:#555;">Use the diagram to place each answer where it belongs. You can fill the real terms later in Parent Mode.</p>
+    </div>
+    <div class="word-bank" id="rockcycle-word-bank"></div>
+    <div id="rockcycle-questions"></div>
+    <button class="btn btn-success btn-block" id="rockcycle-submit" onclick="submitRockCycle()">Check My Answers</button>
+    <div id="rockcycle-results" style="display:none;"></div>
   </div>
 
   <!-- Game Quiz Section -->
@@ -798,7 +835,7 @@ const QUIZ_REGISTRY = [
     subject: 'Science',
     title: 'Rocks & Rock Cycle',
     grade: 5,
-    sections: ['vocab', 'mc', 'gamequiz'],
+    sections: ['vocab', 'mc', 'rockcycle', 'gamequiz'],
     vocab: [
       { term: "rock", definition: "A natural solid made of one or more minerals, classified by how it forms" },
       { term: "igneous rock", definition: "Rock that forms when molten material such as lava or magma cools and hardens" },
@@ -820,6 +857,14 @@ const QUIZ_REGISTRY = [
       { term: "foliated", definition: "A type of metamorphic rock where minerals band together to create stripes" },
       { term: "nonfoliated", definition: "A type of metamorphic rock where minerals are not arranged in stripes" },
       { term: "rock cycle", definition: "The continuous process in which one type of rock changes into another type of rock" }
+    ],
+    rockcycle: [
+      { id: "top-left", prompt: "Top left box", answer: "Answer 1", hint: "" },
+      { id: "top-right", prompt: "Top right box", answer: "Answer 2", hint: "" },
+      { id: "middle-left", prompt: "Middle left box", answer: "Answer 3", hint: "" },
+      { id: "middle-right", prompt: "Middle right box", answer: "Answer 4", hint: "" },
+      { id: "center-bottom", prompt: "Center bottom box", answer: "Answer 5", hint: "" },
+      { id: "bottom", prompt: "Bottom box", answer: "Answer 6", hint: "" }
     ],
     mc: [
       { question: "Granite and gabbro are examples of what type of igneous rock?", choices: ["Extrusive", "Intrusive", "Metamorphic", "Sedimentary"], correct: 1 },
@@ -902,9 +947,44 @@ let activeQuiz = QUIZ_REGISTRY[0];
 let quizSettings = { activeQuizId: QUIZ_REGISTRY[0].id, locked: true, visibleQuizIds: QUIZ_REGISTRY.map(q => q.id) };
 
 // ============================================================
-function getStorageKey() { return 'socialtest_progress_' + activeQuiz.id; }
-function getDataKey() { return 'socialtest_data_' + activeQuiz.id; }
+function getStorageKeyForQuiz(quizId) { return 'socialtest_progress_' + quizId; }
+function getDataKeyForQuiz(quizId) { return 'socialtest_data_' + quizId; }
+function getStorageKey() { return getStorageKeyForQuiz(activeQuiz.id); }
+function getDataKey() { return getDataKeyForQuiz(activeQuiz.id); }
 const API_URL = "/api";
+
+function getQuizDefaults(quizId) {
+  const quiz = QUIZ_REGISTRY.find(q => q.id === quizId) || activeQuiz || QUIZ_REGISTRY[0];
+  return {
+    vocab: JSON.parse(JSON.stringify(quiz ? quiz.vocab || [] : DEFAULT_VOCAB)),
+    mc: JSON.parse(JSON.stringify(quiz ? quiz.mc || [] : DEFAULT_MC)),
+    jeopardy: JSON.parse(JSON.stringify(quiz ? quiz.jeopardy || [] : DEFAULT_JEOPARDY)),
+    rockcycle: normalizeRockCycleItems(JSON.parse(JSON.stringify(quiz ? quiz.rockcycle || [] : [])))
+  };
+}
+
+const ROCK_CYCLE_IMAGE_SRC = 'studyguides/rock-cycle-blank.png';
+const ROCK_CYCLE_ZONES = [
+  { id: 'top-left', prompt: 'Top left box', top: 14.45, left: 8.98, width: 18.16, height: 12.40 },
+  { id: 'top-right', prompt: 'Top right box', top: 14.55, left: 72.79, width: 18.42, height: 12.40 },
+  { id: 'middle-left', prompt: 'Middle left box', top: 31.35, left: 25.65, width: 18.75, height: 12.70 },
+  { id: 'middle-right', prompt: 'Middle right box', top: 31.35, left: 63.87, width: 16.47, height: 12.70 },
+  { id: 'center-bottom', prompt: 'Center bottom box', top: 59.47, left: 39.26, width: 20.51, height: 12.11 },
+  { id: 'bottom', prompt: 'Bottom box', top: 84.18, left: 36.91, width: 23.11, height: 9.08 }
+];
+
+function normalizeRockCycleItems(items) {
+  const source = Array.isArray(items) ? items : [];
+  return ROCK_CYCLE_ZONES.map((zone, idx) => {
+    const existing = source[idx] || {};
+    return {
+      id: zone.id,
+      prompt: typeof existing.prompt === 'string' && existing.prompt.trim() ? existing.prompt : zone.prompt,
+      answer: typeof existing.answer === 'string' && existing.answer.trim() ? existing.answer : `Answer ${idx + 1}`,
+      hint: typeof existing.hint === 'string' ? existing.hint : ''
+    };
+  });
+}
 
 /** Switch to a different quiz by ID. Resets progress and reloads data. */
 function switchQuiz(quizId) {
@@ -915,12 +995,16 @@ function switchQuiz(quizId) {
   localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
 
   // Reload data from quiz defaults (API override later)
-  vocabData = quiz.vocab || [];
-  mcData = quiz.mc || [];
-  jeopardyData = quiz.jeopardy || [];
+  const defaults = getQuizDefaults(quizId);
+  vocabData = defaults.vocab;
+  mcData = defaults.mc;
+  jeopardyData = defaults.jeopardy;
+  rockcycleData = defaults.rockcycle;
 
   // Reset all quiz state
   vocabAnswers = {}; vocabResults = null; vocabRetryOnly = [];
+  rockcycleAnswers = {}; rockcycleResults = null; rockcycleRetryOnly = [];
+  rockcycleSelectedChip = null;
   mcAnswers = {}; mcResults = null; mcRetryOnly = []; mcCurrentQ = 0; mcShuffleMap = {};
   gameAnswers = {}; gameResults = null; gameRetryOnly = []; gameCurrentQ = 0;
   gameMode = null; gameActiveIndices = []; gameShuffleMap = {};
@@ -937,9 +1021,9 @@ function switchQuiz(quizId) {
 /** Player-facing quiz switch with confirmation if progress exists. */
 function playerSwitchQuiz(quizId) {
   if (quizId === activeQuiz.id) return; // already active
-  const hasProgress = vocabResults || mcResults || gameResults || questState;
+  const hasProgress = vocabResults || rockcycleResults || mcResults || gameResults || questState;
   if (hasProgress) {
-    if (!confirm('Switching quizzes will reset your current progress in Vocabulary, Multiple Choice, and Game Quiz. Are you sure?')) {
+    if (!confirm('Switching quizzes will reset your current progress in Vocabulary, Rock Cycle, Multiple Choice, and Game Quiz. Are you sure?')) {
       return;
     }
   }
@@ -948,10 +1032,11 @@ function playerSwitchQuiz(quizId) {
 
 /** Update nav bar visibility based on active quiz sections. */
 function updateNavBar() {
-  const sections = activeQuiz.sections || ['vocab', 'mc', 'gamequiz'];
+  const sections = activeQuiz.sections || ['vocab', 'mc', 'rockcycle', 'gamequiz'];
   const navBtns = {
     vocab: document.querySelector('[onclick*="vocab"]'),
     mc: document.querySelector('[onclick*="\'mc\'"]'),
+    rockcycle: document.querySelector('[onclick*="rockcycle"]'),
     gamequiz: document.querySelector('[onclick*="gamequiz"]')
   };
   Object.entries(navBtns).forEach(([key, btn]) => {
@@ -1121,13 +1206,17 @@ const DEFAULT_HERO_STATS = {
 // END QUEST ENGINE
 // ============================================================
 
-let vocabData, mcData, jeopardyData;
+let vocabData, mcData, jeopardyData, rockcycleData;
 let vocabAnswers = {};   // { qIndex: "term" }
 let mcAnswers = {};      // { qIndex: choiceIndex }
 let vocabResults = null; // { qIndex: true/false } after grading
 let mcResults = null;    // { qIndex: true/false } after each submit
 let vocabRetryOnly = []; // indices to retry
 let mcRetryOnly = [];
+let rockcycleAnswers = {};
+let rockcycleResults = null;
+let rockcycleRetryOnly = [];
+let rockcycleSelectedChip = null;
 let selectedWord = null;
 let mcCurrentQ = 0;      // current question index within active set
 
@@ -1408,7 +1497,8 @@ async function loadData() {
       vocabData = (hasData ? d.vocab : null) || (activeQuiz ? activeQuiz.vocab : DEFAULT_VOCAB) || [];
       mcData = (hasData ? d.mc : null) || (activeQuiz ? activeQuiz.mc : DEFAULT_MC) || [];
       jeopardyData = (hasData ? d.jeopardy : null) || (activeQuiz ? activeQuiz.jeopardy : DEFAULT_JEOPARDY) || [];
-      localStorage.setItem(getDataKey(), JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData }));
+      rockcycleData = normalizeRockCycleItems((hasData ? d.rockcycle : null) || (activeQuiz ? activeQuiz.rockcycle : []) || []);
+      localStorage.setItem(getDataKey(), JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData, rockcycle: rockcycleData }));
       return;
     }
   } catch (e) { /* offline — fall through */ }
@@ -1419,11 +1509,14 @@ async function loadData() {
     vocabData = d.vocab || [];
     mcData = d.mc || [];
     jeopardyData = d.jeopardy || [];
+    rockcycleData = normalizeRockCycleItems(d.rockcycle || []);
   } else {
     // Final fallback: inline defaults from active quiz
-    vocabData = JSON.parse(JSON.stringify(activeQuiz ? activeQuiz.vocab || [] : DEFAULT_VOCAB));
-    mcData = JSON.parse(JSON.stringify(activeQuiz ? activeQuiz.mc || [] : DEFAULT_MC));
-    jeopardyData = JSON.parse(JSON.stringify(activeQuiz ? activeQuiz.jeopardy || [] : DEFAULT_JEOPARDY));
+    const defaults = getQuizDefaults(activeQuiz ? activeQuiz.id : null);
+    vocabData = defaults.vocab;
+    mcData = defaults.mc;
+    jeopardyData = defaults.jeopardy;
+    rockcycleData = defaults.rockcycle;
   }
 }
 
@@ -1432,7 +1525,7 @@ async function loadData() {
  * Shows toast in parent mode on success/failure.
  */
 async function saveData() {
-  const payload = { vocab: vocabData, mc: mcData, jeopardy: jeopardyData };
+  const payload = { vocab: vocabData, mc: mcData, jeopardy: jeopardyData, rockcycle: rockcycleData };
   localStorage.setItem(getDataKey(), JSON.stringify(payload));
   saveInFlight = true;
   const quizParam = activeQuiz ? `?quiz=${activeQuiz.id}` : '';
@@ -1468,10 +1561,14 @@ function loadProgress() {
     const p = JSON.parse(saved);
     vocabAnswers = p.vocabAnswers || {};
     mcAnswers = p.mcAnswers || {};
+    rockcycleAnswers = p.rockcycleAnswers || {};
     vocabResults = p.vocabResults || null;
     mcResults = p.mcResults || null;
+    rockcycleResults = p.rockcycleResults || null;
     vocabRetryOnly = p.vocabRetryOnly || [];
     mcRetryOnly = p.mcRetryOnly || [];
+    rockcycleRetryOnly = p.rockcycleRetryOnly || [];
+    rockcycleSelectedChip = null;
     mcCurrentQ = p.mcCurrentQ || 0;
     // Game Quiz state (legacy single-battle)
     gameAnswers = p.gameAnswers || {};
@@ -1494,7 +1591,7 @@ function loadProgress() {
 
 function saveProgress() {
   localStorage.setItem(getStorageKey(), JSON.stringify({
-    vocabAnswers, mcAnswers, vocabResults, mcResults, vocabRetryOnly, mcRetryOnly, mcCurrentQ,
+    vocabAnswers, mcAnswers, rockcycleAnswers, vocabResults, mcResults, rockcycleResults, vocabRetryOnly, mcRetryOnly, rockcycleRetryOnly, mcCurrentQ,
     gameAnswers, gameResults, gameRetryOnly, gameCurrentQ, gameMode, gameActiveIndices,
     heroHP, heroMaxHP, heroDefeated,
     questState
@@ -1508,6 +1605,7 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if (id === 'vocab') renderVocab();
+  if (id === 'rockcycle') renderRockCycle();
   if (id === 'mc') renderMC();
   if (id === 'home') renderHome();
   if (id === 'gamequiz') renderGameQuiz();
@@ -1529,7 +1627,7 @@ function renderHome() {
           <div class="quiz-pick-subject">${q.subject}</div>
           <div class="quiz-pick-title">${q.title}</div>
           <div class="quiz-pick-grade">Grade ${q.grade}</div>
-          <div class="quiz-pick-sections">${(q.sections || []).map(s => s === 'vocab' ? '📖' : s === 'mc' ? '✏️' : '🎮').join(' ')}</div>
+          <div class="quiz-pick-sections">${(q.sections || []).map(s => s === 'vocab' ? '📖' : s === 'mc' ? '✏️' : s === 'rockcycle' ? '🔄' : '🎮').join(' ')}</div>
         </button>`;
       });
       pickerHtml += '</div>';
@@ -1552,12 +1650,17 @@ function renderHome() {
     const total = Object.keys(mcResults).length;
     html += `<p>✏️ Multiple Choice: <strong>${correct}/${total}</strong></p>`;
   }
+  if (rockcycleResults) {
+    const correct = Object.values(rockcycleResults).filter(v => v).length;
+    const total = Object.keys(rockcycleResults).length;
+    html += `<p>🔄 Rock Cycle: <strong>${correct}/${total}</strong></p>`;
+  }
   if (gameResults) {
     const correct = Object.values(gameResults).filter(v => v).length;
     const total = Object.keys(gameResults).length;
     html += `<p>🎮 Game Quiz: <strong>${correct}/${total}</strong></p>`;
   }
-  if (!vocabResults && !mcResults && !gameResults) {
+  if (!vocabResults && !rockcycleResults && !mcResults && !gameResults) {
     html = '<p style="color:#888;">No scores yet. Pick a section and start studying!</p>';
   }
   el.innerHTML = html;
@@ -1600,10 +1703,18 @@ function renderVocab() {
 }
 
 function selectWord(el, word) {
+  const selectedEl = document.getElementById('rockcycle-selected');
   document.querySelectorAll('.word-chip').forEach(c => c.style.outline = '');
-  if (selectedWord === word) { selectedWord = null; return; }
+  if (selectedWord === word) {
+    selectedWord = null;
+    if (selectedEl) selectedEl.textContent = 'Select an answer chip, then tap a blank box.';
+    return;
+  }
   selectedWord = word;
   el.style.outline = '3px solid #f0ad4e';
+  if (selectedEl) {
+    selectedEl.textContent = selectedWord ? `Selected: ${selectedWord}` : 'Select an answer chip, then tap a blank box.';
+  }
 }
 
 function clickSlot(qi) {
@@ -1699,6 +1810,179 @@ function resetVocab() {
   document.getElementById('vocab-results').style.display = 'none';
   saveProgress();
   renderVocab();
+}
+
+// ============================================================
+// ROCK CYCLE
+// ============================================================
+function getActiveRockCycleIndices() {
+  return rockcycleRetryOnly.length > 0 ? rockcycleRetryOnly : rockcycleData.map((_, i) => i);
+}
+
+function normalizeRockCycleAnswers() {
+  const previous = rockcycleAnswers || {};
+  const normalized = {};
+
+  Object.keys(previous).forEach(key => {
+    const slotIndex = Number(key);
+    if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= ROCK_CYCLE_ZONES.length) return;
+    const value = previous[key];
+    const answerText = typeof value === 'string'
+      ? value
+      : (Number.isInteger(value) && rockcycleData[value] ? rockcycleData[value].answer : '');
+    if (typeof answerText === 'string' && answerText.trim()) normalized[slotIndex] = answerText;
+  });
+
+  rockcycleAnswers = normalized;
+}
+
+function selectRockCycleChip(answerText) {
+  if (rockcycleResults) return;
+  if (rockcycleSelectedChip === answerText) {
+    rockcycleSelectedChip = null;
+  } else {
+    rockcycleSelectedChip = answerText;
+  }
+  renderRockCycle();
+}
+
+function renderRockCycle() {
+  normalizeRockCycleAnswers();
+  const activeIndices = getActiveRockCycleIndices();
+  const bankEl = document.getElementById('rockcycle-word-bank');
+  const qEl = document.getElementById('rockcycle-questions');
+  if (!bankEl || !qEl) return;
+
+  if (!rockcycleData || rockcycleData.length === 0) {
+    bankEl.innerHTML = '';
+    qEl.innerHTML = '<div class="score-box"><p style="color:#888;">No rock cycle prompts are configured for this quiz yet.</p></div>';
+    document.getElementById('rockcycle-submit').style.display = 'none';
+    return;
+  }
+
+  const uniqueAnswers = [...new Set(activeIndices.map(i => rockcycleData[i].answer))];
+  if (rockcycleSelectedChip !== null && !uniqueAnswers.includes(rockcycleSelectedChip)) {
+    rockcycleSelectedChip = null;
+  }
+
+  bankEl.innerHTML = uniqueAnswers.map(answerText => {
+    const selected = rockcycleSelectedChip === answerText ? ' style="outline:3px solid #f0ad4e;"' : '';
+    return `<span class="word-chip"${selected} onclick="selectRockCycleChip('${esc(answerText).replace(/'/g, "\\'")}')">${esc(answerText)}</span>`;
+  }).join('');
+
+  qEl.innerHTML = `<div class="rockcycle-board">
+    <div class="rockcycle-selected" id="rockcycle-selected">${rockcycleSelectedChip !== null ? `Selected: ${esc(rockcycleSelectedChip)}` : 'Select an answer chip, then tap a blank box.'}</div>
+    <div class="rockcycle-image-wrap">
+      <img src="${ROCK_CYCLE_IMAGE_SRC}" alt="Blank rock cycle diagram">
+      ${ROCK_CYCLE_ZONES.map((zone, qi) => {
+        const item = rockcycleData[qi];
+        if (!item) return '';
+        const answer = rockcycleAnswers[qi] || '';
+        const isActive = activeIndices.includes(qi);
+        let zoneClass = 'rockcycle-zone';
+        if (answer) zoneClass += ' filled';
+        if (rockcycleResults && rockcycleResults[qi] === true) zoneClass += ' correct';
+        else if (rockcycleResults && rockcycleResults[qi] === false) zoneClass += ' wrong';
+        if (rockcycleRetryOnly.length > 0 && !isActive) zoneClass += ' locked';
+        return `<button type="button" class="${zoneClass}" onclick="clickRockCycleSlot(${qi})" id="rockcycle-slot-${qi}" style="top:${zone.top}%; left:${zone.left}%; width:${zone.width}%; height:${zone.height}%;">
+          <span class="rockcycle-zone-text">${esc(answer) || 'Tap to fill'}</span>
+        </button>`;
+      }).join('')}
+    </div>
+    <div class="rockcycle-legend">Blank boxes stay in place on the image so Parker can practice where each step belongs.</div>
+  </div>`;
+
+  updateRockCycleProgress(activeIndices);
+  document.getElementById('rockcycle-submit').style.display = rockcycleResults ? 'none' : 'block';
+}
+
+function clickRockCycleSlot(qi) {
+  if (rockcycleResults) return;
+  const activeIndices = getActiveRockCycleIndices();
+  if (rockcycleRetryOnly.length > 0 && !activeIndices.includes(qi)) return;
+
+  if (rockcycleAnswers[qi] !== undefined) {
+    delete rockcycleAnswers[qi];
+    saveProgress();
+    renderRockCycle();
+    return;
+  }
+
+  if (rockcycleSelectedChip !== null) {
+    rockcycleAnswers[qi] = rockcycleSelectedChip;
+    rockcycleSelectedChip = null;
+    saveProgress();
+    renderRockCycle();
+  }
+}
+
+function updateRockCycleProgress(activeIndices) {
+  const filled = activeIndices.filter(i => rockcycleAnswers[i] !== undefined).length;
+  const pct = (filled / activeIndices.length) * 100;
+  document.getElementById('rockcycle-progress').style.width = pct + '%';
+}
+
+function isRockCyclePlacementCorrect(slotIndex) {
+  return (rockcycleAnswers[slotIndex] || '').trim() === (rockcycleData[slotIndex]?.answer || '').trim();
+}
+
+function submitRockCycle() {
+  const activeIndices = getActiveRockCycleIndices();
+  const unanswered = activeIndices.filter(i => rockcycleAnswers[i] === undefined);
+  if (unanswered.length > 0) {
+    alert(`You still have ${unanswered.length} blank(s). Fill them all in before checking!`);
+    return;
+  }
+
+  rockcycleResults = {};
+  activeIndices.forEach(i => {
+    rockcycleResults[i] = isRockCyclePlacementCorrect(i);
+  });
+  saveProgress();
+
+  const correct = Object.values(rockcycleResults).filter(v => v).length;
+  const total = activeIndices.length;
+  const wrong = activeIndices.filter(i => !rockcycleResults[i]);
+
+  let html = `<div class="score-box">
+    <div class="big-score">${correct}/${total}</div>
+    <div class="score-label">Rock Cycle Score</div>
+    <div class="encouragement">${getEncouragement(correct, total)}</div>
+  </div>`;
+
+  if (wrong.length > 0) {
+    html += `<button class="btn btn-warning btn-block" onclick="retryRockCycle([${wrong.join(',')}])">🔄 Retry Wrong Answers (${wrong.length})</button>`;
+    html += `<div class="score-box" style="text-align:left; padding:14px; margin-top:12px;">
+      <div style="font-weight:700; color:#1a3a6b; margin-bottom:6px;">Correct answers for missed boxes:</div>
+      ${wrong.map(i => `<div style="margin:4px 0;"><strong>${esc(rockcycleData[i].prompt)}:</strong> ${esc(rockcycleData[i].answer)}</div>`).join('')}
+    </div>`;
+  }
+  html += `<button class="btn btn-primary btn-block" onclick="resetRockCycle()">Start Over</button>`;
+
+  document.getElementById('rockcycle-results').innerHTML = html;
+  document.getElementById('rockcycle-results').style.display = 'block';
+  renderRockCycle();
+  if (rockcycleRetryOnly.length === 0) logAttempt('rockcycle', null, correct, total, 0);
+}
+
+function retryRockCycle(indices) {
+  rockcycleRetryOnly = indices;
+  rockcycleResults = null;
+  indices.forEach(i => delete rockcycleAnswers[i]);
+  rockcycleSelectedChip = null;
+  document.getElementById('rockcycle-results').style.display = 'none';
+  saveProgress();
+  renderRockCycle();
+}
+
+function resetRockCycle() {
+  rockcycleRetryOnly = [];
+  rockcycleResults = null;
+  rockcycleAnswers = {};
+  rockcycleSelectedChip = null;
+  document.getElementById('rockcycle-results').style.display = 'none';
+  saveProgress();
+  renderRockCycle();
 }
 
 // ============================================================
@@ -1851,6 +2135,7 @@ function resetMC() {
 function confirmRestart(section) {
   if (confirm('Restart this section? Your progress will be cleared.')) {
     if (section === 'vocab') resetVocab();
+    else if (section === 'rockcycle') resetRockCycle();
     else if (section === 'mc') resetMC();
   }
 }
@@ -4629,6 +4914,7 @@ let parentEditingQuizId = null;
 let parentEditVocab = [];
 let parentEditMC = [];
 let parentEditJeopardy = [];
+let parentEditRockCycle = [];
 
 /** Get the quiz currently being edited in parent mode. */
 function getParentEditingQuiz() {
@@ -4648,26 +4934,30 @@ async function loadParentEditQuiz(quizId) {
         parentEditVocab = d.vocab;
         parentEditMC = d.mc || [];
         parentEditJeopardy = d.jeopardy || [];
+        parentEditRockCycle = normalizeRockCycleItems(d.rockcycle || JSON.parse(JSON.stringify(quiz.rockcycle || [])));
         return;
       }
     }
   } catch {}
   // Fallback to inline defaults
-  parentEditVocab = JSON.parse(JSON.stringify(quiz.vocab || []));
-  parentEditMC = JSON.parse(JSON.stringify(quiz.mc || []));
-  parentEditJeopardy = JSON.parse(JSON.stringify(quiz.jeopardy || []));
+  const defaults = getQuizDefaults(quizId);
+  parentEditVocab = defaults.vocab;
+  parentEditMC = defaults.mc;
+  parentEditJeopardy = defaults.jeopardy;
+  parentEditRockCycle = defaults.rockcycle;
 }
 
 /** Save parent-edited quiz data to the correct quiz blob. */
 async function saveParentEditData() {
-  const payload = { vocab: parentEditVocab, mc: parentEditMC, jeopardy: parentEditJeopardy };
+  const payload = { vocab: parentEditVocab, mc: parentEditMC, jeopardy: parentEditJeopardy, rockcycle: parentEditRockCycle };
   // If editing the active quiz, also update the live data
   if (parentEditingQuizId === activeQuiz.id) {
     vocabData = parentEditVocab;
     mcData = parentEditMC;
     jeopardyData = parentEditJeopardy;
-    localStorage.setItem(getDataKey(), JSON.stringify(payload));
+    rockcycleData = parentEditRockCycle;
   }
+  localStorage.setItem(getDataKeyForQuiz(parentEditingQuizId), JSON.stringify(payload));
   try {
     await fetch(API_URL + '/questions?quiz=' + parentEditingQuizId, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
@@ -4731,7 +5021,7 @@ async function renderQuizSettingsPanel() {
     <div style="margin-top:4px; font-size:0.9rem; color:#555;">
       <div>📚 ${activeQuiz.subject} — ${activeQuiz.title}</div>
       <div>📂 Sections: ${sections.join(', ') || 'all'}</div>
-      <div>📖 Vocab: ${(activeQuiz.vocab || []).length} | ✏️ MC: ${(activeQuiz.mc || []).length} | 🎮 Game: ${(activeQuiz.jeopardy || []).length}</div>
+      <div>📖 Vocab: ${(activeQuiz.vocab || []).length} | 🔄 Rock Cycle: ${(activeQuiz.rockcycle || []).length} | ✏️ MC: ${(activeQuiz.mc || []).length} | 🎮 Game: ${(activeQuiz.jeopardy || []).length}</div>
     </div>
   </div>`;
 
@@ -4815,6 +5105,15 @@ async function renderAnswerKey() {
       <span class="correct-answer">✓ ${esc(q.choices[q.correct])}</span>
     </div>`;
   });
+  if (parentEditRockCycle.length > 0) {
+    html += '<h3 style="margin-top:20px;">🔄 Rock Cycle Answers</h3>';
+    parentEditRockCycle.forEach((item, i) => {
+      html += `<div class="answer-key-item">
+        <strong>${i + 1}. ${esc(item.prompt)}</strong><br>
+        <span class="correct-answer">✓ ${esc(item.answer)}</span>
+      </div>`;
+    });
+  }
   html += '<h3 style="margin-top:20px;">🎮 Game Quiz Answers</h3>';
   html += '<h4 style="color:#555; margin:8px 0;">📖 Vocabulary-Based</h4>';
   parentEditJeopardy.filter(q => q.category === 'vocab').forEach((q, i) => {
@@ -4866,6 +5165,20 @@ async function renderEditPanel() {
     html += '</div>';
   });
 
+  if (parentEditRockCycle.length > 0) {
+    html += '<h3 style="margin-top:20px;">🔄 Edit Rock Cycle</h3>';
+    parentEditRockCycle.forEach((item, i) => {
+      html += `<div class="edit-group">
+        <label>Prompt ${i + 1}</label>
+        <textarea onchange="editParentRockCycle(${i}, 'prompt', this.value)">${esc(item.prompt)}</textarea>
+        <label>Answer</label>
+        <input type="text" value="${esc(item.answer)}" onchange="editParentRockCycle(${i}, 'answer', this.value)">
+        <label>Hint</label>
+        <input type="text" value="${esc(item.hint || '')}" onchange="editParentRockCycle(${i}, 'hint', this.value)">
+      </div>`;
+    });
+  }
+
   html += `<button class="btn btn-danger btn-block" style="margin-top:16px;" onclick="resetToDefaults()">🔄 Reset All to Defaults</button>`;
   el.innerHTML = html;
 }
@@ -4882,6 +5195,10 @@ function editParentMC(i, field, value) {
 }
 function editParentMCChoice(qi, ci, value) {
   parentEditMC[qi].choices[ci] = value;
+  saveParentEditData();
+}
+function editParentRockCycle(i, field, value) {
+  parentEditRockCycle[i][field] = value;
   saveParentEditData();
 }
 
@@ -4947,27 +5264,41 @@ function editParentJeopardyChoice(qi, ci, value) {
 
 function resetToDefaults() {
   if (confirm('This will reset all questions to the original defaults and clear saved progress. Are you sure?')) {
-    localStorage.removeItem(getDataKey());
-    localStorage.removeItem(getStorageKey());
-    vocabData = JSON.parse(JSON.stringify(DEFAULT_VOCAB));
-    mcData = JSON.parse(JSON.stringify(DEFAULT_MC));
-    jeopardyData = JSON.parse(JSON.stringify(DEFAULT_JEOPARDY));
-    vocabAnswers = {};
-    mcAnswers = {};
-    vocabResults = null;
-    mcResults = null;
-    vocabRetryOnly = [];
-    mcRetryOnly = [];
-    // Reset Game Quiz state
-    gameAnswers = {};
-    gameResults = null;
-    gameRetryOnly = [];
-    gameCurrentQ = 0;
-    gameMode = null;
-    gameActiveIndices = [];
-    heroHP = 10;
-    heroMaxHP = 10;
-    heroDefeated = false;
+    const quizId = parentEditingQuizId || activeQuiz.id;
+    localStorage.removeItem(getDataKeyForQuiz(quizId));
+    localStorage.removeItem(getStorageKeyForQuiz(quizId));
+    const defaults = getQuizDefaults(quizId);
+    parentEditVocab = JSON.parse(JSON.stringify(defaults.vocab));
+    parentEditMC = JSON.parse(JSON.stringify(defaults.mc));
+    parentEditJeopardy = JSON.parse(JSON.stringify(defaults.jeopardy));
+    parentEditRockCycle = JSON.parse(JSON.stringify(defaults.rockcycle));
+    if (quizId === activeQuiz.id) {
+      vocabData = defaults.vocab;
+      mcData = defaults.mc;
+      jeopardyData = defaults.jeopardy;
+      rockcycleData = defaults.rockcycle;
+      vocabAnswers = {};
+      rockcycleAnswers = {};
+      rockcycleSelectedChip = null;
+      mcAnswers = {};
+      vocabResults = null;
+      rockcycleResults = null;
+      mcResults = null;
+      vocabRetryOnly = [];
+      rockcycleRetryOnly = [];
+      mcRetryOnly = [];
+      // Reset Game Quiz state
+      gameAnswers = {};
+      gameResults = null;
+      gameRetryOnly = [];
+      gameCurrentQ = 0;
+      gameMode = null;
+      gameActiveIndices = [];
+      heroHP = 10;
+      heroMaxHP = 10;
+      heroDefeated = false;
+    }
+    saveParentEditData();
     renderEditPanel();
     renderAnswerKey();
   }
@@ -5140,7 +5471,7 @@ async function logAttempt(section, mode, score, total, duration) {
 async function renderHistoryPanel() {
   const el = document.getElementById('parent-history');
   el.innerHTML = '<p style="color:#888;">Loading history...</p>';
-  const sectionNames = { vocab: '📖 Vocabulary', mc: '✏️ Multiple Choice', gamequiz: '🎮 Game Quiz' };
+  const sectionNames = { vocab: '📖 Vocabulary', rockcycle: '🔄 Rock Cycle', mc: '✏️ Multiple Choice', gamequiz: '🎮 Game Quiz' };
 
   // Fetch history for all registered quizzes
   const allHistory = [];
@@ -5181,7 +5512,7 @@ async function renderHistoryPanel() {
     html += `<h3 style="margin:0 0 8px; font-size:1rem;">${quiz.subject} — ${quiz.title}</h3>`;
 
     // High scores per section
-    const sections = ['vocab', 'mc', 'gamequiz'];
+    const sections = ['vocab', 'rockcycle', 'mc', 'gamequiz'];
     sections.forEach(s => {
       const sectionHist = history.filter(h => h.section === s);
       if (sectionHist.length === 0) return;
@@ -5218,7 +5549,7 @@ async function renderHighScores() {
     history = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
   }
   if (history.length === 0) { el.innerHTML = ''; return; }
-  const sections = { vocab: '📖 Vocab', mc: '✏️ MC', gamequiz: '🎮 Game' };
+  const sections = { vocab: '📖 Vocab', rockcycle: '🔄 Rock Cycle', mc: '✏️ MC', gamequiz: '🎮 Game' };
   let html = '<h3 style="margin-top:16px; font-size:1rem; color:#2a5aa0;">🏆 High Scores</h3>';
   let hasScores = false;
   Object.entries(sections).forEach(([key, label]) => {
