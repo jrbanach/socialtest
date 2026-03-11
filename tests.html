@@ -120,6 +120,29 @@ function calcHP(totalQuestions) {
   return { maxWrong, heroMaxHP: maxWrong };
 }
 
+function getSectionTitle(screenId) {
+  switch (screenId) {
+    case 'vocab': return 'Vocabulary';
+    case 'mc': return 'Multiple Choice';
+    case 'rockcycle': return 'Rock Cycle';
+    case 'gamequiz': return 'Game Quiz';
+    case 'parent-answers': return 'Parent Mode - Answers';
+    case 'parent-edit': return 'Parent Mode - Edit';
+    case 'parent-gamequiz': return 'Parent Mode - Game Quiz';
+    case 'parent-history': return 'Parent Mode - History';
+    case 'parent-quizsettings': return 'Parent Mode - Quiz Settings';
+    case 'home':
+    default:
+      return 'Home';
+  }
+}
+
+function buildDocumentTitle(quiz, screenId) {
+  const base = quiz ? `${quiz.subject} - ${quiz.title}` : 'Study Quiz';
+  const section = getSectionTitle(screenId);
+  return section === 'Home' ? `${base} - Home` : `${base} - ${section}`;
+}
+
 /**
  * Compute heart display from current HP.
  * @param {number} heroHP - current HP (0..heroMaxHP)
@@ -263,6 +286,23 @@ test('All categories are "vocab" or "mc"', () => {
   DEFAULT_JEOPARDY.forEach((q, i) => {
     assert(q.category === 'vocab' || q.category === 'mc', `Q${i} has invalid category "${q.category}"`);
   });
+});
+
+suite('🪟 Dynamic Page Title');
+
+test('Home title includes quiz subject and title', () => {
+  const quiz = { subject: 'Science', title: 'Rocks & Rock Cycle' };
+  assertEqual(buildDocumentTitle(quiz, 'home'), 'Science - Rocks & Rock Cycle - Home');
+});
+
+test('Section title includes current study mode', () => {
+  const quiz = { subject: 'Science', title: 'Rocks & Rock Cycle' };
+  assertEqual(buildDocumentTitle(quiz, 'rockcycle'), 'Science - Rocks & Rock Cycle - Rock Cycle');
+});
+
+test('Parent tab title is labeled clearly', () => {
+  const quiz = { subject: 'Social Studies', title: 'Colonial America - Ch 5 & 6' };
+  assertEqual(buildDocumentTitle(quiz, 'parent-edit'), 'Social Studies - Colonial America - Ch 5 & 6 - Parent Mode - Edit');
 });
 
 

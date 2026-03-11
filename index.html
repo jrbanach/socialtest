@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Social Studies Quiz — Chapters 5 &amp; 6</title>
+<title>Study Quiz</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f0f4ff; color: #222; line-height: 1.5; min-height: 100vh; }
@@ -34,7 +34,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 
 /* Nav bar */
 .nav { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
-.nav .btn { flex: 1; min-width: 100px; text-align: center; }
+.nav .btn { flex: 1; min-width: 100px; display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; line-height: 1.2; }
 
 /* Word bank */
 .word-bank { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: #e8eef7; border-radius: 8px; margin-bottom: 16px; justify-content: center; }
@@ -1067,6 +1067,33 @@ function updateQuizHeader() {
   if (el) el.textContent = activeQuiz.subject + ' — ' + activeQuiz.title;
 }
 
+function getSectionTitle(screenId) {
+  switch (screenId) {
+    case 'vocab': return 'Vocabulary';
+    case 'mc': return 'Multiple Choice';
+    case 'rockcycle': return 'Rock Cycle';
+    case 'gamequiz': return 'Game Quiz';
+    case 'parent-answers': return 'Parent Mode - Answers';
+    case 'parent-edit': return 'Parent Mode - Edit';
+    case 'parent-gamequiz': return 'Parent Mode - Game Quiz';
+    case 'parent-history': return 'Parent Mode - History';
+    case 'parent-quizsettings': return 'Parent Mode - Quiz Settings';
+    case 'home':
+    default:
+      return 'Home';
+  }
+}
+
+function buildDocumentTitle(quiz, screenId) {
+  const base = quiz ? `${quiz.subject} - ${quiz.title}` : 'Study Quiz';
+  const section = getSectionTitle(screenId);
+  return section === 'Home' ? `${base} - Home` : `${base} - ${section}`;
+}
+
+function updateDocumentTitle(screenId = 'home') {
+  document.title = buildDocumentTitle(activeQuiz, screenId);
+}
+
 // ============================================================
 // QUEST ENGINE — Quiz-Agnostic Stage & Enemy System
 // The quest engine is decoupled from quiz content so any
@@ -1604,6 +1631,7 @@ function saveProgress() {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  updateDocumentTitle(id);
   if (id === 'vocab') renderVocab();
   if (id === 'rockcycle') renderRockCycle();
   if (id === 'mc') renderMC();
@@ -4893,6 +4921,8 @@ function checkPassword() {
 
 function closeParentMode() {
   document.getElementById('parent-overlay').classList.remove('active');
+  const activeScreen = document.querySelector('.screen.active');
+  updateDocumentTitle(activeScreen ? activeScreen.id : 'home');
 }
 
 function showParentTab(tab) {
@@ -4902,6 +4932,7 @@ function showParentTab(tab) {
     if (tabBtn) tabBtn.classList.toggle('active-tab', tab === t);
     if (panel) panel.style.display = tab === t ? 'block' : 'none';
   });
+  updateDocumentTitle('parent-' + tab);
   if (tab === 'answers') renderAnswerKey();
   if (tab === 'edit') renderEditPanel();
   if (tab === 'gamequiz') renderGameQuizEditPanel();
@@ -5589,6 +5620,7 @@ async function renderHighScores() {
   loadProgress();
   updateNavBar();
   updateQuizHeader();
+  updateDocumentTitle('home');
   renderHome();
   initPlayer();
   renderHighScores();
