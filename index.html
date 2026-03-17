@@ -288,6 +288,47 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .game-q input[type="radio"] { margin-right: 8px; transform: scale(1.2); vertical-align: middle; }
 .game-q label.correct { border-color: #28a745; background: #d4edda; }
 .game-q label.wrong { border-color: #dc3545; background: #f8d7da; }
+
+/* ---- Study Entry ---- */
+.study-card { background: #fff; border-radius: 12px; padding: 20px 16px; margin: 0 auto; max-width: 500px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.study-progress-bar { height: 10px; border-radius: 5px; background: #e9ecef; margin: 8px 0 16px; overflow: hidden; }
+.study-progress-fill { height: 100%; border-radius: 5px; transition: width 0.3s ease; }
+.study-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; color: #fff; margin-bottom: 6px; }
+.study-badge.vocab { background: #7c3aed; }
+.study-badge.knowledge { background: #2563eb; }
+.study-badge.short-answer { background: #16a34a; }
+.study-prompt { font-size: 1.5rem; font-weight: 700; text-align: center; margin: 16px 0 6px; color: #1a1a2e; }
+.study-hint { text-align: center; font-size: 0.9rem; color: #888; margin-bottom: 16px; }
+.stt-relaunch { color: #2a5aa0; cursor: pointer; font-size: 0.82rem; text-decoration: underline; text-decoration-style: dotted; white-space: nowrap; }
+.study-textarea { width: 100%; min-height: 100px; border: 2px solid #ddd; border-radius: 8px; padding: 12px; font-size: 1rem; font-family: inherit; resize: vertical; transition: border-color 0.2s; }
+.study-textarea:focus { border-color: #2a5aa0; outline: none; }
+.study-nav { display: flex; gap: 10px; margin-top: 14px; }
+.study-nav button { flex: 1; padding: 12px; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; min-height: 48px; }
+.study-nav .study-back { background: #e9ecef; color: #333; }
+.study-nav .study-next { background: #2a5aa0; color: #fff; }
+.study-nav .study-next:active { background: #1e3f73; }
+.study-nav .study-back:active { background: #ccc; }
+.study-exit { display: block; width: 100%; margin-top: 10px; padding: 12px; font-size: 1rem; background: #f0f4ff; color: #2a5aa0; border: 2px solid #2a5aa0; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: center; min-height: 48px; }
+.study-exit:active { background: #dbe4f8; }
+.study-progress-text { text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 2px; }
+.study-dots { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 14px; }
+.study-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #ddd; background: #f5f5f5; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; color: #999; }
+.study-dot.filled { background: #d4edda; border-color: #28a745; color: #28a745; }
+.study-dot.current { border-color: #2a5aa0; background: #e8f0fe; color: #2a5aa0; font-weight: 700; }
+.study-complete-banner { text-align: center; padding: 24px 16px; }
+.study-complete-banner h2 { font-size: 1.6rem; margin-bottom: 8px; }
+.study-complete-banner p { font-size: 1rem; color: #555; margin-bottom: 16px; }
+
+/* ---- Speech-to-Text Tip Modal ---- */
+.stt-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; }
+.stt-modal.active { display: flex; }
+.stt-box { background: #fff; border-radius: 16px; padding: 24px 20px; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+.stt-box h3 { font-size: 1.3rem; margin-bottom: 4px; }
+.stt-tips { text-align: left; margin: 0 auto; max-width: 320px; }
+.stt-tip { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.92rem; }
+.stt-tip:last-child { border-bottom: none; }
+.stt-device { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 2px; }
+.stt-box kbd { background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; border: 1px solid #ccc; }
 </style>
 </head>
 <body>
@@ -303,6 +344,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     <button class="btn btn-primary" onclick="showScreen('mc')">✏️ Multiple Choice</button>
     <button class="btn btn-primary" onclick="showScreen('rockcycle')">🔄 Rock Cycle</button>
     <button class="btn btn-primary" onclick="showScreen('gamequiz')">🎮 Game Quiz</button>
+    <button class="btn btn-primary" onclick="showScreen('study')">📝 Study Entry</button>
     <button class="btn btn-warning" onclick="openParentMode()">🔒 Parent</button>
   </div>
 
@@ -403,6 +445,25 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     </div>
   </div>
 
+  <!-- Study Entry Screen -->
+  <div id="study" class="screen">
+    <div id="study-entry-content"></div>
+  </div>
+
+</div>
+
+<!-- Speech-to-Text Tip Modal -->
+<div class="stt-modal" id="stt-modal">
+  <div class="stt-box">
+    <h3>🎤 Pro Tip: Use Speech-to-Text!</h3>
+    <p style="margin:10px 0 14px; font-size:1rem;">You can <strong>talk instead of typing</strong> — it's way faster! 🚀</p>
+    <div class="stt-tips">
+      <div class="stt-tip"><span class="stt-device">🪟 Windows PC</span>Press <kbd>Win</kbd> + <kbd>H</kbd> or tap the 🎙️ on your keyboard</div>
+      <div class="stt-tip"><span class="stt-device">💻 Chromebook</span>Press <kbd>Search</kbd> + <kbd>D</kbd> or tap the 🎙️ on your keyboard</div>
+      <div class="stt-tip"><span class="stt-device">📱 iPhone / iPad</span>Tap the 🎙️ on your keyboard</div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:16px; font-size:1.1rem; padding:12px 32px;" onclick="dismissSttTip()">Got it! 👍</button>
+  </div>
 </div>
 
 <!-- Password Modal -->
@@ -740,6 +801,43 @@ const DEFAULT_JEOPARDY = [
 ];
 
 // ============================================================
+// HEALTH CHAPTER 7 — Study Entry Items
+// Parker looks up answers in his textbook and types them in.
+// ============================================================
+const HEALTH_CH7_STUDY = [
+  // 18 vocab terms
+  { id: 'v01', type: 'vocab', prompt: 'Withdrawal' },
+  { id: 'v02', type: 'vocab', prompt: 'Overdose' },
+  { id: 'v03', type: 'vocab', prompt: 'Tolerance' },
+  { id: 'v04', type: 'vocab', prompt: 'Drug' },
+  { id: 'v05', type: 'vocab', prompt: 'Medicine' },
+  { id: 'v06', type: 'vocab', prompt: 'Prescription Drug' },
+  { id: 'v07', type: 'vocab', prompt: 'OTC Drug' },
+  { id: 'v08', type: 'vocab', prompt: 'Side Effect' },
+  { id: 'v09', type: 'vocab', prompt: 'Drug Misuse' },
+  { id: 'v10', type: 'vocab', prompt: 'Illegal Drug' },
+  { id: 'v11', type: 'vocab', prompt: 'Addiction' },
+  { id: 'v12', type: 'vocab', prompt: 'Drug Abuse' },
+  { id: 'v13', type: 'vocab', prompt: 'Alcohol' },
+  { id: 'v14', type: 'vocab', prompt: 'Depressant' },
+  { id: 'v15', type: 'vocab', prompt: 'Intoxication' },
+  { id: 'v16', type: 'vocab', prompt: 'Alcoholism' },
+  { id: 'v17', type: 'vocab', prompt: 'Nicotine' },
+  { id: 'v18', type: 'vocab', prompt: 'Minor' },
+  // 6 knowledge topics
+  { id: 'k01', type: 'knowledge', prompt: 'Example of drug abuse' },
+  { id: 'k02', type: 'knowledge', prompt: 'BAC (Blood Alcohol Concentration)' },
+  { id: 'k03', type: 'knowledge', prompt: 'Generic Drugs VS Brand Name Drugs' },
+  { id: 'k04', type: 'knowledge', prompt: 'Toxins in tobacco smoke' },
+  { id: 'k05', type: 'knowledge', prompt: 'Withdrawal Symptoms' },
+  { id: 'k06', type: 'knowledge', prompt: 'Nar-Anon and Al-Anon' },
+  // 3 short-answer topics
+  { id: 's01', type: 'short-answer', prompt: 'Why do people abuse drugs?' },
+  { id: 's02', type: 'short-answer', prompt: 'Reading/Following instructions with medicine' },
+  { id: 's03', type: 'short-answer', prompt: 'Resisting Drugs' }
+];
+
+// ============================================================
 // QUIZ REGISTRY — Array of quiz definitions. Each quiz declares
 // its content, supported sections, and metadata. Add new quizzes
 // by pushing additional entries with the same shape.
@@ -937,6 +1035,18 @@ const QUIZ_REGISTRY = [
       { question: "In the rock cycle, extreme heat and pressure form this", choices: ["Igneous rock", "Sedimentary rock", "Magma", "Metamorphic rock"], correct: 3, category: "mc" }
     ],
     enemies: null
+  },
+  {
+    id: 'health-ch7',
+    subject: 'Health',
+    title: 'Chapter 7 — Drugs, Alcohol & Tobacco',
+    grade: 5,
+    sections: ['study'],
+    study: HEALTH_CH7_STUDY,
+    vocab: [],
+    mc: [],
+    jeopardy: [],
+    enemies: null
   }
 ];
 
@@ -1037,7 +1147,8 @@ function updateNavBar() {
     vocab: document.querySelector('[onclick*="vocab"]'),
     mc: document.querySelector('[onclick*="\'mc\'"]'),
     rockcycle: document.querySelector('[onclick*="rockcycle"]'),
-    gamequiz: document.querySelector('[onclick*="gamequiz"]')
+    gamequiz: document.querySelector('[onclick*="gamequiz"]'),
+    study: document.querySelector('[onclick*="study"]')
   };
   Object.entries(navBtns).forEach(([key, btn]) => {
     if (btn) btn.style.display = sections.includes(key) ? '' : 'none';
@@ -1233,7 +1344,9 @@ const DEFAULT_HERO_STATS = {
 // END QUEST ENGINE
 // ============================================================
 
-let vocabData, mcData, jeopardyData, rockcycleData;
+let vocabData, mcData, jeopardyData, rockcycleData, studyData;
+let studyEntryIndex = 0;     // current item index in study entry mode
+let studyAnswers = {};       // { itemId: "answer text" }
 let vocabAnswers = {};   // { qIndex: "term" }
 let mcAnswers = {};      // { qIndex: choiceIndex }
 let vocabResults = null; // { qIndex: true/false } after grading
@@ -1525,7 +1638,8 @@ async function loadData() {
       mcData = (hasData ? d.mc : null) || (activeQuiz ? activeQuiz.mc : DEFAULT_MC) || [];
       jeopardyData = (hasData ? d.jeopardy : null) || (activeQuiz ? activeQuiz.jeopardy : DEFAULT_JEOPARDY) || [];
       rockcycleData = normalizeRockCycleItems((hasData ? d.rockcycle : null) || (activeQuiz ? activeQuiz.rockcycle : []) || []);
-      localStorage.setItem(getDataKey(), JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData, rockcycle: rockcycleData }));
+      studyData = (d.study && d.study.length > 0) ? d.study : (activeQuiz ? activeQuiz.study : null) || [];
+      localStorage.setItem(getDataKey(), JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData, rockcycle: rockcycleData, study: studyData }));
       return;
     }
   } catch (e) { /* offline — fall through */ }
@@ -1537,6 +1651,7 @@ async function loadData() {
     mcData = d.mc || [];
     jeopardyData = d.jeopardy || [];
     rockcycleData = normalizeRockCycleItems(d.rockcycle || []);
+    studyData = d.study || [];
   } else {
     // Final fallback: inline defaults from active quiz
     const defaults = getQuizDefaults(activeQuiz ? activeQuiz.id : null);
@@ -1544,6 +1659,15 @@ async function loadData() {
     mcData = defaults.mc;
     jeopardyData = defaults.jeopardy;
     rockcycleData = defaults.rockcycle;
+    studyData = (activeQuiz ? activeQuiz.study : null) || [];
+  }
+  // Hydrate studyAnswers from studyData (Azure sync may have answers)
+  if (studyData && studyData.length > 0) {
+    studyData.forEach(item => {
+      if (item.answer && !studyAnswers[item.id]) {
+        studyAnswers[item.id] = item.answer;
+      }
+    });
   }
 }
 
@@ -1552,7 +1676,7 @@ async function loadData() {
  * Shows toast in parent mode on success/failure.
  */
 async function saveData() {
-  const payload = { vocab: vocabData, mc: mcData, jeopardy: jeopardyData, rockcycle: rockcycleData };
+  const payload = { vocab: vocabData, mc: mcData, jeopardy: jeopardyData, rockcycle: rockcycleData, study: studyData || [] };
   localStorage.setItem(getDataKey(), JSON.stringify(payload));
   saveInFlight = true;
   const quizParam = activeQuiz ? `?quiz=${activeQuiz.id}` : '';
@@ -1609,6 +1733,9 @@ function loadProgress() {
     heroDefeated = p.heroDefeated || false;
     // Quest state (multi-stage)
     questState = p.questState || null;
+    // Study entry state
+    studyEntryIndex = p.studyEntryIndex || 0;
+    studyAnswers = p.studyAnswers || {};
     if (questState) {
       heroHP = p.heroHP !== undefined ? p.heroHP : questState.hero.maxHP;
       heroMaxHP = questState.hero.maxHP;
@@ -1621,7 +1748,8 @@ function saveProgress() {
     vocabAnswers, mcAnswers, rockcycleAnswers, vocabResults, mcResults, rockcycleResults, vocabRetryOnly, mcRetryOnly, rockcycleRetryOnly, mcCurrentQ,
     gameAnswers, gameResults, gameRetryOnly, gameCurrentQ, gameMode, gameActiveIndices,
     heroHP, heroMaxHP, heroDefeated,
-    questState
+    questState,
+    studyEntryIndex, studyAnswers
   }));
 }
 
@@ -1637,6 +1765,7 @@ function showScreen(id) {
   if (id === 'mc') renderMC();
   if (id === 'home') renderHome();
   if (id === 'gamequiz') renderGameQuiz();
+  if (id === 'study') renderStudyEntry();
 }
 
 function renderHome() {
@@ -1655,7 +1784,7 @@ function renderHome() {
           <div class="quiz-pick-subject">${q.subject}</div>
           <div class="quiz-pick-title">${q.title}</div>
           <div class="quiz-pick-grade">Grade ${q.grade}</div>
-          <div class="quiz-pick-sections">${(q.sections || []).map(s => s === 'vocab' ? '📖' : s === 'mc' ? '✏️' : s === 'rockcycle' ? '🔄' : '🎮').join(' ')}</div>
+          <div class="quiz-pick-sections">${(q.sections || []).map(s => s === 'vocab' ? '📖' : s === 'mc' ? '✏️' : s === 'rockcycle' ? '🔄' : s === 'study' ? '📝' : '🎮').join(' ')}</div>
         </button>`;
       });
       pickerHtml += '</div>';
@@ -1689,7 +1818,21 @@ function renderHome() {
     html += `<p>🎮 Game Quiz: <strong>${correct}/${total}</strong></p>`;
   }
   if (!vocabResults && !rockcycleResults && !mcResults && !gameResults) {
-    html = '<p style="color:#888;">No scores yet. Pick a section and start studying!</p>';
+    // Show study entry progress if this quiz has study items
+    const studyItems = getStudyItems();
+    if (studyItems.length > 0) {
+      const completed = getStudyCompletedCount();
+      html = `<p>📝 Study Entry: <strong>${completed}/${studyItems.length}</strong> items filled in</p>`;
+      if (completed === 0) {
+        html += '<p style="color:#888; margin-top:4px;">Tap <strong>📝 Study Entry</strong> above to get started!</p>';
+      } else if (completed < studyItems.length) {
+        html += '<p style="color:#888; margin-top:4px;">Keep going — you\'re almost there!</p>';
+      } else {
+        html += '<p style="color:#28a745; margin-top:4px;">✅ All items complete! Nice work!</p>';
+      }
+    } else {
+      html = '<p style="color:#888;">No scores yet. Pick a section and start studying!</p>';
+    }
   }
   el.innerHTML = html;
 }
@@ -5596,6 +5739,172 @@ async function renderHighScores() {
 // ============================================================
 // INIT
 // ============================================================
+// ============================================================
+// STUDY ENTRY MODE
+// ============================================================
+
+function getStudyItems() {
+  return studyData && studyData.length > 0 ? studyData : (activeQuiz.study || []);
+}
+
+function getStudyCategoryInfo(type) {
+  switch (type) {
+    case 'vocab': return { badge: '📖 Vocab', cls: 'vocab', hint: 'Define this term ✏️', color: '#7c3aed' };
+    case 'knowledge': return { badge: '🧠 Knowledge', cls: 'knowledge', hint: 'What do you know about this? 🤔', color: '#2563eb' };
+    case 'short-answer': return { badge: '✍️ Short Answer', cls: 'short-answer', hint: 'Write your answer', color: '#16a34a' };
+    default: return { badge: '📝 Study', cls: 'vocab', hint: 'Write your answer', color: '#666' };
+  }
+}
+
+function getStudyCompletedCount() {
+  const items = getStudyItems();
+  return items.filter(item => (studyAnswers[item.id] || '').trim().length > 0).length;
+}
+
+function showSttTipIfNeeded() {
+  const key = 'studyTipSeen_' + activeQuiz.id;
+  if (localStorage.getItem(key)) return;
+  document.getElementById('stt-modal').classList.add('active');
+}
+
+function dismissSttTip() {
+  const key = 'studyTipSeen_' + activeQuiz.id;
+  localStorage.setItem(key, '1');
+  document.getElementById('stt-modal').classList.remove('active');
+}
+
+function renderStudyEntry() {
+  const el = document.getElementById('study-entry-content');
+  const items = getStudyItems();
+  if (!items || items.length === 0) {
+    el.innerHTML = '<div style="text-align:center; padding:40px 16px;"><h2>📝 No Study Items</h2><p style="color:#666; margin-top:8px;">This quiz doesn\'t have study entry items yet.</p></div>';
+    return;
+  }
+
+  showSttTipIfNeeded();
+
+  const completed = getStudyCompletedCount();
+  const total = items.length;
+
+  // All done?
+  if (completed === total) {
+    renderStudyComplete(el, items, completed, total);
+    return;
+  }
+
+  // Clamp index
+  if (studyEntryIndex < 0) studyEntryIndex = 0;
+  if (studyEntryIndex >= total) studyEntryIndex = total - 1;
+
+  const item = items[studyEntryIndex];
+  const cat = getStudyCategoryInfo(item.type);
+  const answer = studyAnswers[item.id] || '';
+  const pct = Math.round((completed / total) * 100);
+
+  let html = '<div class="study-card">';
+  html += `<div class="study-progress-text">${completed} of ${total} completed</div>`;
+  html += `<div class="study-progress-bar"><div class="study-progress-fill" style="width:${pct}%; background:${cat.color};"></div></div>`;
+  html += `<span class="study-badge ${cat.cls}">${cat.badge}</span>`;
+  html += `<div style="font-size:0.8rem; color:#999; text-align:right; float:right; margin-top:4px;">${studyEntryIndex + 1} / ${total}</div>`;
+  html += `<div class="study-prompt">${esc(item.prompt)}</div>`;
+  html += `<div class="study-hint">${cat.hint} <span class="stt-relaunch" onclick="document.getElementById('stt-modal').classList.add('active')" title="Speech-to-text help">🎤 How to use voice?</span></div>`;
+  html += `<textarea class="study-textarea" id="study-answer-input" placeholder="Type your answer here (or use speech-to-text 🎤)">${esc(answer)}</textarea>`;
+
+  html += '<div class="study-nav">';
+  html += `<button class="study-back" ${studyEntryIndex === 0 ? 'disabled style="opacity:0.4;cursor:default;"' : ''} onclick="studyNavigate(-1)">← Back</button>`;
+  html += `<button class="study-next" onclick="studyNavigate(1)">${studyEntryIndex === total - 1 ? '✅ Finish' : 'Save & Next →'}</button>`;
+  html += '</div>';
+
+  html += '<button class="study-exit" onclick="studySaveAndExit()">💾 Save & Exit</button>';
+
+  // Item dots
+  html += '<div class="study-dots">';
+  items.forEach((it, i) => {
+    const filled = (studyAnswers[it.id] || '').trim().length > 0;
+    const current = i === studyEntryIndex;
+    html += `<div class="study-dot ${filled ? 'filled' : ''} ${current ? 'current' : ''}" onclick="studyJumpTo(${i})" title="${esc(it.prompt)}">${i + 1}</div>`;
+  });
+  html += '</div>';
+
+  html += '</div>';
+  el.innerHTML = html;
+
+  // Focus the textarea
+  const ta = document.getElementById('study-answer-input');
+  if (ta) ta.focus();
+}
+
+function renderStudyComplete(el, items, completed, total) {
+  let html = '<div class="study-complete-banner">';
+  html += '<h2>🎉 All Done!</h2>';
+  html += `<p>You've filled in all ${total} study items. Great work!</p>`;
+  html += '<button class="btn btn-primary" style="margin:8px; padding:12px 24px; font-size:1rem;" onclick="studyEntryIndex=0; renderStudyEntry();">📝 Review My Answers</button>';
+  html += '<button class="btn btn-primary" style="margin:8px; padding:12px 24px; font-size:1rem; background:#28a745;" onclick="showScreen(\'home\')">🏠 Back Home</button>';
+  html += '</div>';
+
+  // Show summary list
+  html += '<div class="study-card" style="margin-top:12px;">';
+  html += '<h3 style="text-align:center; margin-bottom:12px;">📋 Your Answers</h3>';
+  items.forEach((item, i) => {
+    const cat = getStudyCategoryInfo(item.type);
+    const ans = studyAnswers[item.id] || '';
+    html += `<div style="padding:8px 0; border-bottom:1px solid #eee; cursor:pointer;" onclick="studyJumpTo(${i})">`;
+    html += `<span class="study-badge ${cat.cls}" style="font-size:0.7rem; padding:2px 8px;">${cat.badge}</span> `;
+    html += `<strong>${esc(item.prompt)}</strong>`;
+    html += `<div style="color:#555; font-size:0.9rem; margin-top:4px;">${ans ? esc(ans) : '<em style="color:#ccc;">No answer yet</em>'}</div>`;
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function studySaveCurrentAnswer() {
+  const ta = document.getElementById('study-answer-input');
+  if (!ta) return;
+  const items = getStudyItems();
+  if (studyEntryIndex >= 0 && studyEntryIndex < items.length) {
+    const item = items[studyEntryIndex];
+    studyAnswers[item.id] = ta.value;
+    // Also persist answer into studyData for Azure sync
+    if (studyData) {
+      const dataItem = studyData.find(d => d.id === item.id);
+      if (dataItem) dataItem.answer = ta.value;
+    }
+  }
+  saveProgress();
+  saveData();
+}
+
+function studyNavigate(dir) {
+  studySaveCurrentAnswer();
+  const items = getStudyItems();
+  studyEntryIndex += dir;
+  if (studyEntryIndex >= items.length) {
+    // Check if all done
+    const completed = getStudyCompletedCount();
+    if (completed === items.length) {
+      studyEntryIndex = items.length; // trigger complete screen
+    } else {
+      studyEntryIndex = items.length - 1;
+    }
+  }
+  if (studyEntryIndex < 0) studyEntryIndex = 0;
+  saveProgress();
+  renderStudyEntry();
+}
+
+function studyJumpTo(index) {
+  studySaveCurrentAnswer();
+  studyEntryIndex = index;
+  saveProgress();
+  renderStudyEntry();
+}
+
+function studySaveAndExit() {
+  studySaveCurrentAnswer();
+  showScreen('home');
+}
+
 (async function init() {
   // Load quiz settings (which quiz is active, lock state)
   const savedSettings = localStorage.getItem('socialtest_quiz_settings');
