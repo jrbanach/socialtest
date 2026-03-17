@@ -1661,6 +1661,14 @@ async function loadData() {
     rockcycleData = defaults.rockcycle;
     studyData = (activeQuiz ? activeQuiz.study : null) || [];
   }
+  // Hydrate studyAnswers from studyData (Azure sync may have answers)
+  if (studyData && studyData.length > 0) {
+    studyData.forEach(item => {
+      if (item.answer && !studyAnswers[item.id]) {
+        studyAnswers[item.id] = item.answer;
+      }
+    });
+  }
 }
 
 /**
@@ -5855,9 +5863,16 @@ function studySaveCurrentAnswer() {
   if (!ta) return;
   const items = getStudyItems();
   if (studyEntryIndex >= 0 && studyEntryIndex < items.length) {
-    studyAnswers[items[studyEntryIndex].id] = ta.value;
+    const item = items[studyEntryIndex];
+    studyAnswers[item.id] = ta.value;
+    // Also persist answer into studyData for Azure sync
+    if (studyData) {
+      const dataItem = studyData.find(d => d.id === item.id);
+      if (dataItem) dataItem.answer = ta.value;
+    }
   }
   saveProgress();
+  saveData();
 }
 
 function studyNavigate(dir) {
