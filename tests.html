@@ -1677,6 +1677,144 @@ test('Enemy defeated threshold is 50%', () => {
 });
 
 // ============================================================
+// STUDY ENTRY DATA & LOGIC TESTS
+// ============================================================
+
+// Mirror HEALTH_CH7_STUDY from index.html
+const HEALTH_CH7_STUDY = [
+  { id: 'v01', type: 'vocab', prompt: 'Withdrawal' },
+  { id: 'v02', type: 'vocab', prompt: 'Overdose' },
+  { id: 'v03', type: 'vocab', prompt: 'Tolerance' },
+  { id: 'v04', type: 'vocab', prompt: 'Drug' },
+  { id: 'v05', type: 'vocab', prompt: 'Medicine' },
+  { id: 'v06', type: 'vocab', prompt: 'Prescription Drug' },
+  { id: 'v07', type: 'vocab', prompt: 'OTC Drug' },
+  { id: 'v08', type: 'vocab', prompt: 'Side Effect' },
+  { id: 'v09', type: 'vocab', prompt: 'Drug Misuse' },
+  { id: 'v10', type: 'vocab', prompt: 'Illegal Drug' },
+  { id: 'v11', type: 'vocab', prompt: 'Addiction' },
+  { id: 'v12', type: 'vocab', prompt: 'Drug Abuse' },
+  { id: 'v13', type: 'vocab', prompt: 'Alcohol' },
+  { id: 'v14', type: 'vocab', prompt: 'Depressant' },
+  { id: 'v15', type: 'vocab', prompt: 'Intoxication' },
+  { id: 'v16', type: 'vocab', prompt: 'Alcoholism' },
+  { id: 'v17', type: 'vocab', prompt: 'Nicotine' },
+  { id: 'v18', type: 'vocab', prompt: 'Minor' },
+  { id: 'k01', type: 'knowledge', prompt: 'Example of drug abuse' },
+  { id: 'k02', type: 'knowledge', prompt: 'BAC (Blood Alcohol Concentration)' },
+  { id: 'k03', type: 'knowledge', prompt: 'Generic Drugs VS Brand Name Drugs' },
+  { id: 'k04', type: 'knowledge', prompt: 'Toxins in tobacco smoke' },
+  { id: 'k05', type: 'knowledge', prompt: 'Withdrawal Symptoms' },
+  { id: 'k06', type: 'knowledge', prompt: 'Nar-Anon and Al-Anon' },
+  { id: 's01', type: 'short-answer', prompt: 'Why do people abuse drugs?' },
+  { id: 's02', type: 'short-answer', prompt: 'Reading/Following instructions with medicine' },
+  { id: 's03', type: 'short-answer', prompt: 'Resisting Drugs' }
+];
+
+// Pure function mirror: category info
+function getStudyCategoryInfo(type) {
+  switch (type) {
+    case 'vocab': return { badge: '📖 Vocab', cls: 'vocab', hint: 'Define this term ✏️', color: '#7c3aed' };
+    case 'knowledge': return { badge: '🧠 Knowledge', cls: 'knowledge', hint: 'What do you know about this? 🤔', color: '#2563eb' };
+    case 'short-answer': return { badge: '✍️ Short Answer', cls: 'short-answer', hint: 'Write your answer', color: '#16a34a' };
+    default: return { badge: '📝 Study', cls: 'vocab', hint: 'Write your answer', color: '#666' };
+  }
+}
+
+// Pure function mirror: completion count
+function getStudyCompletedCount(items, answers) {
+  return items.filter(item => (answers[item.id] || '').trim().length > 0).length;
+}
+
+suite('📝 Study Entry — Data Integrity');
+
+test('Total study items = 27', () => {
+  assertEqual(HEALTH_CH7_STUDY.length, 27);
+});
+
+test('18 vocab items', () => {
+  assertEqual(HEALTH_CH7_STUDY.filter(i => i.type === 'vocab').length, 18);
+});
+
+test('6 knowledge items', () => {
+  assertEqual(HEALTH_CH7_STUDY.filter(i => i.type === 'knowledge').length, 6);
+});
+
+test('3 short-answer items', () => {
+  assertEqual(HEALTH_CH7_STUDY.filter(i => i.type === 'short-answer').length, 3);
+});
+
+test('All items have unique IDs', () => {
+  const ids = HEALTH_CH7_STUDY.map(i => i.id);
+  assertEqual(new Set(ids).size, ids.length);
+});
+
+test('All items have non-empty prompts', () => {
+  assert(HEALTH_CH7_STUDY.every(i => i.prompt && i.prompt.trim().length > 0));
+});
+
+test('All items have valid types', () => {
+  const validTypes = ['vocab', 'knowledge', 'short-answer'];
+  assert(HEALTH_CH7_STUDY.every(i => validTypes.includes(i.type)));
+});
+
+test('Vocab items come first, then knowledge, then short-answer', () => {
+  const types = HEALTH_CH7_STUDY.map(i => i.type);
+  const lastVocab = types.lastIndexOf('vocab');
+  const firstKnowledge = types.indexOf('knowledge');
+  const lastKnowledge = types.lastIndexOf('knowledge');
+  const firstShortAnswer = types.indexOf('short-answer');
+  assert(lastVocab < firstKnowledge, 'vocab should come before knowledge');
+  assert(lastKnowledge < firstShortAnswer, 'knowledge should come before short-answer');
+});
+
+suite('📝 Study Entry — Logic');
+
+test('Category info returns correct badge for vocab', () => {
+  const info = getStudyCategoryInfo('vocab');
+  assertEqual(info.cls, 'vocab');
+  assert(info.badge.includes('Vocab'));
+});
+
+test('Category info returns correct badge for knowledge', () => {
+  const info = getStudyCategoryInfo('knowledge');
+  assertEqual(info.cls, 'knowledge');
+  assert(info.badge.includes('Knowledge'));
+});
+
+test('Category info returns correct badge for short-answer', () => {
+  const info = getStudyCategoryInfo('short-answer');
+  assertEqual(info.cls, 'short-answer');
+  assert(info.badge.includes('Short Answer'));
+});
+
+test('Category info returns fallback for unknown type', () => {
+  const info = getStudyCategoryInfo('unknown');
+  assertEqual(info.cls, 'vocab');
+  assert(info.badge.includes('Study'));
+});
+
+test('Completed count is 0 with empty answers', () => {
+  assertEqual(getStudyCompletedCount(HEALTH_CH7_STUDY, {}), 0);
+});
+
+test('Completed count tracks filled answers', () => {
+  const answers = { v01: 'some answer', v02: 'another', k01: 'explanation' };
+  assertEqual(getStudyCompletedCount(HEALTH_CH7_STUDY, answers), 3);
+});
+
+test('Whitespace-only answers do not count as completed', () => {
+  const answers = { v01: '  ', v02: '\n', v03: 'real answer' };
+  assertEqual(getStudyCompletedCount(HEALTH_CH7_STUDY, answers), 1);
+});
+
+test('All 27 completed when all have answers', () => {
+  const answers = {};
+  HEALTH_CH7_STUDY.forEach(i => { answers[i.id] = 'test answer'; });
+  assertEqual(getStudyCompletedCount(HEALTH_CH7_STUDY, answers), 27);
+});
+
+// ============================================================
 // RENDER RESULTS TO DOM
 // ============================================================
 function renderResults() {
