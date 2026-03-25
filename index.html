@@ -343,6 +343,7 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     <button class="btn btn-primary" onclick="showScreen('vocab')">📖 Vocabulary</button>
     <button class="btn btn-primary" onclick="showScreen('mc')">✏️ Multiple Choice</button>
     <button class="btn btn-primary" onclick="showScreen('rockcycle')">🔄 Rock Cycle</button>
+    <button class="btn btn-primary" onclick="showScreen('matching')">🔀 Matching</button>
     <button class="btn btn-primary" onclick="showScreen('gamequiz')">🎮 Game Quiz</button>
     <button class="btn btn-primary" onclick="showScreen('study')">📝 Study Entry</button>
     <button class="btn btn-warning" onclick="openParentMode()">🔒 Parent</button>
@@ -401,6 +402,18 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     <div id="rockcycle-questions"></div>
     <button class="btn btn-success btn-block" id="rockcycle-submit" onclick="submitRockCycle()">Check My Answers</button>
     <div id="rockcycle-results" style="display:none;"></div>
+  </div>
+
+  <!-- Matching / Bucket Sort Section -->
+  <div id="matching" class="screen">
+    <h2>🔀 Matching — Sort the Items</h2>
+    <p style="margin-bottom:12px; color:#555;">Read each item and tap the category it belongs to.</p>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <div class="progress-bar" style="flex:1; margin-bottom:0;"><div class="fill" id="matching-progress"></div></div>
+      <button class="btn btn-sm" style="margin-left:10px; padding:4px 10px; font-size:0.75rem; background:#888; color:#fff; border:none; border-radius:4px; cursor:pointer;" onclick="confirmRestart('matching')">🔄 Restart</button>
+    </div>
+    <div id="matching-questions"></div>
+    <div id="matching-results" style="display:none;"></div>
   </div>
 
   <!-- Game Quiz Section -->
@@ -838,6 +851,125 @@ const HEALTH_CH7_STUDY = [
 ];
 
 // ============================================================
+// HEALTH CH7 — Quiz data (source: health-ch7-answer-key-v2.md)
+// ============================================================
+const HEALTH_CH7_VOCAB = [
+  { term: "Withdrawal", definition: "The unpleasant reaction experienced when a drug is no longer taken" },
+  { term: "Overdose", definition: "Too large an amount of a medicine or drug" },
+  { term: "Tolerance", definition: "A condition in which more of a drug is needed to get the same effect" },
+  { term: "Drug", definition: "A substance that changes how the mind or body works" },
+  { term: "Medicine", definition: "A drug used to prevent, treat, or cure a health condition" },
+  { term: "Prescription Drug", definition: "A medicine that can be obtained only with a doctor's order" },
+  { term: "OTC Drug", definition: "A medicine that can be bought without a doctor's order" },
+  { term: "Side Effect", definition: "An unwanted reaction to a drug" },
+  { term: "Drug Misuse", definition: "The accidental unsafe use of a medicine" },
+  { term: "Illegal Drug", definition: "A drug that is against the law to have, use, buy, or sell" },
+  { term: "Addiction", definition: "A strong desire to do something even though it is harmful" },
+  { term: "Drug Abuse", definition: "The use of an illegal drug or the harmful use of a legal drug on purpose" },
+  { term: "Alcohol", definition: "A depressant drug found in some drinks" },
+  { term: "Depressant", definition: "A drug that slows down the body" },
+  { term: "Intoxication", definition: "The physical and mental changes produced by drinking alcohol" },
+  { term: "Alcoholism", definition: "A disease in which a person is dependent on alcohol" },
+  { term: "Nicotine", definition: "A stimulant drug found in tobacco" },
+  { term: "Minor", definition: "A person who is under the legal age" }
+];
+
+const HEALTH_CH7_MC = [
+  {
+    question: "Which of these is an example of drug abuse?",
+    choices: ["Sniffing glue", "Taking medicine with food", "Forgetting to take a pill", "Buying OTC medicine at the store"],
+    correct: 0
+  },
+  {
+    question: "What does BAC stand for?",
+    choices: ["Blood Alcohol Concentration", "Body Alcohol Count", "Blood Absorption Content", "Brain Activity Check"],
+    correct: 0
+  },
+  {
+    question: "What is the main advantage of generic drugs over brand-name drugs?",
+    choices: ["They are often cheaper", "They work faster", "They have fewer side effects", "They taste better"],
+    correct: 0
+  },
+  {
+    question: "Which three substances are the main toxins in tobacco smoke?",
+    choices: ["Nicotine, tar, and carbon monoxide", "Caffeine, tar, and oxygen", "Nicotine, sugar, and nitrogen", "Alcohol, tar, and hydrogen"],
+    correct: 0
+  },
+  {
+    question: "What does tar from tobacco smoke do to your body?",
+    choices: ["It sticks to the linings of the airways and can kill the cells that line them", "It speeds up your heartbeat", "It takes the place of oxygen in your blood", "It makes you feel nauseous"],
+    correct: 0
+  },
+  {
+    question: "What might happen to someone going through drug withdrawal?",
+    choices: ["They may shake, feel nauseous, and see or hear things that aren't there", "They will get a rash and a fever", "They will feel very hungry and thirsty", "They will fall asleep for a very long time"],
+    correct: 0
+  },
+  {
+    question: "Who do Nar-Anon and Al-Anon help?",
+    choices: ["Family members and friends of people with addictions", "Only teenagers with addictions", "Doctors who treat addiction", "Only people who are addicted to drugs"],
+    correct: 0
+  },
+  {
+    question: "What is Alateen?",
+    choices: ["A recovery program specifically for teens close to people with addictions", "A program that helps adults quit drinking", "A medicine used to treat withdrawal", "A hotline for reporting drug dealers"],
+    correct: 0
+  }
+];
+
+const HEALTH_CH7_MATCHING = {
+  instruction: "Sort each item into the correct category",
+  buckets: [
+    { id: "drug-abuse-reasons", label: "Why People Abuse Drugs", emoji: "🧠" },
+    { id: "medicine-safety", label: "Medicine Safety Rules", emoji: "💊" },
+    { id: "resisting-drugs", label: "Resisting Drugs", emoji: "✋" }
+  ],
+  items: [
+    { text: "Peer pressure from friends", bucket: "drug-abuse-reasons" },
+    { text: "Depression — wanting to escape sad feelings", bucket: "drug-abuse-reasons" },
+    { text: "Media influence from tobacco and alcohol ads", bucket: "drug-abuse-reasons" },
+    { text: "Take only your own medicines", bucket: "medicine-safety" },
+    { text: "Check the seal on OTC medicine packages", bucket: "medicine-safety" },
+    { text: "Tell your doctor about other medicines you take", bucket: "medicine-safety" },
+    { text: "Say no loudly and firmly", bucket: "resisting-drugs" },
+    { text: "Give your reasons for saying no", bucket: "resisting-drugs" },
+    { text: "Ask an adult for help", bucket: "resisting-drugs" },
+    { text: "Walk away from the person pressuring you", bucket: "resisting-drugs" }
+  ]
+};
+
+const HEALTH_CH7_JEOPARDY = [
+  // ---- VOCAB-BASED (18): definition → pick the term ----
+  { question: "The unpleasant reaction experienced when a drug is no longer taken", choices: ["Overdose", "Withdrawal", "Tolerance", "Addiction"], correct: 1, category: "vocab" },
+  { question: "Too large an amount of a medicine or drug", choices: ["Withdrawal", "Overdose", "Drug Misuse", "Side Effect"], correct: 1, category: "vocab" },
+  { question: "A condition in which more of a drug is needed to get the same effect", choices: ["Addiction", "Withdrawal", "Tolerance", "Overdose"], correct: 2, category: "vocab" },
+  { question: "A substance that changes how the mind or body works", choices: ["Medicine", "Drug", "Side Effect", "Depressant"], correct: 1, category: "vocab" },
+  { question: "A drug used to prevent, treat, or cure a health condition", choices: ["Drug", "Prescription Drug", "Medicine", "OTC Drug"], correct: 2, category: "vocab" },
+  { question: "A medicine that can be obtained only with a doctor's order", choices: ["OTC Drug", "Illegal Drug", "Medicine", "Prescription Drug"], correct: 3, category: "vocab" },
+  { question: "A medicine that can be bought without a doctor's order", choices: ["Prescription Drug", "OTC Drug", "Illegal Drug", "Side Effect"], correct: 1, category: "vocab" },
+  { question: "An unwanted reaction to a drug", choices: ["Drug Misuse", "Withdrawal", "Side Effect", "Overdose"], correct: 2, category: "vocab" },
+  { question: "The accidental unsafe use of a medicine", choices: ["Drug Abuse", "Drug Misuse", "Addiction", "Side Effect"], correct: 1, category: "vocab" },
+  { question: "A drug that is against the law to have, use, buy, or sell", choices: ["Drug Abuse", "Depressant", "Illegal Drug", "Drug Misuse"], correct: 2, category: "vocab" },
+  { question: "A strong desire to do something even though it is harmful", choices: ["Tolerance", "Drug Abuse", "Withdrawal", "Addiction"], correct: 3, category: "vocab" },
+  { question: "The use of an illegal drug or the harmful use of a legal drug on purpose", choices: ["Drug Misuse", "Addiction", "Drug Abuse", "Illegal Drug"], correct: 2, category: "vocab" },
+  { question: "A depressant drug found in some drinks", choices: ["Nicotine", "Alcohol", "Depressant", "Intoxication"], correct: 1, category: "vocab" },
+  { question: "A drug that slows down the body", choices: ["Stimulant", "Alcohol", "Nicotine", "Depressant"], correct: 3, category: "vocab" },
+  { question: "The physical and mental changes produced by drinking alcohol", choices: ["Alcoholism", "Withdrawal", "Intoxication", "Addiction"], correct: 2, category: "vocab" },
+  { question: "A disease in which a person is dependent on alcohol", choices: ["Intoxication", "Addiction", "Alcoholism", "Tolerance"], correct: 2, category: "vocab" },
+  { question: "A stimulant drug found in tobacco", choices: ["Alcohol", "Depressant", "Tar", "Nicotine"], correct: 3, category: "vocab" },
+  { question: "A person who is under the legal age", choices: ["Dependent", "Addict", "Minor", "Peer"], correct: 2, category: "vocab" },
+  // ---- MC-BASED (8): knowledge topic questions ----
+  { question: "Sniffing glue, chewing tobacco, and taking steroids are all examples of this", choices: ["Drug Misuse", "Drug Abuse", "Side Effects", "Withdrawal"], correct: 1, category: "mc" },
+  { question: "The amount of alcohol in a person's blood", choices: ["Intoxication", "BAC", "Tolerance", "Overdose"], correct: 1, category: "mc" },
+  { question: "These have the same main ingredients as brand-name drugs but are often cheaper", choices: ["OTC drugs", "Prescription drugs", "Generic drugs", "Illegal drugs"], correct: 2, category: "mc" },
+  { question: "Nicotine, tar, and carbon monoxide are the main ones in tobacco smoke", choices: ["Side effects", "Toxins", "Depressants", "Stimulants"], correct: 1, category: "mc" },
+  { question: "Shaking, nausea, and seeing things that aren't there are symptoms of this", choices: ["Intoxication", "Overdose", "Tolerance", "Withdrawal"], correct: 3, category: "mc" },
+  { question: "Programs that help family members and friends of people with addictions", choices: ["Alateen", "Nar-Anon and Al-Anon", "Drug rehab", "AA"], correct: 1, category: "mc" },
+  { question: "A recovery program specifically for teens close to people with addictions", choices: ["Al-Anon", "Nar-Anon", "Alateen", "Drug rehab"], correct: 2, category: "mc" },
+  { question: "Tar from tobacco smoke does this to your airways", choices: ["Speeds them up", "Sticks to the linings and can kill the cells", "Makes them wider", "Fills them with oxygen"], correct: 1, category: "mc" }
+];
+
+// ============================================================
 // QUIZ REGISTRY — Array of quiz definitions. Each quiz declares
 // its content, supported sections, and metadata. Add new quizzes
 // by pushing additional entries with the same shape.
@@ -1041,11 +1173,12 @@ const QUIZ_REGISTRY = [
     subject: 'Health',
     title: 'Chapter 7 — Drugs, Alcohol & Tobacco',
     grade: 5,
-    sections: ['study'],
+    sections: ['vocab', 'mc', 'matching', 'gamequiz', 'study'],
     study: HEALTH_CH7_STUDY,
-    vocab: [],
-    mc: [],
-    jeopardy: [],
+    vocab: HEALTH_CH7_VOCAB,
+    mc: HEALTH_CH7_MC,
+    matching: HEALTH_CH7_MATCHING,
+    jeopardy: HEALTH_CH7_JEOPARDY,
     enemies: null
   }
 ];
@@ -1069,7 +1202,8 @@ function getQuizDefaults(quizId) {
     vocab: JSON.parse(JSON.stringify(quiz ? quiz.vocab || [] : DEFAULT_VOCAB)),
     mc: JSON.parse(JSON.stringify(quiz ? quiz.mc || [] : DEFAULT_MC)),
     jeopardy: JSON.parse(JSON.stringify(quiz ? quiz.jeopardy || [] : DEFAULT_JEOPARDY)),
-    rockcycle: normalizeRockCycleItems(JSON.parse(JSON.stringify(quiz ? quiz.rockcycle || [] : [])))
+    rockcycle: normalizeRockCycleItems(JSON.parse(JSON.stringify(quiz ? quiz.rockcycle || [] : []))),
+    matching: JSON.parse(JSON.stringify(quiz ? quiz.matching || null : null))
   };
 }
 
@@ -1110,6 +1244,7 @@ function switchQuiz(quizId) {
   mcData = defaults.mc;
   jeopardyData = defaults.jeopardy;
   rockcycleData = defaults.rockcycle;
+  matchingData = defaults.matching;
 
   // Reset all quiz state
   vocabAnswers = {}; vocabResults = null; vocabRetryOnly = [];
@@ -1118,6 +1253,8 @@ function switchQuiz(quizId) {
   mcAnswers = {}; mcResults = null; mcRetryOnly = []; mcCurrentQ = 0; mcShuffleMap = {};
   gameAnswers = {}; gameResults = null; gameRetryOnly = []; gameCurrentQ = 0;
   gameMode = null; gameActiveIndices = []; gameShuffleMap = {};
+  matchingAnswers = {}; matchingResults = null; matchingCurrentItem = 0;
+  matchingShuffleOrder = []; matchingRetryOnly = [];
   heroHP = 10; heroMaxHP = 10; heroDefeated = false;
   questState = null;
 
@@ -1131,7 +1268,7 @@ function switchQuiz(quizId) {
 /** Player-facing quiz switch with confirmation if progress exists. */
 function playerSwitchQuiz(quizId) {
   if (quizId === activeQuiz.id) return; // already active
-  const hasProgress = vocabResults || rockcycleResults || mcResults || gameResults || questState;
+  const hasProgress = vocabResults || rockcycleResults || mcResults || matchingResults || gameResults || questState;
   if (hasProgress) {
     if (!confirm('Switching quizzes will reset your current progress in Vocabulary, Rock Cycle, Multiple Choice, and Game Quiz. Are you sure?')) {
       return;
@@ -1147,6 +1284,7 @@ function updateNavBar() {
     vocab: document.querySelector('[onclick*="vocab"]'),
     mc: document.querySelector('[onclick*="\'mc\'"]'),
     rockcycle: document.querySelector('[onclick*="rockcycle"]'),
+    matching: document.querySelector('[onclick*="matching"]'),
     gamequiz: document.querySelector('[onclick*="gamequiz"]'),
     study: document.querySelector('[onclick*="study"]')
   };
@@ -1183,6 +1321,7 @@ function getSectionTitle(screenId) {
     case 'vocab': return 'Vocabulary';
     case 'mc': return 'Multiple Choice';
     case 'rockcycle': return 'Rock Cycle';
+    case 'matching': return 'Matching';
     case 'gamequiz': return 'Game Quiz';
     case 'parent-answers': return 'Parent Mode - Answers';
     case 'parent-edit': return 'Parent Mode - Edit';
@@ -1358,6 +1497,14 @@ let rockcycleResults = null;
 let rockcycleRetryOnly = [];
 let rockcycleSelectedChip = null;
 let selectedWord = null;
+
+// --- Matching / Bucket Sort state ---
+let matchingData = null;       // active quiz's matching data object
+let matchingAnswers = {};      // { itemIndex: bucketId }
+let matchingResults = null;    // { itemIndex: true/false } after grading
+let matchingCurrentItem = 0;   // current item index in shuffled order
+let matchingShuffleOrder = []; // shuffled item indices
+let matchingRetryOnly = [];
 let mcCurrentQ = 0;      // current question index within active set
 
 // --- Choice shuffle maps (randomize answer order per question) ---
@@ -1659,6 +1806,7 @@ async function loadData() {
     mcData = defaults.mc;
     jeopardyData = defaults.jeopardy;
     rockcycleData = defaults.rockcycle;
+    matchingData = defaults.matching;
     studyData = (activeQuiz ? activeQuiz.study : null) || [];
   }
   // Hydrate studyAnswers from studyData (Azure sync may have answers)
@@ -1736,6 +1884,12 @@ function loadProgress() {
     // Study entry state
     studyEntryIndex = p.studyEntryIndex || 0;
     studyAnswers = p.studyAnswers || {};
+    // Matching state
+    matchingAnswers = p.matchingAnswers || {};
+    matchingResults = p.matchingResults || null;
+    matchingCurrentItem = p.matchingCurrentItem || 0;
+    matchingShuffleOrder = p.matchingShuffleOrder || [];
+    matchingRetryOnly = p.matchingRetryOnly || [];
     if (questState) {
       heroHP = p.heroHP !== undefined ? p.heroHP : questState.hero.maxHP;
       heroMaxHP = questState.hero.maxHP;
@@ -1749,7 +1903,8 @@ function saveProgress() {
     gameAnswers, gameResults, gameRetryOnly, gameCurrentQ, gameMode, gameActiveIndices,
     heroHP, heroMaxHP, heroDefeated,
     questState,
-    studyEntryIndex, studyAnswers
+    studyEntryIndex, studyAnswers,
+    matchingAnswers, matchingResults, matchingCurrentItem, matchingShuffleOrder, matchingRetryOnly
   }));
 }
 
@@ -1763,6 +1918,7 @@ function showScreen(id) {
   if (id === 'vocab') renderVocab();
   if (id === 'rockcycle') renderRockCycle();
   if (id === 'mc') renderMC();
+  if (id === 'matching') renderMatching();
   if (id === 'home') renderHome();
   if (id === 'gamequiz') renderGameQuiz();
   if (id === 'study') renderStudyEntry();
@@ -1784,7 +1940,7 @@ function renderHome() {
           <div class="quiz-pick-subject">${q.subject}</div>
           <div class="quiz-pick-title">${q.title}</div>
           <div class="quiz-pick-grade">Grade ${q.grade}</div>
-          <div class="quiz-pick-sections">${(q.sections || []).map(s => s === 'vocab' ? '📖' : s === 'mc' ? '✏️' : s === 'rockcycle' ? '🔄' : s === 'study' ? '📝' : '🎮').join(' ')}</div>
+          <div class="quiz-pick-sections">${(q.sections || []).map(s => s === 'vocab' ? '📖' : s === 'mc' ? '✏️' : s === 'rockcycle' ? '🔄' : s === 'matching' ? '🔀' : s === 'study' ? '📝' : '🎮').join(' ')}</div>
         </button>`;
       });
       pickerHtml += '</div>';
@@ -1812,12 +1968,17 @@ function renderHome() {
     const total = Object.keys(rockcycleResults).length;
     html += `<p>🔄 Rock Cycle: <strong>${correct}/${total}</strong></p>`;
   }
+  if (matchingResults) {
+    const correct = Object.values(matchingResults).filter(v => v).length;
+    const total = Object.keys(matchingResults).length;
+    html += `<p>🔀 Matching: <strong>${correct}/${total}</strong></p>`;
+  }
   if (gameResults) {
     const correct = Object.values(gameResults).filter(v => v).length;
     const total = Object.keys(gameResults).length;
     html += `<p>🎮 Game Quiz: <strong>${correct}/${total}</strong></p>`;
   }
-  if (!vocabResults && !rockcycleResults && !mcResults && !gameResults) {
+  if (!vocabResults && !rockcycleResults && !mcResults && !matchingResults && !gameResults) {
     // Show study entry progress if this quiz has study items
     const studyItems = getStudyItems();
     if (studyItems.length > 0) {
@@ -2308,7 +2469,202 @@ function confirmRestart(section) {
     if (section === 'vocab') resetVocab();
     else if (section === 'rockcycle') resetRockCycle();
     else if (section === 'mc') resetMC();
+    else if (section === 'matching') resetMatching();
   }
+}
+
+// ============================================================
+// MATCHING — Bucket Sort (tap-to-assign)
+// ============================================================
+
+function resetMatching() {
+  matchingAnswers = {};
+  matchingResults = null;
+  matchingCurrentItem = 0;
+  matchingShuffleOrder = [];
+  matchingRetryOnly = [];
+  saveProgress();
+  renderMatching();
+}
+
+function renderMatching() {
+  const container = document.getElementById('matching-questions');
+  const resultsEl = document.getElementById('matching-results');
+  const progressEl = document.getElementById('matching-progress');
+  if (!container) return;
+
+  // Load matching data for active quiz
+  if (!matchingData) {
+    matchingData = activeQuiz.matching || null;
+  }
+  if (!matchingData || !matchingData.items || matchingData.items.length === 0) {
+    container.innerHTML = '<p style="text-align:center; color:#888;">No matching questions for this quiz.</p>';
+    return;
+  }
+
+  const items = matchingData.items;
+  const buckets = matchingData.buckets;
+  const total = items.length;
+
+  // Initialize shuffle order on first render
+  if (matchingShuffleOrder.length === 0) {
+    matchingShuffleOrder = shuffleArray([...Array(total).keys()]);
+    saveProgress();
+  }
+
+  // Determine active set (retry or full)
+  const activeSet = matchingRetryOnly.length > 0 ? matchingRetryOnly : matchingShuffleOrder;
+
+  // Update progress bar
+  const answered = Object.keys(matchingAnswers).length;
+  if (progressEl) progressEl.style.width = Math.round((answered / activeSet.length) * 100) + '%';
+
+  // If results exist, show them
+  if (matchingResults) {
+    renderMatchingResults();
+    return;
+  }
+
+  // If all items answered, auto-grade
+  if (matchingCurrentItem >= activeSet.length) {
+    submitMatching();
+    return;
+  }
+
+  resultsEl.style.display = 'none';
+  const itemIdx = activeSet[matchingCurrentItem];
+  const item = items[itemIdx];
+
+  let html = '';
+
+  // Item card
+  html += '<div style="text-align:center; margin:20px 0;">';
+  html += '<div style="font-size:0.85rem; color:#888; margin-bottom:6px;">';
+  html += (matchingRetryOnly.length > 0 ? '🔄 Retry: ' : '') + (matchingCurrentItem + 1) + ' of ' + activeSet.length;
+  html += '</div>';
+  html += '<div style="background:linear-gradient(135deg,#e8f0fe,#f5f0ff); border:2px solid #4a6fa5; border-radius:16px; padding:24px 18px; font-size:1.2rem; font-weight:600; color:#2c3e50; box-shadow:0 2px 8px rgba(0,0,0,0.08); max-width:360px; margin:0 auto;">';
+  html += item.text;
+  html += '</div>';
+  html += '</div>';
+
+  // Bucket buttons
+  html += '<div style="display:flex; flex-direction:column; gap:12px; max-width:360px; margin:0 auto;">';
+  buckets.forEach(b => {
+    html += '<button onclick="matchingSelect(' + itemIdx + ', \'' + b.id + '\')" ';
+    html += 'style="display:flex; align-items:center; gap:10px; padding:16px 18px; border:2px solid #ddd; border-radius:12px; background:#fff; font-size:1rem; cursor:pointer; transition:all 0.15s; text-align:left; min-height:52px;" ';
+    html += 'onmouseover="this.style.borderColor=\'#4a6fa5\';this.style.background=\'#f0f5ff\'" ';
+    html += 'onmouseout="this.style.borderColor=\'#ddd\';this.style.background=\'#fff\'" ';
+    html += 'ontouchstart="this.style.borderColor=\'#4a6fa5\';this.style.background=\'#f0f5ff\'" ';
+    html += 'ontouchend="this.style.borderColor=\'#ddd\';this.style.background=\'#fff\'">';
+    html += '<span style="font-size:1.4rem;">' + b.emoji + '</span>';
+    html += '<span style="font-weight:500;">' + b.label + '</span>';
+    html += '</button>';
+  });
+  html += '</div>';
+
+  // Progress dots
+  html += '<div style="text-align:center; margin-top:20px; display:flex; justify-content:center; gap:6px; flex-wrap:wrap;">';
+  for (let i = 0; i < activeSet.length; i++) {
+    const dotColor = i < matchingCurrentItem ? '#4a6fa5' : (i === matchingCurrentItem ? '#e8913a' : '#ddd');
+    html += '<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:' + dotColor + ';"></span>';
+  }
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+
+function matchingSelect(itemIdx, bucketId) {
+  matchingAnswers[itemIdx] = bucketId;
+  matchingCurrentItem++;
+  saveProgress();
+  renderMatching();
+}
+
+function submitMatching() {
+  if (!matchingData) return;
+  const items = matchingData.items;
+  matchingResults = {};
+  Object.keys(matchingAnswers).forEach(idx => {
+    const i = parseInt(idx);
+    matchingResults[i] = matchingAnswers[i] === items[i].bucket;
+  });
+  saveProgress();
+  renderMatchingResults();
+}
+
+function renderMatchingResults() {
+  const container = document.getElementById('matching-questions');
+  const resultsEl = document.getElementById('matching-results');
+  const progressEl = document.getElementById('matching-progress');
+  if (!matchingData || !matchingResults) return;
+
+  const items = matchingData.items;
+  const buckets = matchingData.buckets;
+  const bucketMap = {};
+  buckets.forEach(b => { bucketMap[b.id] = b; });
+
+  const activeSet = matchingRetryOnly.length > 0 ? matchingRetryOnly : matchingShuffleOrder;
+  const total = activeSet.length;
+  const correct = activeSet.filter(i => matchingResults[i]).length;
+  const wrong = total - correct;
+  const pct = Math.round((correct / total) * 100);
+
+  if (progressEl) progressEl.style.width = '100%';
+
+  // Score summary
+  let html = '<div class="score-box" style="margin-bottom:16px; padding:16px; text-align:center;">';
+  html += '<div style="font-size:1.3rem; font-weight:700; margin-bottom:4px;">';
+  if (pct === 100) html += '🎉 Perfect! ';
+  else if (pct >= 80) html += '💪 Great job! ';
+  else if (pct >= 60) html += '👍 Good effort! ';
+  else html += '📚 Keep studying! ';
+  html += correct + ' / ' + total + ' correct (' + pct + '%)</div>';
+  html += '</div>';
+
+  // Per-bucket results
+  buckets.forEach(b => {
+    const bucketItems = activeSet.filter(i => items[i].bucket === b.id);
+    if (bucketItems.length === 0) return;
+
+    html += '<div style="margin-bottom:16px;">';
+    html += '<div style="font-weight:700; font-size:1rem; margin-bottom:8px;">' + b.emoji + ' ' + b.label + '</div>';
+    bucketItems.forEach(i => {
+      const isCorrect = matchingResults[i];
+      const userBucket = bucketMap[matchingAnswers[i]];
+      const borderColor = isCorrect ? '#28a745' : '#dc3545';
+      const bg = isCorrect ? '#f0fff0' : '#fff0f0';
+      html += '<div style="padding:10px 14px; margin-bottom:6px; border-left:4px solid ' + borderColor + '; background:' + bg + '; border-radius:6px;">';
+      html += '<span>' + (isCorrect ? '✅' : '❌') + ' ' + items[i].text + '</span>';
+      if (!isCorrect && userBucket) {
+        html += '<div style="font-size:0.85rem; color:#888; margin-top:4px;">You chose: ' + userBucket.emoji + ' ' + userBucket.label + '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+
+  // Retry wrong answers button
+  if (wrong > 0) {
+    html += '<button class="btn btn-success btn-block" onclick="retryMatchingWrong()" style="margin-bottom:8px;">🔄 Retry ' + wrong + ' Wrong Answer' + (wrong > 1 ? 's' : '') + '</button>';
+  }
+  html += '<button class="btn btn-block" onclick="resetMatching()" style="background:#888; color:#fff; border:none;">↩️ Start Over</button>';
+
+  container.innerHTML = '';
+  resultsEl.innerHTML = html;
+  resultsEl.style.display = 'block';
+}
+
+function retryMatchingWrong() {
+  if (!matchingResults) return;
+  const activeSet = matchingRetryOnly.length > 0 ? matchingRetryOnly : matchingShuffleOrder;
+  matchingRetryOnly = activeSet.filter(i => !matchingResults[i]);
+  // Clear only the wrong answers
+  matchingRetryOnly.forEach(i => { delete matchingAnswers[i]; });
+  matchingResults = null;
+  matchingCurrentItem = 0;
+  matchingRetryOnly = shuffleArray([...matchingRetryOnly]);
+  saveProgress();
+  renderMatching();
 }
 
 // ============================================================
