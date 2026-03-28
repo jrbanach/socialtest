@@ -1861,13 +1861,22 @@ const HEALTH_CH7_MATCHING = {
     { text: "Peer pressure from friends", bucket: "drug-abuse-reasons" },
     { text: "Depression — wanting to escape sad feelings", bucket: "drug-abuse-reasons" },
     { text: "Media influence from tobacco and alcohol ads", bucket: "drug-abuse-reasons" },
+    { text: "Family difficulties — not feeling loved or supported", bucket: "drug-abuse-reasons" },
+    { text: "Drug abuse in the family — seeing adults do it", bucket: "drug-abuse-reasons" },
+    { text: "Negative self-concept — not thinking highly of yourself", bucket: "drug-abuse-reasons" },
     { text: "Take only your own medicines", bucket: "medicine-safety" },
     { text: "Check the seal on OTC medicine packages", bucket: "medicine-safety" },
     { text: "Tell your doctor about other medicines you take", bucket: "medicine-safety" },
+    { text: "Take medicine only from parents or an approved adult", bucket: "medicine-safety" },
+    { text: "Follow the instructions and take the right dose", bucket: "medicine-safety" },
+    { text: "Stop and tell your parents if you have side effects", bucket: "medicine-safety" },
+    { text: "Keep medicines in their original containers", bucket: "medicine-safety" },
     { text: "Say no loudly and firmly", bucket: "resisting-drugs" },
     { text: "Give your reasons for saying no", bucket: "resisting-drugs" },
     { text: "Ask an adult for help", bucket: "resisting-drugs" },
-    { text: "Walk away from the person pressuring you", bucket: "resisting-drugs" }
+    { text: "Walk away from the person pressuring you", bucket: "resisting-drugs" },
+    { text: "Match your behavior to your words", bucket: "resisting-drugs" },
+    { text: "Be proud of yourself when you say no", bucket: "resisting-drugs" }
   ]
 };
 
@@ -1939,8 +1948,8 @@ test('Matching has 3 buckets', () => {
   assertEqual(HEALTH_CH7_MATCHING.buckets.length, 3);
 });
 
-test('Matching has 10 items', () => {
-  assertEqual(HEALTH_CH7_MATCHING.items.length, 10);
+test('Matching has 19 items', () => {
+  assertEqual(HEALTH_CH7_MATCHING.items.length, 19);
 });
 
 test('All matching items reference a valid bucket', () => {
@@ -1956,12 +1965,12 @@ test('All buckets have id, label, and emoji', () => {
   assert(HEALTH_CH7_MATCHING.buckets.every(b => b.id && b.label && b.emoji));
 });
 
-test('Bucket distribution: 3 drug-abuse, 3 medicine, 4 resisting', () => {
+test('Bucket distribution: 6 drug-abuse, 7 medicine, 6 resisting', () => {
   const counts = {};
   HEALTH_CH7_MATCHING.items.forEach(i => { counts[i.bucket] = (counts[i.bucket] || 0) + 1; });
-  assertEqual(counts['drug-abuse-reasons'], 3);
-  assertEqual(counts['medicine-safety'], 3);
-  assertEqual(counts['resisting-drugs'], 4);
+  assertEqual(counts['drug-abuse-reasons'], 6);
+  assertEqual(counts['medicine-safety'], 7);
+  assertEqual(counts['resisting-drugs'], 6);
 });
 
 test('Matching scoring: correct answer grades true', () => {
