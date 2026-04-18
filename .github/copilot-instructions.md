@@ -32,7 +32,7 @@ Key objects:
 - Frontend falls back to `localStorage` when API is unreachable (CORS on localhost)
 
 ### Data
-- `QUIZ_REGISTRY` — 4 quizzes: Colonial America (Ch 5–6), Minerals, Rocks & Rock Cycle, Health Ch7
+- `QUIZ_REGISTRY` — 5 quizzes: Colonial America (Ch 5–6), Minerals, Rocks & Rock Cycle, Health Ch7, Weather & Atmosphere
 - Each quiz defines its own `vocab`, `mc`, `jeopardy`, and optional `matching`/`rockcycle` sections
 - `ENEMY_ROSTER` (5 enemies) — wolf → skeleton → wizard → dark knight → dragon boss
 - `POWERUP_POOL` (7 items) — equipment with stat effects
@@ -57,7 +57,7 @@ Key objects:
 
 ### Testing
 - Tests live in `tests.html` — a self-contained test runner with no dependencies
-- Currently 164 tests covering quiz data, scoring, battle state, quest engine, equipment, XP, boss mechanics, titles, matching, and multi-quiz support
+- Currently 183 tests covering quiz data, scoring, battle state, quest engine, equipment, XP, boss mechanics, titles, matching, and multi-quiz support
 - Tests use mirrored pure functions (not DOM-dependent) for isolated testing
 - Run by opening `tests.html` in a browser
 
@@ -77,8 +77,8 @@ Key objects:
 ## Files
 | File | Purpose |
 |------|---------|
-| `index.html` | Entire app (~6,300 lines) |
-| `tests.html` | Unit test suite (164 tests) |
+| `index.html` | Entire app (~6,600 lines) |
+| `tests.html` | Unit test suite (183 tests) |
 | `staticwebapp.config.json` | Azure SWA config + CSP headers |
 | `api/` | Azure Functions backend (questions, history, players) |
 | `docs/capybara-quest-plan.md` | Capybara Quest implementation plan + session log |
