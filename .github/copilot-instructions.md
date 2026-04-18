@@ -1,7 +1,7 @@
 # Copilot Instructions — socialtest
 
 ## Project Overview
-5th grade Social Studies quiz app (Chapters 5 & 6: Colonial America) with a **Capybara Quest** roguelike game mode. Single-page HTML app deployed to Azure Static Web Apps.
+5th grade multi-subject quiz app (Social Studies, Science, Health) with a **Capybara Quest** roguelike game mode. Single-page HTML app deployed to Azure Static Web Apps.
 
 - **Live site:** https://happy-bay-052c8580f.4.azurestaticapps.net
 - **Repo:** https://github.com/jrbanach/socialtest
@@ -32,11 +32,11 @@ Key objects:
 - Frontend falls back to `localStorage` when API is unreachable (CORS on localhost)
 
 ### Data
-- `jeopardyData` (37 questions) — vocab terms and MC definitions
+- `QUIZ_REGISTRY` — 4 quizzes: Colonial America (Ch 5–6), Minerals, Rocks & Rock Cycle, Health Ch7
+- Each quiz defines its own `vocab`, `mc`, `jeopardy`, and optional `matching`/`rockcycle` sections
 - `ENEMY_ROSTER` (5 enemies) — wolf → skeleton → wizard → dark knight → dragon boss
 - `POWERUP_POOL` (7 items) — equipment with stat effects
 - `EVENT_POOL` (4 events) — random encounters between stages
-- `QUIZ_REGISTRY` — quiz metadata for future multi-subject support
 
 ## Key Conventions
 
@@ -57,7 +57,7 @@ Key objects:
 
 ### Testing
 - Tests live in `tests.html` — a self-contained test runner with no dependencies
-- Currently 114 tests covering quiz data, scoring, battle state, quest engine, equipment, XP, boss mechanics, and titles
+- Currently 164 tests covering quiz data, scoring, battle state, quest engine, equipment, XP, boss mechanics, titles, matching, and multi-quiz support
 - Tests use mirrored pure functions (not DOM-dependent) for isolated testing
 - Run by opening `tests.html` in a browser
 
@@ -77,15 +77,15 @@ Key objects:
 ## Files
 | File | Purpose |
 |------|---------|
-| `index.html` | Entire app (~4,700 lines) |
-| `tests.html` | Unit test suite (114 tests) |
+| `index.html` | Entire app (~6,300 lines) |
+| `tests.html` | Unit test suite (164 tests) |
 | `staticwebapp.config.json` | Azure SWA config + CSP headers |
 | `api/` | Azure Functions backend (questions, history, players) |
 | `docs/capybara-quest-plan.md` | Capybara Quest implementation plan + session log |
 | `WORKLOG.md` | Project history and architecture notes |
 | `animation-preview.html` | Dev tool — preview all enemy animations (not production) |
+| `studyguides/` | Source study materials organized by subject (health, science) |
 
 ## Future Enhancements
-- Quiz picker UI for multiple subjects (#27 sprite art, multi-quiz support)
 - Per-quiz score tracking and cross-quiz achievements
-- Subject name displayed in header
+- Additional subjects and chapters as Parker's curriculum evolves
