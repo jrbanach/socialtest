@@ -987,6 +987,276 @@ const HEALTH_CH7_JEOPARDY = [
 ];
 
 // ============================================================
+// WEATHER — Quiz data (source: studyguides/science/weathertest.pdf)
+// ============================================================
+const WEATHER_STUDY = [
+  // 15 vocab terms
+  { id: 'v01', type: 'vocab', prompt: 'Atmosphere' },
+  { id: 'v02', type: 'vocab', prompt: 'Troposphere' },
+  { id: 'v03', type: 'vocab', prompt: 'Stratosphere' },
+  { id: 'v04', type: 'vocab', prompt: 'Mesosphere' },
+  { id: 'v05', type: 'vocab', prompt: 'Thermosphere' },
+  { id: 'v06', type: 'vocab', prompt: 'Air pressure' },
+  { id: 'v07', type: 'vocab', prompt: 'Altitude' },
+  { id: 'v08', type: 'vocab', prompt: 'Convection currents' },
+  { id: 'v09', type: 'vocab', prompt: 'Wind' },
+  { id: 'v10', type: 'vocab', prompt: 'Humidity' },
+  { id: 'v11', type: 'vocab', prompt: 'Air mass' },
+  { id: 'v12', type: 'vocab', prompt: 'Front' },
+  { id: 'v13', type: 'vocab', prompt: 'Cold front' },
+  { id: 'v14', type: 'vocab', prompt: 'Warm front' },
+  { id: 'v15', type: 'vocab', prompt: 'Climate' },
+  // 7 knowledge topics
+  { id: 'k01', type: 'knowledge', prompt: 'Atmosphere composition (nitrogen, oxygen, trace gases)' },
+  { id: 'k02', type: 'knowledge', prompt: 'Atmosphere layers in order (closest to farthest)' },
+  { id: 'k03', type: 'knowledge', prompt: 'Air pressure and altitude relationship' },
+  { id: 'k04', type: 'knowledge', prompt: 'Land vs water heating differences' },
+  { id: 'k05', type: 'knowledge', prompt: 'Sea breeze vs land breeze' },
+  { id: 'k06', type: 'knowledge', prompt: 'Four global wind belts (Doldrums, Trade Winds, Prevailing Westerlies, Polar Easterlies)' },
+  { id: 'k07', type: 'knowledge', prompt: 'Four air mass types (cT, cP, mT, mP) and their characteristics' },
+  // 3 short-answer topics
+  { id: 's01', type: 'short-answer', prompt: 'Why does land heat up faster than water but lose heat faster too?' },
+  { id: 's02', type: 'short-answer', prompt: 'Explain how convection currents cause wind' },
+  { id: 's03', type: 'short-answer', prompt: 'What happens when a cold front moves through an area?' }
+];
+
+const WEATHER_VOCAB = [
+  { term: "atmosphere", definition: "The envelope of gas surrounding the Earth" },
+  { term: "troposphere", definition: "The layer of the atmosphere closest to Earth's surface where we live, breathe, and weather occurs" },
+  { term: "stratosphere", definition: "The second layer of the atmosphere where airplanes fly, the jet stream is, and the ozone layer is found" },
+  { term: "mesosphere", definition: "The third layer of the atmosphere and the coldest layer, where aurora borealis and meteors occur" },
+  { term: "thermosphere", definition: "The farthest layer from Earth's surface, the hottest layer, where satellites orbit" },
+  { term: "jet stream", definition: "A global wind in the stratosphere that blows across the USA from west to east" },
+  { term: "ozone layer", definition: "A layer in the stratosphere that absorbs ultraviolet radiation (UV) from the Sun and protects us" },
+  { term: "air pressure", definition: "The weight of the atmosphere pressing down on Earth" },
+  { term: "altitude", definition: "Height above sea level in the atmosphere" },
+  { term: "convection currents", definition: "The movement of air caused by warm air rising and cold air sinking" },
+  { term: "wind", definition: "The movement of air caused by uneven heating of Earth and convection currents" },
+  { term: "local winds", definition: "Winds that blow in one area over small distances and can change direction" },
+  { term: "sea breeze", definition: "A breeze during the day near a body of water that blows from water to land" },
+  { term: "land breeze", definition: "A breeze at night near a body of water that blows from land to water" },
+  { term: "global winds", definition: "Winds that blow across the Earth over large distances and don't change direction" },
+  { term: "humidity", definition: "The amount of water vapor in the air" },
+  { term: "cirrus", definition: "Feathery clouds made of ice crystals" },
+  { term: "cumulus", definition: "Fluffy, puffy clouds that bring fair weather" },
+  { term: "stratus", definition: "Long, blanket-like clouds that bring rain or snow" },
+  { term: "cumulonimbus", definition: "The type of cloud that brings thunderstorms" },
+  { term: "air mass", definition: "A large body of air that has the same temperature and humidity throughout" },
+  { term: "front", definition: "The border where two air masses meet" },
+  { term: "cold front", definition: "Where a cold air mass moves in on a warm air mass, causing cumulonimbus clouds, heavy rain or snow, and storms" },
+  { term: "warm front", definition: "Where a warm air mass moves in on a cold air mass, causing stratus clouds and hours of rain or snow" },
+  { term: "climate", definition: "The pattern of weather an area experiences over a long time" }
+];
+
+const WEATHER_MC = [
+  {
+    question: "What gas makes up 78% of Earth's atmosphere?",
+    choices: ["Oxygen", "Carbon dioxide", "Nitrogen", "Water vapor"],
+    correct: 2
+  },
+  {
+    question: "Which layer of the atmosphere is the coldest?",
+    choices: ["Mesosphere", "Thermosphere", "Troposphere", "Stratosphere"],
+    correct: 0
+  },
+  {
+    question: "Which layer of the atmosphere is the hottest?",
+    choices: ["Mesosphere", "Troposphere", "Stratosphere", "Thermosphere"],
+    correct: 3
+  },
+  {
+    question: "What happens to air pressure as altitude increases?",
+    choices: ["It stays the same", "It decreases", "It increases", "It doubles"],
+    correct: 1
+  },
+  {
+    question: "Where is air pressure the greatest?",
+    choices: ["At sea level", "On top of a mountain", "In the stratosphere", "In the mesosphere"],
+    correct: 0
+  },
+  {
+    question: "Why does the equator receive more direct sunlight than the poles?",
+    choices: ["The equator is closer to the Sun", "The poles are always covered in clouds", "The Sun only shines on the equator", "Earth is round so the equator gets direct rays while the poles get spread out rays"],
+    correct: 3
+  },
+  {
+    question: "What percentage of the Sun's rays are absorbed by Earth's surface?",
+    choices: ["25%", "75%", "50%", "100%"],
+    correct: 2
+  },
+  {
+    question: "Which heats up faster — land or water?",
+    choices: ["Water heats up faster", "Land heats up faster", "They heat up at the same rate", "Neither one heats up"],
+    correct: 1
+  },
+  {
+    question: "What direction does wind move in terms of air pressure?",
+    choices: ["From high pressure to low pressure", "From low pressure to high pressure", "It always moves north to south", "It always moves east to west"],
+    correct: 0
+  },
+  {
+    question: "During the day near a body of water, which way does a sea breeze blow?",
+    choices: ["From land to water", "From north to south", "It doesn't blow during the day", "From water to land"],
+    correct: 3
+  },
+  {
+    question: "Why does a sea breeze blow from water to land during the day?",
+    choices: ["Water pushes wind toward the shore", "The Sun pulls air toward the land", "Land heats up faster creating low pressure, so wind blows from high pressure water to low pressure land", "Ocean waves create the wind"],
+    correct: 2
+  },
+  {
+    question: "Which area on Earth has no wind and is located at the equator?",
+    choices: ["Trade Winds", "Doldrums", "Prevailing Westerlies", "Polar Easterlies"],
+    correct: 1
+  },
+  {
+    question: "In which direction do the Trade Winds blow?",
+    choices: ["East to west", "West to east", "North to south", "South to north"],
+    correct: 0
+  },
+  {
+    question: "What type of air can hold more water vapor?",
+    choices: ["Cold air", "Dry air", "Thin air", "Warm air"],
+    correct: 3
+  },
+  {
+    question: "What type of precipitation starts as liquid, passes through a cold layer of air, and turns to solid?",
+    choices: ["Hail", "Sleet", "Snow", "Frost"],
+    correct: 1
+  },
+  {
+    question: "What happens when water vapor turns directly to ice when it's below freezing at night?",
+    choices: ["Dew", "Sleet", "Frost", "Hail"],
+    correct: 2
+  },
+  {
+    question: "What does a barometer measure?",
+    choices: ["Air pressure", "Wind speed", "Temperature", "Wind direction"],
+    correct: 0
+  },
+  {
+    question: "What does an anemometer measure?",
+    choices: ["Air pressure", "Wind direction", "Temperature", "Wind speed"],
+    correct: 3
+  },
+  {
+    question: "A continental polar (cP) air mass brings what type of weather?",
+    choices: ["Warm, dry weather", "Cold, dry weather", "Cold, humid weather", "Warm, humid weather"],
+    correct: 1
+  },
+  {
+    question: "What type of clouds form along a cold front?",
+    choices: ["Cirrus", "Stratus", "Cumulonimbus", "Cumulus"],
+    correct: 2
+  }
+];
+
+const WEATHER_MATCHING = {
+  instruction: "Sort each item into the correct category",
+  buckets: [
+    { id: "cloud-types", label: "Types of Clouds", emoji: "☁️" },
+    { id: "precipitation", label: "Types of Precipitation", emoji: "🌧️" },
+    { id: "instruments", label: "Weather Instruments", emoji: "🌡️" },
+    { id: "air-masses", label: "Air Masses", emoji: "🌀" }
+  ],
+  items: [
+    { text: "Feathery, wispy, and made of ice crystals", bucket: "cloud-types" },
+    { text: "Fluffy and puffy — a sign of fair weather", bucket: "cloud-types" },
+    { text: "Long, blanket-like layers across the sky", bucket: "cloud-types" },
+    { text: "Tall, dark clouds that bring thunderstorms", bucket: "cloud-types" },
+    { text: "Liquid water drops — the most common form that falls", bucket: "precipitation" },
+    { text: "Flakes of ice crystals falling from clouds", bucket: "precipitation" },
+    { text: "Starts as liquid, passes through cold air, freezes to solid", bucket: "precipitation" },
+    { text: "Chunks of ice pellets", bucket: "precipitation" },
+    { text: "Water vapor turns to liquid on cool surfaces at night", bucket: "precipitation" },
+    { text: "Water vapor turns directly to ice below freezing at night", bucket: "precipitation" },
+    { text: "Measures temperature in degrees Celsius or Fahrenheit", bucket: "instruments" },
+    { text: "Measures air pressure in millibars or inches of mercury", bucket: "instruments" },
+    { text: "Measures wind speed in miles per hour", bucket: "instruments" },
+    { text: "Tells the direction wind is coming from", bucket: "instruments" },
+    { text: "Continental tropical (cT) — warm, dry from Southwest USA", bucket: "air-masses" },
+    { text: "Continental polar (cP) — cold, dry from Canada", bucket: "air-masses" },
+    { text: "Maritime tropical (mT) — warm, humid from Gulf of Mexico", bucket: "air-masses" },
+    { text: "Maritime polar (mP) — cold, humid from North Atlantic", bucket: "air-masses" }
+  ]
+};
+
+const WEATHER_JEOPARDY = [
+  // ---- VOCAB-BASED (25): definition shown → pick the correct term ----
+  { question: "The envelope of gas surrounding the Earth",
+    choices: ["Troposphere", "Atmosphere", "Stratosphere", "Ozone layer"], correct: 1, category: "vocab" },
+  { question: "The layer of the atmosphere closest to Earth's surface where weather occurs",
+    choices: ["Stratosphere", "Mesosphere", "Thermosphere", "Troposphere"], correct: 3, category: "vocab" },
+  { question: "The second layer of the atmosphere where airplanes fly and the ozone layer is found",
+    choices: ["Stratosphere", "Troposphere", "Mesosphere", "Thermosphere"], correct: 0, category: "vocab" },
+  { question: "The third layer of the atmosphere and the coldest layer",
+    choices: ["Thermosphere", "Troposphere", "Mesosphere", "Stratosphere"], correct: 2, category: "vocab" },
+  { question: "The farthest layer from Earth's surface and the hottest layer",
+    choices: ["Mesosphere", "Troposphere", "Stratosphere", "Thermosphere"], correct: 3, category: "vocab" },
+  { question: "A global wind in the stratosphere that blows across the USA from west to east",
+    choices: ["Jet stream", "Polar Easterlies", "Trade Winds", "Prevailing Westerlies"], correct: 0, category: "vocab" },
+  { question: "A layer in the stratosphere that absorbs ultraviolet radiation from the Sun",
+    choices: ["Jet stream", "Ozone layer", "Tropopause", "Mesosphere"], correct: 1, category: "vocab" },
+  { question: "The weight of the atmosphere pressing down on Earth",
+    choices: ["Altitude", "Humidity", "Air pressure", "Convection currents"], correct: 2, category: "vocab" },
+  { question: "Height above sea level in the atmosphere",
+    choices: ["Altitude", "Air pressure", "Humidity", "Wind"], correct: 0, category: "vocab" },
+  { question: "The movement of air caused by warm air rising and cold air sinking",
+    choices: ["Wind", "Humidity", "Air pressure", "Convection currents"], correct: 3, category: "vocab" },
+  { question: "The movement of air caused by uneven heating of Earth",
+    choices: ["Humidity", "Air pressure", "Wind", "Climate"], correct: 2, category: "vocab" },
+  { question: "Winds that blow in one area over small distances and can change direction",
+    choices: ["Global winds", "Local winds", "Trade Winds", "Jet stream"], correct: 1, category: "vocab" },
+  { question: "A breeze during the day near a body of water that blows from water to land",
+    choices: ["Sea breeze", "Land breeze", "Global winds", "Jet stream"], correct: 0, category: "vocab" },
+  { question: "A breeze at night near a body of water that blows from land to water",
+    choices: ["Sea breeze", "Global winds", "Local winds", "Land breeze"], correct: 3, category: "vocab" },
+  { question: "Winds that blow across the Earth over large distances and don't change direction",
+    choices: ["Local winds", "Sea breeze", "Global winds", "Land breeze"], correct: 2, category: "vocab" },
+  { question: "The amount of water vapor in the air",
+    choices: ["Air pressure", "Humidity", "Altitude", "Wind"], correct: 1, category: "vocab" },
+  { question: "Feathery clouds made of ice crystals",
+    choices: ["Cirrus", "Cumulus", "Stratus", "Cumulonimbus"], correct: 0, category: "vocab" },
+  { question: "Fluffy, puffy clouds that bring fair weather",
+    choices: ["Cirrus", "Stratus", "Cumulonimbus", "Cumulus"], correct: 3, category: "vocab" },
+  { question: "Long, blanket-like clouds that bring rain or snow",
+    choices: ["Cirrus", "Cumulus", "Stratus", "Cumulonimbus"], correct: 2, category: "vocab" },
+  { question: "The type of cloud that brings thunderstorms",
+    choices: ["Cirrus", "Cumulonimbus", "Stratus", "Cumulus"], correct: 1, category: "vocab" },
+  { question: "A large body of air that has the same temperature and humidity throughout",
+    choices: ["Front", "Climate", "Convection currents", "Air mass"], correct: 3, category: "vocab" },
+  { question: "The border where two air masses meet",
+    choices: ["Front", "Air mass", "Climate", "Cold front"], correct: 0, category: "vocab" },
+  { question: "Where a cold air mass moves in on a warm air mass, causing heavy rain or storms",
+    choices: ["Warm front", "Front", "Cold front", "Air mass"], correct: 2, category: "vocab" },
+  { question: "Where a warm air mass moves in on a cold air mass, causing hours of rain or snow",
+    choices: ["Cold front", "Warm front", "Air mass", "Climate"], correct: 1, category: "vocab" },
+  { question: "The pattern of weather an area experiences over a long time",
+    choices: ["Climate", "Front", "Air mass", "Humidity"], correct: 0, category: "vocab" },
+  // ---- MC-BASED (10): knowledge clue shown → pick the correct answer ----
+  { question: "78% of Earth's atmosphere is made up of this gas",
+    choices: ["Oxygen", "Carbon dioxide", "Water vapor", "Nitrogen"], correct: 3, category: "mc" },
+  { question: "This is the coldest layer of the atmosphere",
+    choices: ["Troposphere", "Thermosphere", "Mesosphere", "Stratosphere"], correct: 2, category: "mc" },
+  { question: "Air pressure is greatest at this location",
+    choices: ["Top of a mountain", "Sea level", "In the stratosphere", "In the mesosphere"], correct: 1, category: "mc" },
+  { question: "This heats up faster than water but also loses heat faster",
+    choices: ["Land", "Water", "Air", "Clouds"], correct: 0, category: "mc" },
+  { question: "Wind moves from this type of pressure area toward the opposite",
+    choices: ["Low pressure to high pressure", "Equal pressure areas", "No pressure difference", "High pressure to low pressure"], correct: 3, category: "mc" },
+  { question: "This area at the equator has no wind",
+    choices: ["Trade Winds", "Polar Easterlies", "Doldrums", "Prevailing Westerlies"], correct: 2, category: "mc" },
+  { question: "Warm air can hold more of this than cold air",
+    choices: ["Nitrogen", "Water vapor", "Carbon dioxide", "Oxygen"], correct: 1, category: "mc" },
+  { question: "This type of precipitation is chunks of ice pellets",
+    choices: ["Snow", "Hail", "Sleet", "Frost"], correct: 1, category: "mc" },
+  { question: "A continental polar (cP) air mass is cold and dry and comes from here",
+    choices: ["Gulf of Mexico", "Southwest USA", "North Pacific", "Canada"], correct: 3, category: "mc" },
+  { question: "Along a cold front, these clouds form and bring heavy rain or storms",
+    choices: ["Cirrus", "Cumulonimbus", "Stratus", "Cumulus"], correct: 1, category: "mc" }
+];
+
+// ============================================================
 // QUIZ REGISTRY — Array of quiz definitions. Each quiz declares
 // its content, supported sections, and metadata. Add new quizzes
 // by pushing additional entries with the same shape.
@@ -1196,6 +1466,19 @@ const QUIZ_REGISTRY = [
     mc: HEALTH_CH7_MC,
     matching: HEALTH_CH7_MATCHING,
     jeopardy: HEALTH_CH7_JEOPARDY,
+    enemies: null
+  },
+  {
+    id: 'science-weather',
+    subject: 'Science',
+    title: 'Weather & Atmosphere',
+    grade: 5,
+    sections: ['vocab', 'mc', 'matching', 'gamequiz'],
+    study: WEATHER_STUDY,
+    vocab: WEATHER_VOCAB,
+    mc: WEATHER_MC,
+    matching: WEATHER_MATCHING,
+    jeopardy: WEATHER_JEOPARDY,
     enemies: null
   }
 ];
@@ -1803,7 +2086,8 @@ async function loadData() {
       jeopardyData = (hasData ? d.jeopardy : null) || (activeQuiz ? activeQuiz.jeopardy : DEFAULT_JEOPARDY) || [];
       rockcycleData = normalizeRockCycleItems((hasData ? d.rockcycle : null) || (activeQuiz ? activeQuiz.rockcycle : []) || []);
       studyData = (d.study && d.study.length > 0) ? d.study : (activeQuiz ? activeQuiz.study : null) || [];
-      localStorage.setItem(getDataKey(), JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData, rockcycle: rockcycleData, study: studyData }));
+      matchingData = (hasData && d.matching) ? d.matching : (activeQuiz ? activeQuiz.matching : null) || null;
+      localStorage.setItem(getDataKey(), JSON.stringify({ vocab: vocabData, mc: mcData, jeopardy: jeopardyData, rockcycle: rockcycleData, study: studyData, matching: matchingData }));
       return;
     }
   } catch (e) { /* offline — fall through */ }
@@ -1816,6 +2100,7 @@ async function loadData() {
     jeopardyData = d.jeopardy || [];
     rockcycleData = normalizeRockCycleItems(d.rockcycle || []);
     studyData = d.study || [];
+    matchingData = d.matching || null;
   } else {
     // Final fallback: inline defaults from active quiz
     const defaults = getQuizDefaults(activeQuiz ? activeQuiz.id : null);
@@ -1841,7 +2126,7 @@ async function loadData() {
  * Shows toast in parent mode on success/failure.
  */
 async function saveData() {
-  const payload = { vocab: vocabData, mc: mcData, jeopardy: jeopardyData, rockcycle: rockcycleData, study: studyData || [] };
+  const payload = { vocab: vocabData, mc: mcData, jeopardy: jeopardyData, rockcycle: rockcycleData, study: studyData || [], matching: matchingData || null };
   localStorage.setItem(getDataKey(), JSON.stringify(payload));
   saveInFlight = true;
   const quizParam = activeQuiz ? `?quiz=${activeQuiz.id}` : '';
@@ -5496,7 +5781,7 @@ async function loadParentEditQuiz(quizId) {
 
 /** Save parent-edited quiz data to the correct quiz blob. */
 async function saveParentEditData() {
-  const payload = { vocab: parentEditVocab, mc: parentEditMC, jeopardy: parentEditJeopardy, rockcycle: parentEditRockCycle };
+  const payload = { vocab: parentEditVocab, mc: parentEditMC, jeopardy: parentEditJeopardy, rockcycle: parentEditRockCycle, matching: matchingData || null };
   // If editing the active quiz, also update the live data
   if (parentEditingQuizId === activeQuiz.id) {
     vocabData = parentEditVocab;
