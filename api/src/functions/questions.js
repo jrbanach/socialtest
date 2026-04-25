@@ -16,6 +16,7 @@ function questionsLegacyFallback(request) {
 /**
  * GET /api/questions?quiz=<id> — Read quiz questions from blob storage.
  * Falls back to legacy blob name for the original Social Studies quiz.
+ * When quiz=_settings, returns raw blob without quiz-shape fallback.
  */
 app.http("getQuestions", {
   methods: ["GET"],
@@ -24,15 +25,19 @@ app.http("getQuestions", {
   handler: async (request, context) => {
     try {
       let data = await readBlob(questionsBlobName(request), null);
-      // If quiz-specific blob is empty/missing, try legacy fallback
-      if (!data || (data.vocab && data.vocab.length === 0)) {
-        const fallback = questionsLegacyFallback(request);
-        if (fallback) {
-          const legacy = await readBlob(fallback, null);
-          if (legacy && legacy.vocab && legacy.vocab.length > 0) data = legacy;
+      const isSettings = request.query.get("quiz") === "_settings";
+      // Skip quiz-shape fallback for settings blobs
+      if (!isSettings) {
+        // If quiz-specific blob is empty/missing, try legacy fallback
+        if (!data || (data.vocab && data.vocab.length === 0)) {
+          const fallback = questionsLegacyFallback(request);
+          if (fallback) {
+            const legacy = await readBlob(fallback, null);
+            if (legacy && legacy.vocab && legacy.vocab.length > 0) data = legacy;
+          }
         }
       }
-      return { jsonBody: data || { vocab: [], mc: [], jeopardy: [] } };
+      return { jsonBody: data || (isSettings ? null : { vocab: [], mc: [], jeopardy: [] }) };
     } catch (e) {
       context.error("Failed to read questions:", e.message);
       return { status: 500, jsonBody: { error: "Failed to read questions" } };
@@ -41,8 +46,9 @@ app.http("getQuestions", {
 });
 
 /**
- * PUT /api/questions?quiz=<id> — Write updated quiz questions to blob storage.
+ * PUT /api/questions?quiz=<id>&type=settings — Write updated quiz questions to blob storage.
  * Body: { vocab: [...], mc: [...], jeopardy: [...] }
+ * When type=settings, skip quiz-shape validation (stores arbitrary JSON).
  */
 app.http("putQuestions", {
   methods: ["PUT"],
@@ -51,7 +57,8 @@ app.http("putQuestions", {
   handler: async (request, context) => {
     try {
       const data = await request.json();
-      if (!data.vocab || !data.mc || !data.jeopardy) {
+      const isSettings = request.query.get("type") === "settings";
+      if (!isSettings && (!data.vocab || !data.mc || !data.jeopardy)) {
         return { status: 400, jsonBody: { error: "Body must include vocab, mc, and jeopardy arrays" } };
       }
       await writeBlob(questionsBlobName(request), data);

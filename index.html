@@ -6042,6 +6042,7 @@ async function renderQuizSettingsPanel() {
         <strong>${q.subject}</strong> — ${q.title}
         ${isActive ? ' <span style="color:#4ade80; font-size:0.8rem;">● Active</span>' : ''}
       </label>
+      ${!isActive ? `<button onclick="parentSwitchQuiz('${q.id}')" style="background:#3b82f6; color:#fff; border:none; border-radius:4px; padding:3px 8px; font-size:0.7rem; cursor:pointer; margin-left:8px;" title="Switch to this quiz">▶ Activate</button>` : ''}
       ${canDelete ? `<button onclick="deleteQuiz('${q.id}')" style="background:#dc3545; color:#fff; border:none; border-radius:4px; padding:3px 8px; font-size:0.7rem; cursor:pointer; margin-left:8px;" title="Delete quiz">🗑</button>` : ''}
     </div>`;
   });
@@ -6080,10 +6081,31 @@ function toggleQuizVisibility(quizId, visible) {
     }
   }
   localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
+  saveSettingsToApi();
+}
+
+/** Debounced save of quizSettings to Azure Blob via API (parent-only). */
+let _settingsSaveTimer = null;
+function saveSettingsToApi() {
+  clearTimeout(_settingsSaveTimer);
+  _settingsSaveTimer = setTimeout(async () => {
+    try {
+      await fetch(API_URL + '/questions?quiz=_settings&type=settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(quizSettings),
+      });
+    } catch (e) { /* offline — localStorage already saved */ }
+  }, 500);
 }
 
 function parentSwitchQuiz(quizId) {
   switchQuiz(quizId);
+  saveSettingsToApi();
+  renderQuizSettingsPanel();
+  // Update header to reflect new active quiz
+  const subtitleEl = document.getElementById('quiz-subtitle');
+  if (subtitleEl) subtitleEl.textContent = activeQuiz.title;
 }
 
 /** Delete a quiz from the registry and clean up its data. */
@@ -6102,6 +6124,7 @@ async function deleteQuiz(quizId) {
     quizSettings.visibleQuizIds = quizSettings.visibleQuizIds.filter(id => id !== quizId);
   }
   localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
+  saveSettingsToApi();
 
   // Clear per-quiz localStorage
   localStorage.removeItem('socialtest_progress_' + quizId);
@@ -6765,15 +6788,28 @@ function studySaveAndExit() {
 }
 
 (async function init() {
-  // Load quiz settings (which quiz is active, lock state)
-  const savedSettings = localStorage.getItem('socialtest_quiz_settings');
-  if (savedSettings) {
-    try {
-      quizSettings = JSON.parse(savedSettings);
-      const quiz = QUIZ_REGISTRY.find(q => q.id === quizSettings.activeQuizId);
-      if (quiz) activeQuiz = quiz;
-    } catch (e) {}
+  // Load quiz settings: API first → localStorage fallback
+  let settingsLoaded = false;
+  try {
+    const r = await fetch(API_URL + '/questions?quiz=_settings', { cache: 'no-store', signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      const apiSettings = await r.json();
+      if (apiSettings && apiSettings.activeQuizId) {
+        quizSettings = apiSettings;
+        localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
+        settingsLoaded = true;
+      }
+    }
+  } catch (e) { /* offline or timeout — fall through to localStorage */ }
+  if (!settingsLoaded) {
+    const savedSettings = localStorage.getItem('socialtest_quiz_settings');
+    if (savedSettings) {
+      try { quizSettings = JSON.parse(savedSettings); } catch (e) {}
+    }
   }
+  const quiz = QUIZ_REGISTRY.find(q => q.id === quizSettings.activeQuizId);
+  if (quiz) activeQuiz = quiz;
+
   // Migrate old localStorage if it exists (pre-multi-quiz format)
   const oldProgress = localStorage.getItem('socialtest_progress');
   if (oldProgress && !localStorage.getItem(getStorageKey())) {
@@ -6793,6 +6829,29 @@ function studySaveAndExit() {
   initPlayer();
   renderHighScores();
 })();
+
+// Re-fetch settings when app becomes visible (picks up parent changes on other devices)
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  try {
+    const r = await fetch(API_URL + '/questions?quiz=_settings', { cache: 'no-store', signal: AbortSignal.timeout(3000) });
+    if (!r.ok) return;
+    const apiSettings = await r.json();
+    if (!apiSettings || !apiSettings.activeQuizId) return;
+    const changed = apiSettings.activeQuizId !== quizSettings.activeQuizId ||
+      JSON.stringify(apiSettings.visibleQuizIds) !== JSON.stringify(quizSettings.visibleQuizIds);
+    if (changed) {
+      quizSettings = apiSettings;
+      localStorage.setItem('socialtest_quiz_settings', JSON.stringify(quizSettings));
+      const quiz = QUIZ_REGISTRY.find(q => q.id === quizSettings.activeQuizId);
+      if (quiz && quiz.id !== activeQuiz.id) {
+        switchQuiz(quiz.id);
+      } else {
+        renderHome();
+      }
+    }
+  } catch (e) { /* offline — ignore */ }
+});
 </script>
 </body>
 </html>
