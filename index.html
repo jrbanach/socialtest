@@ -3093,6 +3093,11 @@ function submitMatching() {
   });
   saveProgress();
   renderMatchingResults();
+  // Log attempt if not a retry
+  if (matchingRetryOnly.length === 0) {
+    const correct = Object.values(matchingResults).filter(v => v).length;
+    logAttempt('matching', null, correct, Object.keys(matchingResults).length, 0);
+  }
 }
 
 function renderMatchingResults() {
@@ -6527,7 +6532,7 @@ async function logAttempt(section, mode, score, total, duration) {
 async function renderHistoryPanel() {
   const el = document.getElementById('parent-history');
   el.innerHTML = '<p style="color:#888;">Loading history...</p>';
-  const sectionNames = { vocab: '📖 Vocabulary', rockcycle: '🔄 Rock Cycle', mc: '✏️ Multiple Choice', gamequiz: '🎮 Game Quiz' };
+  const sectionNames = { vocab: '📖 Vocabulary', rockcycle: '🔄 Rock Cycle', mc: '✏️ Multiple Choice', matching: '🔀 Matching', gamequiz: '🎮 Game Quiz' };
 
   // Fetch history for all registered quizzes
   const allHistory = [];
@@ -6568,7 +6573,7 @@ async function renderHistoryPanel() {
     html += `<h3 style="margin:0 0 8px; font-size:1rem;">${quiz.subject} — ${quiz.title}</h3>`;
 
     // High scores per section
-    const sections = ['vocab', 'rockcycle', 'mc', 'gamequiz'];
+    const sections = ['vocab', 'rockcycle', 'mc', 'matching', 'gamequiz'];
     sections.forEach(s => {
       const sectionHist = history.filter(h => h.section === s);
       if (sectionHist.length === 0) return;
@@ -6605,7 +6610,7 @@ async function renderHighScores() {
     history = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
   }
   if (history.length === 0) { el.innerHTML = ''; return; }
-  const sections = { vocab: '📖 Vocab', rockcycle: '🔄 Rock Cycle', mc: '✏️ MC', gamequiz: '🎮 Game' };
+  const sections = { vocab: '📖 Vocab', rockcycle: '🔄 Rock Cycle', mc: '✏️ MC', matching: '🔀 Matching', gamequiz: '🎮 Game' };
   let html = '<h3 style="margin-top:16px; font-size:1rem; color:#2a5aa0;">🏆 High Scores</h3>';
   let hasScores = false;
   Object.entries(sections).forEach(([key, label]) => {
