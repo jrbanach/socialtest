@@ -57,7 +57,7 @@ Key objects:
 
 ### Testing
 - Tests live in `tests.html` — a self-contained test runner with no dependencies
-- Currently 229 tests covering quiz data, scoring, battle state, quest engine, equipment, XP, boss mechanics, titles, matching, and multi-quiz support
+- Currently 235 tests covering quiz data, scoring, battle state, quest engine, equipment, XP, boss mechanics, titles, matching, multi-quiz support, and quiz-scoped high-score filtering
 - Tests use mirrored pure functions (not DOM-dependent) for isolated testing
 - Run by opening `tests.html` in a browser
 
@@ -78,7 +78,7 @@ Key objects:
 | File | Purpose |
 |------|---------|
 | `index.html` | Entire app (~6,600 lines) |
-| `tests.html` | Unit test suite (229 tests) |
+| `tests.html` | Unit test suite (235 tests) |
 | `staticwebapp.config.json` | Azure SWA config + CSP headers |
 | `api/` | Azure Functions backend (questions, history, players) |
 | `docs/capybara-quest-plan.md` | Capybara Quest implementation plan + session log |

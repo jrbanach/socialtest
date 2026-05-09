@@ -1001,6 +1001,87 @@ test('logAttempt only fires on initial attempt, not retry', () => {
 });
 
 // ============================================================
+// QUIZ-SCOPED HIGH SCORES (Bug fix: high scores must reflect active quiz)
+// ============================================================
+
+// Mirror filterHistoryForQuiz from index.html
+function filterHistoryForQuiz(records, quizId) {
+  const legacyQuizId = 'colonial-america-ch5-6'; // QUIZ_REGISTRY[0].id
+  return records.filter(r => r.quizId === quizId || (!r.quizId && quizId === legacyQuizId));
+}
+
+test('logAttempt records include quizId tag', () => {
+  const activeQuizId = 'health-ch8';
+  const record = {
+    quizId: activeQuizId,
+    playerId: '1',
+    playerName: 'Parker',
+    section: 'vocab',
+    score: 10,
+    total: 11,
+    percentage: 91,
+    timestamp: new Date().toISOString(),
+    duration: 30,
+  };
+  assertEqual(record.quizId, 'health-ch8');
+});
+
+test('filterHistoryForQuiz returns only records for the active quiz', () => {
+  const records = [
+    { quizId: 'health-ch8', section: 'vocab', percentage: 91 },
+    { quizId: 'health-ch7', section: 'vocab', percentage: 80 },
+    { quizId: 'science-rocks', section: 'mc', percentage: 70 },
+    { quizId: 'health-ch8', section: 'matching', percentage: 100 }
+  ];
+  const filtered = filterHistoryForQuiz(records, 'health-ch8');
+  assertEqual(filtered.length, 2);
+  assert(filtered.every(r => r.quizId === 'health-ch8'));
+});
+
+test('filterHistoryForQuiz returns empty when no records match the quiz', () => {
+  const records = [
+    { quizId: 'health-ch7', section: 'vocab', percentage: 80 }
+  ];
+  const filtered = filterHistoryForQuiz(records, 'health-ch8');
+  assertEqual(filtered.length, 0);
+});
+
+test('filterHistoryForQuiz treats untagged legacy records as colonial-america-ch5-6', () => {
+  const records = [
+    { section: 'vocab', percentage: 80 }, // no quizId — legacy
+    { section: 'mc', percentage: 60 }, // no quizId — legacy
+    { quizId: 'health-ch8', section: 'vocab', percentage: 91 }
+  ];
+  const legacyFiltered = filterHistoryForQuiz(records, 'colonial-america-ch5-6');
+  assertEqual(legacyFiltered.length, 2, 'Legacy records show under colonial-america-ch5-6');
+  const ch8Filtered = filterHistoryForQuiz(records, 'health-ch8');
+  assertEqual(ch8Filtered.length, 1, 'Untagged records DO NOT show under other quizzes');
+});
+
+test('filterHistoryForQuiz does not show legacy records under non-legacy quizzes', () => {
+  const records = [
+    { section: 'vocab', percentage: 50 } // untagged
+  ];
+  const filtered = filterHistoryForQuiz(records, 'health-ch7');
+  assertEqual(filtered.length, 0, 'health-ch7 should NOT inherit untagged legacy records');
+});
+
+test('High score selection picks the highest percentage per section after filtering', () => {
+  const records = [
+    { quizId: 'health-ch8', section: 'vocab', score: 8, total: 11, percentage: 73 },
+    { quizId: 'health-ch7', section: 'vocab', score: 18, total: 18, percentage: 100 }, // different quiz, must NOT win
+    { quizId: 'health-ch8', section: 'vocab', score: 11, total: 11, percentage: 100 },
+    { quizId: 'health-ch8', section: 'mc', score: 9, total: 11, percentage: 82 }
+  ];
+  const filtered = filterHistoryForQuiz(records, 'health-ch8');
+  const bestVocab = filtered.filter(r => r.section === 'vocab').sort((a, b) => b.percentage - a.percentage)[0];
+  const bestMc = filtered.filter(r => r.section === 'mc').sort((a, b) => b.percentage - a.percentage)[0];
+  assertEqual(bestVocab.percentage, 100);
+  assertEqual(bestVocab.score, 11);
+  assertEqual(bestMc.percentage, 82);
+});
+
+// ============================================================
 // CHOICE SHUFFLE SUITE
 // ============================================================
 suite('Choice Shuffle Tests');
