@@ -2673,6 +2673,8 @@ function renderHome() {
     }
   }
   el.innerHTML = html;
+  // Refresh high scores so they reflect the active quiz
+  renderHighScores();
 }
 
 // ============================================================
@@ -6677,6 +6679,7 @@ function changePlayer() {
 /** Record a quiz attempt to API + localStorage. */
 async function logAttempt(section, mode, score, total, duration) {
   const record = {
+    quizId: activeQuiz ? activeQuiz.id : null,
     playerId: playerId || 'anonymous',
     playerName: playerName || 'Anonymous',
     section,
@@ -6726,7 +6729,8 @@ async function renderHistoryPanel() {
         } catch {}
       }
       if (history.length === 0) {
-        history = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
+        const local = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
+        history = filterHistoryForQuiz(local, quiz.id);
       }
     }
     if (history.length > 0) {
@@ -6770,6 +6774,13 @@ async function renderHistoryPanel() {
   el.innerHTML = html;
 }
 
+/** Filter a flat localStorage history list to records belonging to a quiz.
+ * Untagged legacy records are treated as belonging to the original colonial-america quiz. */
+function filterHistoryForQuiz(records, quizId) {
+  const legacyQuizId = QUIZ_REGISTRY[0].id;
+  return records.filter(r => r.quizId === quizId || (!r.quizId && quizId === legacyQuizId));
+}
+
 /** Render high scores on the home screen (for active quiz only). */
 async function renderHighScores() {
   const el = document.getElementById('high-scores');
@@ -6781,7 +6792,8 @@ async function renderHighScores() {
     if (r.ok) history = await r.json();
     else throw new Error();
   } catch {
-    history = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
+    const local = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
+    history = activeQuiz ? filterHistoryForQuiz(local, activeQuiz.id) : local;
   }
   if (history.length === 0) { el.innerHTML = ''; return; }
   const sections = { vocab: '📖 Vocab', rockcycle: '🔄 Rock Cycle', mc: '✏️ MC', matching: '🔀 Matching', gamequiz: '🎮 Game' };
