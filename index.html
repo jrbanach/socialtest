@@ -1445,6 +1445,167 @@ const SOCIAL_CH89_JEOPARDY = [
 ];
 
 // ============================================================
+// HEALTH CHAPTER 8 — Diseases, Pathogens & Heart Health
+// Source: studyguides/health/health-ch8-answer-key.md
+// All content drawn directly from textbook pages D46, D49, D51,
+// D57, D58, D63, D65, D75 and glossary pages R1, R2, R4, R5, R7, R9.
+// ============================================================
+const HEALTH_CH8_STUDY = [
+  // 11 vocab terms
+  { id: 'v01', type: 'vocab', prompt: 'Microbe' },
+  { id: 'v02', type: 'vocab', prompt: 'Risk Factor' },
+  { id: 'v03', type: 'vocab', prompt: 'Virus' },
+  { id: 'v04', type: 'vocab', prompt: 'Bacteria' },
+  { id: 'v05', type: 'vocab', prompt: 'Fungus' },
+  { id: 'v06', type: 'vocab', prompt: 'Protozoa' },
+  { id: 'v07', type: 'vocab', prompt: 'White Blood Cells' },
+  { id: 'v08', type: 'vocab', prompt: 'Antibody' },
+  { id: 'v09', type: 'vocab', prompt: 'Immunization' },
+  { id: 'v10', type: 'vocab', prompt: 'Symptom' },
+  { id: 'v11', type: 'vocab', prompt: 'Chronic Disease' },
+  // 11 knowledge prompts (3 stages split independently)
+  { id: 'k01', type: 'knowledge', prompt: 'How to protect your heart from stress' },
+  { id: 'k02', type: 'knowledge', prompt: 'How pathogens enter the body through the skin (handwashing)' },
+  { id: 'k03', type: 'knowledge', prompt: 'Symptoms of a heart attack' },
+  { id: 'k04', type: 'knowledge', prompt: 'Incubation Stage of Disease' },
+  { id: 'k05', type: 'knowledge', prompt: 'Acute Stage of Disease' },
+  { id: 'k06', type: 'knowledge', prompt: 'Recovery Stage of Disease' },
+  { id: 'k07', type: 'knowledge', prompt: 'How to reduce your risk of a communicable disease' },
+  { id: 'k08', type: 'knowledge', prompt: 'Common allergens (dander, dust, foods)' },
+  { id: 'k09', type: 'knowledge', prompt: 'What ticks carry' },
+  { id: 'k10', type: 'knowledge', prompt: 'What untreated strep throat can cause' },
+  { id: 'k11', type: 'knowledge', prompt: 'Diseases caused by each type of pathogen (virus, bacteria, fungus, protozoa)' },
+  // 3 short-answer prompts
+  { id: 's01', type: 'short-answer', prompt: 'How can you reduce your risk of getting a communicable disease?' },
+  { id: 's02', type: 'short-answer', prompt: 'What are the symptoms of a heart attack?' },
+  { id: 's03', type: 'short-answer', prompt: 'How can you protect your heart from disease?' }
+];
+
+const HEALTH_CH8_VOCAB = [
+  { term: "Microbe", definition: "A living thing that is too small to be seen without a microscope" },
+  { term: "Risk Factor", definition: "Anything that increases the chance of loss or harm" },
+  { term: "Virus", definition: "A very tiny particle that makes copies of itself inside a cell" },
+  { term: "Bacteria", definition: "The smallest living microbes that can reproduce on their own" },
+  { term: "Fungus", definition: "A diseased, spongy growth on the body" },
+  { term: "Protozoa", definition: "Simple one-celled microbes that are much larger than bacteria" },
+  { term: "White Blood Cells", definition: "Blood cells that surround and destroy pathogens" },
+  { term: "Antibody", definition: "A substance in blood that helps fight pathogens" },
+  { term: "Immunization", definition: "Protection from getting a particular disease" },
+  { term: "Symptom", definition: "A change in your body's condition or function that may signify disease" },
+  { term: "Chronic Disease", definition: "A condition that lasts a long time or keeps coming back" }
+];
+
+const HEALTH_CH8_MC = [
+  {
+    question: "What can you do to protect your heart from stress?",
+    choices: ["Talk with an adult if you feel stress", "Eat more salt every day", "Avoid all physical activity", "Smoke to help you relax"],
+    correct: 0
+  },
+  {
+    question: "Pathogens can enter your body through cuts in your skin. What is the best way to keep germs from spreading?",
+    choices: ["Wash your hands often with soap and water", "Touch your eyes, nose, and mouth often", "Share cups and eating utensils with friends", "Skip the flu vaccine"],
+    correct: 0
+  },
+  {
+    question: "Which of these is a symptom of a heart attack?",
+    choices: ["A rash that looks like a bull's-eye on a target", "Chest pain or pressure, sweating, and difficulty breathing", "A high fever with itchy spots all over", "A sore throat with white patches"],
+    correct: 1
+  },
+  {
+    question: "What is the Incubation period of a disease?",
+    choices: ["The time during which you show symptoms of the disease", "The period from when a pathogen gets into your body until you start showing signs of the disease", "The time when most symptoms have gone away but you are not yet well", "The time when a disease has been completely cured"],
+    correct: 1
+  },
+  {
+    question: "What is the Acute period of a disease?",
+    choices: ["The period before any symptoms appear", "The time when symptoms are going away but you are not yet well", "The time during which you show symptoms of the disease", "The time when the disease lasts a long time and keeps coming back"],
+    correct: 2
+  },
+  {
+    question: "What is the Recovery period of a disease?",
+    choices: ["The time during which most of the symptoms go away, but you are not yet well", "The period before any symptoms appear", "The time when symptoms are at their strongest", "The time when a pathogen first enters your body"],
+    correct: 0
+  },
+  {
+    question: "Which behavior helps reduce your risk of getting a communicable disease?",
+    choices: ["Touch your eyes, nose, and mouth often", "Sneeze without covering your mouth", "Drink from someone else's water bottle", "Don't share cups, eating utensils, or bottles"],
+    correct: 3
+  },
+  {
+    question: "What do animal dander and nuts have in common?",
+    choices: ["They are both communicable diseases", "They are both common allergens that can cause allergies", "They are both caused by viruses", "They both protect your heart"],
+    correct: 1
+  },
+  {
+    question: "What disease can ticks carry?",
+    choices: ["Strep throat", "Chicken pox", "Lyme disease", "The flu"],
+    correct: 2
+  },
+  {
+    question: "What can untreated strep throat cause?",
+    choices: ["A common cold", "Permanent heart damage", "Lyme disease", "Athlete's foot"],
+    correct: 1
+  },
+  {
+    question: "Which of these diseases is caused by a virus?",
+    choices: ["Strep throat", "Athlete's foot", "Malaria", "The flu"],
+    correct: 3
+  }
+];
+
+const HEALTH_CH8_MATCHING = {
+  instruction: "Sort each term into the correct category",
+  buckets: [
+    { id: "pathogens", label: "Pathogens", emoji: "🦠" },
+    { id: "body-defenses", label: "Body Defenses", emoji: "🛡️" },
+    { id: "disease-concepts", label: "Disease Concepts", emoji: "🩺" }
+  ],
+  items: [
+    { text: "Microbe", bucket: "pathogens" },
+    { text: "Virus", bucket: "pathogens" },
+    { text: "Bacteria", bucket: "pathogens" },
+    { text: "Fungus", bucket: "pathogens" },
+    { text: "Protozoa", bucket: "pathogens" },
+    { text: "White Blood Cells", bucket: "body-defenses" },
+    { text: "Antibody", bucket: "body-defenses" },
+    { text: "Immunization", bucket: "body-defenses" },
+    { text: "Symptom", bucket: "disease-concepts" },
+    { text: "Chronic Disease", bucket: "disease-concepts" },
+    { text: "Risk Factor", bucket: "disease-concepts" }
+  ]
+};
+
+const HEALTH_CH8_JEOPARDY = [
+  // ---- VOCAB-BASED (11): definition → pick the term ----
+  { question: "A living thing that is too small to be seen without a microscope", choices: ["Bacteria", "Microbe", "Symptom", "Antibody"], correct: 1, category: "vocab" },
+  { question: "A very tiny particle that makes copies of itself inside a cell", choices: ["Bacteria", "Fungus", "Virus", "Protozoa"], correct: 2, category: "vocab" },
+  { question: "The smallest living microbes that can reproduce on their own", choices: ["Virus", "Bacteria", "Protozoa", "Fungus"], correct: 1, category: "vocab" },
+  { question: "A diseased, spongy growth on the body", choices: ["Protozoa", "Bacteria", "Virus", "Fungus"], correct: 3, category: "vocab" },
+  { question: "Simple one-celled microbes that are much larger than bacteria", choices: ["Virus", "Microbe", "Protozoa", "Fungus"], correct: 2, category: "vocab" },
+  { question: "Blood cells that surround and destroy pathogens", choices: ["Antibody", "White Blood Cells", "Microbe", "Symptom"], correct: 1, category: "vocab" },
+  { question: "A substance in blood that helps fight pathogens", choices: ["White Blood Cells", "Risk Factor", "Antibody", "Immunization"], correct: 2, category: "vocab" },
+  { question: "Protection from getting a particular disease", choices: ["Symptom", "Antibody", "Risk Factor", "Immunization"], correct: 3, category: "vocab" },
+  { question: "A change in your body's condition or function that may signify disease", choices: ["Symptom", "Risk Factor", "Chronic Disease", "Microbe"], correct: 0, category: "vocab" },
+  { question: "A condition that lasts a long time or keeps coming back", choices: ["Symptom", "Chronic Disease", "Risk Factor", "Immunization"], correct: 1, category: "vocab" },
+  { question: "Anything that increases the chance of loss or harm", choices: ["Symptom", "Antibody", "Risk Factor", "Chronic Disease"], correct: 2, category: "vocab" },
+  // ---- MC-BASED (14): knowledge description → pick the answer ----
+  { question: "The period from when a pathogen enters your body until you start showing signs of the disease", choices: ["Acute", "Recovery", "Chronic", "Incubation"], correct: 3, category: "mc" },
+  { question: "The time during which you show the symptoms of a disease", choices: ["Recovery", "Incubation", "Acute", "Chronic"], correct: 2, category: "mc" },
+  { question: "The time when most of the symptoms go away but you are not yet well", choices: ["Acute", "Incubation", "Recovery", "Chronic"], correct: 2, category: "mc" },
+  { question: "What helps protect your heart from stress", choices: ["Eating more salt", "Talking with an adult", "Smoking to relax", "Avoiding exercise"], correct: 1, category: "mc" },
+  { question: "The most important way to stop disease from spreading", choices: ["Skipping vaccines", "Sharing cups", "Washing your hands often", "Touching your face"], correct: 2, category: "mc" },
+  { question: "A symptom of a heart attack listed in the textbook", choices: ["Bull's-eye rash", "Chest pain, sweating, and difficulty breathing", "Itchy spots all over", "Gray patches on the throat"], correct: 1, category: "mc" },
+  { question: "Don't share these to reduce your risk of a communicable disease", choices: ["Books and pencils", "Cups, eating utensils, and bottles", "Toys and games", "Backpacks"], correct: 1, category: "mc" },
+  { question: "Dander, dust, milk, eggs, and nuts are examples of these", choices: ["Pathogens", "Allergens", "Symptoms", "Antibodies"], correct: 1, category: "mc" },
+  { question: "The disease ticks carry, with a bull's-eye rash as an early symptom", choices: ["Strep throat", "Chicken pox", "Lyme disease", "The flu"], correct: 2, category: "mc" },
+  { question: "What untreated strep throat can cause", choices: ["A common cold", "Permanent heart damage", "Lyme disease", "Athlete's foot"], correct: 1, category: "mc" },
+  { question: "The pathogen that causes colds, flu, and measles", choices: ["Bacteria", "Fungus", "Virus", "Protozoa"], correct: 2, category: "mc" },
+  { question: "The pathogen that causes strep throat, pneumonia, and ear infections", choices: ["Virus", "Fungus", "Protozoa", "Bacteria"], correct: 3, category: "mc" },
+  { question: "The pathogen that causes ringworm and athlete's foot", choices: ["Bacteria", "Virus", "Fungus", "Protozoa"], correct: 2, category: "mc" },
+  { question: "The pathogen that causes malaria", choices: ["Virus", "Bacteria", "Fungus", "Protozoa"], correct: 3, category: "mc" }
+];
+
+// ============================================================
 // QUIZ REGISTRY — Array of quiz definitions. Each quiz declares
 // its content, supported sections, and metadata. Add new quizzes
 // by pushing additional entries with the same shape.
@@ -1680,6 +1841,19 @@ const QUIZ_REGISTRY = [
     mc: SOCIAL_CH89_MC,
     matching: SOCIAL_CH89_MATCHING,
     jeopardy: SOCIAL_CH89_JEOPARDY,
+    enemies: null
+  },
+  {
+    id: 'health-ch8',
+    subject: 'Health',
+    title: 'Chapter 8 — Diseases & Heart Health',
+    grade: 5,
+    sections: ['vocab', 'mc', 'matching', 'gamequiz'],
+    study: HEALTH_CH8_STUDY,
+    vocab: HEALTH_CH8_VOCAB,
+    mc: HEALTH_CH8_MC,
+    matching: HEALTH_CH8_MATCHING,
+    jeopardy: HEALTH_CH8_JEOPARDY,
     enemies: null
   }
 ];
