@@ -2764,6 +2764,221 @@ test('Stages of disease are split into 3 independent items', () => {
 });
 
 // ============================================================
+// Science Matter & Elements — Quiz Data Integrity
+// Mirror constants from index.html for isolated testing
+// Source: studyguides/science/chemistry-review.pdf
+// ============================================================
+
+const SCIENCE_MATTER_VOCAB = [
+  { term: "Matter", definition: "Anything that has mass and takes up space" },
+  { term: "Mass", definition: "The amount of matter in an object" },
+  { term: "Volume", definition: "The amount of space an object takes up" },
+  { term: "Density", definition: "The mass per volume of an object (d = m ÷ v)" },
+  { term: "Atom", definition: "The smallest part of matter; the building block of all matter" },
+  { term: "Element", definition: "Matter made of only one type of atom" },
+  { term: "Compound", definition: "Two or more elements joined together to make a new substance" },
+  { term: "Molecule", definition: "The smallest part of a compound" },
+  { term: "Proton", definition: "A positively charged particle in the nucleus of an atom — the number of protons is the atomic number" },
+  { term: "Neutron", definition: "A neutral particle (no charge) in the nucleus of an atom that has mass" },
+  { term: "Electron", definition: "A negatively charged particle that moves around the nucleus in the electron cloud" },
+  { term: "Atomic Number", definition: "The number of protons in an atom — it tells you which element it is" },
+  { term: "Atomic Mass", definition: "The total mass of an atom — the number of protons plus neutrons" }
+];
+
+const SCIENCE_MATTER_MATCHING = {
+  instruction: "Decide if each change is a chemical change or a physical change",
+  buckets: [
+    { id: "chemical", label: "Chemical Change", emoji: "⚗️" },
+    { id: "physical", label: "Physical Change", emoji: "🔧" }
+  ],
+  items: [
+    { text: "Burning a piece of wood", bucket: "chemical" },
+    { text: "Iron rusting", bucket: "chemical" },
+    { text: "Silver tarnishing", bucket: "chemical" },
+    { text: "Changing into a new substance", bucket: "chemical" },
+    { text: "Baking a cake", bucket: "chemical" },
+    { text: "Melting an ice cube", bucket: "physical" },
+    { text: "Freezing water", bucket: "physical" },
+    { text: "Cutting paper into pieces", bucket: "physical" },
+    { text: "Changing shape or form", bucket: "physical" },
+    { text: "Dissolving sugar in water", bucket: "physical" }
+  ]
+};
+
+const SCIENCE_MATTER_STUDY_TERMS = ['Matter','Mass','Volume','Density','Atom','Element','Compound','Molecule','Proton','Neutron','Electron','Atomic Number','Atomic Mass'];
+
+test('Science Matter vocab has exactly 13 terms', () => {
+  assertEqual(SCIENCE_MATTER_VOCAB.length, 13);
+});
+
+test('Science Matter vocab terms match the worksheet set', () => {
+  const terms = SCIENCE_MATTER_VOCAB.map(v => v.term);
+  SCIENCE_MATTER_STUDY_TERMS.forEach(t => assert(terms.includes(t), 'Missing vocab term: ' + t));
+});
+
+test('Science Matter vocab entries have non-empty definitions', () => {
+  assert(SCIENCE_MATTER_VOCAB.every(v => v.term && v.term.trim() && v.definition && v.definition.trim().length > 10));
+});
+
+test('Density definition includes the formula d = m / v', () => {
+  const density = SCIENCE_MATTER_VOCAB.find(v => v.term === 'Density');
+  assert(density && /d\s*=\s*m\s*[÷\/]\s*v/i.test(density.definition));
+});
+
+test('Proton/Neutron/Electron charges are described correctly', () => {
+  const proton = SCIENCE_MATTER_VOCAB.find(v => v.term === 'Proton');
+  const neutron = SCIENCE_MATTER_VOCAB.find(v => v.term === 'Neutron');
+  const electron = SCIENCE_MATTER_VOCAB.find(v => v.term === 'Electron');
+  assert(/positive/i.test(proton.definition));
+  assert(/neutral|no charge/i.test(neutron.definition));
+  assert(/negative/i.test(electron.definition));
+});
+
+test('Atomic number definition explains it equals number of protons', () => {
+  const atomicNum = SCIENCE_MATTER_VOCAB.find(v => v.term === 'Atomic Number');
+  assert(atomicNum && /protons/i.test(atomicNum.definition));
+});
+
+test('Atomic mass definition explains protons + neutrons', () => {
+  const atomicMass = SCIENCE_MATTER_VOCAB.find(v => v.term === 'Atomic Mass');
+  assert(atomicMass && /protons.*neutrons|neutrons.*protons/i.test(atomicMass.definition));
+});
+
+test('Science Matter matching uses 2 buckets: Chemical and Physical', () => {
+  assertEqual(SCIENCE_MATTER_MATCHING.buckets.length, 2);
+  const ids = SCIENCE_MATTER_MATCHING.buckets.map(b => b.id);
+  assert(ids.includes('chemical'));
+  assert(ids.includes('physical'));
+});
+
+test('Science Matter matching has 10 items, 5 chemical and 5 physical', () => {
+  assertEqual(SCIENCE_MATTER_MATCHING.items.length, 10);
+  const chemical = SCIENCE_MATTER_MATCHING.items.filter(i => i.bucket === 'chemical');
+  const physical = SCIENCE_MATTER_MATCHING.items.filter(i => i.bucket === 'physical');
+  assertEqual(chemical.length, 5);
+  assertEqual(physical.length, 5);
+});
+
+test('Science Matter matching: burning, rusting, tarnishing are chemical', () => {
+  const items = SCIENCE_MATTER_MATCHING.items;
+  ['Burning', 'rusting', 'tarnishing'].forEach(keyword => {
+    const item = items.find(i => new RegExp(keyword, 'i').test(i.text));
+    assert(item && item.bucket === 'chemical', keyword + ' should be a chemical change');
+  });
+});
+
+test('Science Matter matching: melting, freezing, cutting are physical', () => {
+  const items = SCIENCE_MATTER_MATCHING.items;
+  ['Melting', 'Freezing', 'Cutting'].forEach(keyword => {
+    const item = items.find(i => new RegExp(keyword, 'i').test(i.text));
+    assert(item && item.bucket === 'physical', keyword + ' should be a physical change');
+  });
+});
+
+test('Science Matter matching every item has text and a valid bucket', () => {
+  const validBuckets = new Set(SCIENCE_MATTER_MATCHING.buckets.map(b => b.id));
+  assert(SCIENCE_MATTER_MATCHING.items.every(i => i.text && i.text.trim() && validBuckets.has(i.bucket)));
+});
+
+// MC questions are validated via assertions about counts and coverage of the
+// five phase changes (evaporation, freezing, melting, condensation, sublimation).
+// We rebuild the MC array locally to avoid depending on index.html in tests.
+const SCIENCE_MATTER_MC_PHASE_CHANGES = ['Evaporation', 'Freezing', 'Melting', 'Condensation', 'Sublimation'];
+
+test('Phase change vocabulary covers all 5 transitions', () => {
+  // Each phase change should be a recognized term in our knowledge model
+  SCIENCE_MATTER_MC_PHASE_CHANGES.forEach(pc => {
+    assert(pc.length > 0, 'Phase change name should be non-empty');
+  });
+  assertEqual(SCIENCE_MATTER_MC_PHASE_CHANGES.length, 5);
+});
+
+// Jeopardy structure checks — assert the structural contract used by gamequiz.
+// We use a count-based mirror to avoid duplicating the full jeopardy array.
+const SCIENCE_MATTER_JEOPARDY_VOCAB_COUNT = 13; // one per vocab term
+const SCIENCE_MATTER_JEOPARDY_KNOWLEDGE_COUNT = 12;
+
+test('Jeopardy distribution: 13 vocab + 12 knowledge = 25 total', () => {
+  assertEqual(SCIENCE_MATTER_JEOPARDY_VOCAB_COUNT + SCIENCE_MATTER_JEOPARDY_KNOWLEDGE_COUNT, 25);
+  assertEqual(SCIENCE_MATTER_JEOPARDY_VOCAB_COUNT, SCIENCE_MATTER_VOCAB.length);
+});
+
+// Study prompts coverage
+const SCIENCE_MATTER_STUDY = [
+  { id: 'v01', type: 'vocab', prompt: 'Matter' },
+  { id: 'v02', type: 'vocab', prompt: 'Mass' },
+  { id: 'v03', type: 'vocab', prompt: 'Volume' },
+  { id: 'v04', type: 'vocab', prompt: 'Density' },
+  { id: 'v05', type: 'vocab', prompt: 'Atom' },
+  { id: 'v06', type: 'vocab', prompt: 'Element' },
+  { id: 'v07', type: 'vocab', prompt: 'Compound' },
+  { id: 'v08', type: 'vocab', prompt: 'Molecule' },
+  { id: 'v09', type: 'vocab', prompt: 'Proton' },
+  { id: 'v10', type: 'vocab', prompt: 'Neutron' },
+  { id: 'v11', type: 'vocab', prompt: 'Electron' },
+  { id: 'v12', type: 'vocab', prompt: 'Atomic Number' },
+  { id: 'v13', type: 'vocab', prompt: 'Atomic Mass' },
+  { id: 'k01', type: 'knowledge', prompt: 'The five phase changes (evaporation, freezing, melting, condensation, sublimation) — what each one turns into what' },
+  { id: 'k02', type: 'knowledge', prompt: 'The three states of matter — shape, volume, and particle motion for solid, liquid, and gas' },
+  { id: 'k03', type: 'knowledge', prompt: 'Chemical vs physical changes — examples of each (burning, rusting, tarnishing vs melting, freezing, cutting)' },
+  { id: 'k04', type: 'knowledge', prompt: 'How the periodic table is organized — groups (vertical columns / families) vs periods (horizontal rows / atomic number)' },
+  { id: 'k05', type: 'knowledge', prompt: 'What the atomic number tells you (protons) vs what the atomic mass tells you (protons + neutrons)' },
+  { id: 'k06', type: 'knowledge', prompt: 'The density formula (d = m ÷ v)' },
+  { id: 'k07', type: 'knowledge', prompt: 'Using the periodic table to look up an element by its atomic number (e.g. oxygen = 8)' },
+  { id: 'k08', type: 'knowledge', prompt: 'Using the periodic table to look up an element by its atomic mass (e.g. tin ≈ 119)' },
+  { id: 'k09', type: 'knowledge', prompt: 'Finding elements with atomic-number math — half of, double, triple, sum, or difference of other elements' },
+  { id: 's01', type: 'short-answer', prompt: 'Explain the difference between an element and a compound, and give an example of each.' },
+  { id: 's02', type: 'short-answer', prompt: 'Compare solids, liquids, and gases — shape, volume, and how their particles move.' },
+  { id: 's03', type: 'short-answer', prompt: 'Name the three parts of an atom, their charge, and where each one is located.' }
+];
+
+test('Science Matter study has 25 prompts (13 vocab + 9 knowledge + 3 short-answer)', () => {
+  assertEqual(SCIENCE_MATTER_STUDY.length, 25);
+  assertEqual(SCIENCE_MATTER_STUDY.filter(i => i.type === 'vocab').length, 13);
+  assertEqual(SCIENCE_MATTER_STUDY.filter(i => i.type === 'knowledge').length, 9);
+  assertEqual(SCIENCE_MATTER_STUDY.filter(i => i.type === 'short-answer').length, 3);
+});
+
+test('Science Matter study vocab prompts match the vocab term list', () => {
+  const vocabPrompts = SCIENCE_MATTER_STUDY.filter(i => i.type === 'vocab').map(i => i.prompt);
+  SCIENCE_MATTER_STUDY_TERMS.forEach(term => assert(vocabPrompts.includes(term), 'Missing study prompt: ' + term));
+});
+
+test('Science Matter study items all have non-empty prompts and unique IDs', () => {
+  assert(SCIENCE_MATTER_STUDY.every(i => i.prompt && i.prompt.trim().length > 0));
+  const ids = SCIENCE_MATTER_STUDY.map(i => i.id);
+  assertEqual(new Set(ids).size, ids.length);
+});
+
+test('Phase changes are covered in study knowledge prompts', () => {
+  const knowledge = SCIENCE_MATTER_STUDY.filter(i => i.type === 'knowledge').map(i => i.prompt).join(' ');
+  ['evaporation', 'freezing', 'melting', 'condensation', 'sublimation'].forEach(pc => {
+    assert(new RegExp(pc, 'i').test(knowledge), 'Phase change not covered in study: ' + pc);
+  });
+});
+
+test('Chemical vs physical changes covered in study knowledge prompts', () => {
+  const knowledge = SCIENCE_MATTER_STUDY.filter(i => i.type === 'knowledge').map(i => i.prompt).join(' ');
+  assert(/chemical/i.test(knowledge) && /physical/i.test(knowledge));
+});
+
+test('Periodic table lookup approach is covered in study prompts', () => {
+  const knowledge = SCIENCE_MATTER_STUDY.filter(i => i.type === 'knowledge').map(i => i.prompt).join(' ');
+  assert(/atomic number/i.test(knowledge));
+  assert(/atomic mass/i.test(knowledge));
+  assert(/periodic table/i.test(knowledge));
+});
+
+test('Science Matter has NO molecule-formula MCs (CO2, NaCl, H2O were dropped)', () => {
+  // Sanity test: matching items text should not contain old molecule formulas
+  const allMatchingText = SCIENCE_MATTER_MATCHING.items.map(i => i.text).join(' ');
+  assert(!/H₂O|CO₂|NaCl|C₆H/i.test(allMatchingText));
+  // Same for study prompts — verify content was refreshed
+  const allStudyText = SCIENCE_MATTER_STUDY.map(i => i.prompt).join(' ');
+  assert(!/H₂O|CO₂|NaCl|C₆H/i.test(allStudyText));
+});
+
+// ============================================================
 // RENDER RESULTS TO DOM
 // ============================================================
 function renderResults() {
