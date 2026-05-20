@@ -1606,6 +1606,130 @@ const HEALTH_CH8_JEOPARDY = [
 ];
 
 // ============================================================
+// Science — Matter & Elements (Chemistry Review)
+// Source: studyguides/science/chemistry-review.pdf
+// ============================================================
+
+const SCIENCE_MATTER_STUDY = [
+  // 13 vocab terms
+  { id: 'v01', type: 'vocab', prompt: 'Matter' },
+  { id: 'v02', type: 'vocab', prompt: 'Mass' },
+  { id: 'v03', type: 'vocab', prompt: 'Volume' },
+  { id: 'v04', type: 'vocab', prompt: 'Density' },
+  { id: 'v05', type: 'vocab', prompt: 'Atom' },
+  { id: 'v06', type: 'vocab', prompt: 'Element' },
+  { id: 'v07', type: 'vocab', prompt: 'Compound' },
+  { id: 'v08', type: 'vocab', prompt: 'Molecule' },
+  { id: 'v09', type: 'vocab', prompt: 'Proton' },
+  { id: 'v10', type: 'vocab', prompt: 'Neutron' },
+  { id: 'v11', type: 'vocab', prompt: 'Electron' },
+  { id: 'v12', type: 'vocab', prompt: 'Atomic Number' },
+  { id: 'v13', type: 'vocab', prompt: 'Atomic Mass' },
+  // 9 knowledge prompts
+  { id: 'k01', type: 'knowledge', prompt: 'The five phase changes (evaporation, freezing, melting, condensation, sublimation) — what each one turns into what' },
+  { id: 'k02', type: 'knowledge', prompt: 'The three states of matter — shape, volume, and particle motion for solid, liquid, and gas' },
+  { id: 'k03', type: 'knowledge', prompt: 'Chemical vs physical changes — examples of each (burning, rusting, tarnishing vs melting, freezing, cutting)' },
+  { id: 'k04', type: 'knowledge', prompt: 'How the periodic table is organized — groups (vertical columns / families) vs periods (horizontal rows / atomic number)' },
+  { id: 'k05', type: 'knowledge', prompt: 'What the atomic number tells you (protons) vs what the atomic mass tells you (protons + neutrons)' },
+  { id: 'k06', type: 'knowledge', prompt: 'The density formula (d = m ÷ v)' },
+  { id: 'k07', type: 'knowledge', prompt: 'Using the periodic table to look up an element by its atomic number (e.g. oxygen = 8)' },
+  { id: 'k08', type: 'knowledge', prompt: 'Using the periodic table to look up an element by its atomic mass (e.g. tin ≈ 119)' },
+  { id: 'k09', type: 'knowledge', prompt: 'Finding elements with atomic-number math — half of, double, triple, sum, or difference of other elements' },
+  // 3 short-answer prompts
+  { id: 's01', type: 'short-answer', prompt: 'Explain the difference between an element and a compound, and give an example of each.' },
+  { id: 's02', type: 'short-answer', prompt: 'Compare solids, liquids, and gases — shape, volume, and how their particles move.' },
+  { id: 's03', type: 'short-answer', prompt: 'Name the three parts of an atom, their charge, and where each one is located.' }
+];
+
+const SCIENCE_MATTER_VOCAB = [
+  { term: "Matter", definition: "Anything that has mass and takes up space" },
+  { term: "Mass", definition: "The amount of matter in an object" },
+  { term: "Volume", definition: "The amount of space an object takes up" },
+  { term: "Density", definition: "The mass per volume of an object (d = m ÷ v)" },
+  { term: "Atom", definition: "The smallest part of matter; the building block of all matter" },
+  { term: "Element", definition: "Matter made of only one type of atom" },
+  { term: "Compound", definition: "Two or more elements joined together to make a new substance" },
+  { term: "Molecule", definition: "The smallest part of a compound" },
+  { term: "Proton", definition: "A positively charged particle in the nucleus of an atom — the number of protons is the atomic number" },
+  { term: "Neutron", definition: "A neutral particle (no charge) in the nucleus of an atom that has mass" },
+  { term: "Electron", definition: "A negatively charged particle that moves around the nucleus in the electron cloud" },
+  { term: "Atomic Number", definition: "The number of protons in an atom — it tells you which element it is" },
+  { term: "Atomic Mass", definition: "The total mass of an atom — the number of protons plus neutrons" }
+];
+
+const SCIENCE_MATTER_MC = [
+  // Phase changes (5)
+  { question: "What is the process that turns a liquid into a gas?", choices: ["Condensation", "Sublimation", "Evaporation", "Freezing"], correct: 2 },
+  { question: "What is the process that turns a liquid into a solid?", choices: ["Melting", "Freezing", "Sublimation", "Condensation"], correct: 1 },
+  { question: "What is the process that turns a solid into a liquid?", choices: ["Evaporation", "Freezing", "Melting", "Condensation"], correct: 2 },
+  { question: "What is the process that turns a gas into a liquid?", choices: ["Sublimation", "Condensation", "Evaporation", "Melting"], correct: 1 },
+  { question: "What is the process that turns a solid directly into a gas?", choices: ["Evaporation", "Condensation", "Melting", "Sublimation"], correct: 3 },
+  // States of matter (3)
+  { question: "Which state of matter has a definite shape AND a definite volume, with particles tightly packed together?", choices: ["Solid", "Liquid", "Gas", "Plasma"], correct: 0 },
+  { question: "Which state of matter has a definite volume but NO definite shape, with particles moving freely past each other?", choices: ["Solid", "Liquid", "Gas", "Plasma"], correct: 1 },
+  { question: "Which state of matter has NO definite shape and NO definite volume, with particles very far apart and moving very fast?", choices: ["Solid", "Liquid", "Gas", "Crystal"], correct: 2 },
+  // Atomic structure / periodic table (4)
+  { question: "What does the atomic number of an element tell you?", choices: ["The number of neutrons", "The number of electrons in the cloud", "The number of protons in the nucleus", "The total mass of the atom"], correct: 2 },
+  { question: "What makes up the atomic mass of an atom?", choices: ["Only the protons", "Only the electrons", "Protons plus neutrons", "Protons plus electrons"], correct: 2 },
+  { question: "On the periodic table, the vertical columns of elements with similar properties are called…", choices: ["Periods", "Rows", "Groups (or families)", "Stacks"], correct: 2 },
+  { question: "On the periodic table, the horizontal rows organized by increasing atomic number are called…", choices: ["Groups", "Families", "Periods", "Columns"], correct: 2 },
+  // Periodic table lookups (3)
+  { question: "What is the atomic number of oxygen (O)?", choices: ["6", "8", "10", "16"], correct: 1 },
+  { question: "Which element has more protons than nickel (Ni = 28) but fewer protons than zinc (Zn = 30)?", choices: ["Cobalt (Co)", "Copper (Cu)", "Gallium (Ga)", "Iron (Fe)"], correct: 1 },
+  { question: "Which element has an atomic number equal to the sum of sodium (Na = 11) and krypton (Kr = 36)?", choices: ["Silver (Ag)", "Gold (Au)", "Tin (Sn)", "Iodine (I)"], correct: 0 }
+];
+
+const SCIENCE_MATTER_MATCHING = {
+  instruction: "Decide if each change is a chemical change or a physical change",
+  buckets: [
+    { id: "chemical", label: "Chemical Change", emoji: "⚗️" },
+    { id: "physical", label: "Physical Change", emoji: "🔧" }
+  ],
+  items: [
+    { text: "Burning a piece of wood", bucket: "chemical" },
+    { text: "Iron rusting", bucket: "chemical" },
+    { text: "Silver tarnishing", bucket: "chemical" },
+    { text: "Changing into a new substance", bucket: "chemical" },
+    { text: "Baking a cake", bucket: "chemical" },
+    { text: "Melting an ice cube", bucket: "physical" },
+    { text: "Freezing water", bucket: "physical" },
+    { text: "Cutting paper into pieces", bucket: "physical" },
+    { text: "Changing shape or form", bucket: "physical" },
+    { text: "Dissolving sugar in water", bucket: "physical" }
+  ]
+};
+
+const SCIENCE_MATTER_JEOPARDY = [
+  // ---- VOCAB-BASED (13): definition → pick the term ----
+  { question: "Anything that has mass and takes up space", choices: ["Atom", "Element", "Matter", "Compound"], correct: 2, category: "vocab" },
+  { question: "The amount of matter in an object", choices: ["Volume", "Mass", "Density", "Weight"], correct: 1, category: "vocab" },
+  { question: "The amount of space an object takes up", choices: ["Mass", "Density", "Volume", "Matter"], correct: 2, category: "vocab" },
+  { question: "The mass per volume of an object (d = m ÷ v)", choices: ["Mass", "Volume", "Atom", "Density"], correct: 3, category: "vocab" },
+  { question: "The smallest part of matter; the building block of all matter", choices: ["Molecule", "Atom", "Element", "Nucleus"], correct: 1, category: "vocab" },
+  { question: "Matter made of only one type of atom", choices: ["Compound", "Molecule", "Mixture", "Element"], correct: 3, category: "vocab" },
+  { question: "Two or more elements joined together to make a new substance", choices: ["Compound", "Element", "Atom", "Mass"], correct: 0, category: "vocab" },
+  { question: "The smallest part of a compound", choices: ["Atom", "Nucleus", "Molecule", "Proton"], correct: 2, category: "vocab" },
+  { question: "A positively charged particle found in the nucleus of an atom", choices: ["Neutron", "Electron", "Proton", "Nucleus"], correct: 2, category: "vocab" },
+  { question: "A neutral particle (no charge) in the nucleus that has mass", choices: ["Proton", "Neutron", "Electron", "Atom"], correct: 1, category: "vocab" },
+  { question: "A negatively charged particle that moves around the nucleus", choices: ["Electron", "Proton", "Neutron", "Molecule"], correct: 0, category: "vocab" },
+  { question: "The number of protons in an atom — tells you which element it is", choices: ["Atomic Mass", "Density", "Atomic Number", "Volume"], correct: 2, category: "vocab" },
+  { question: "The total mass of an atom — the number of protons plus neutrons", choices: ["Atomic Number", "Density", "Volume", "Atomic Mass"], correct: 3, category: "vocab" },
+  // ---- KNOWLEDGE-BASED (12): phase changes, states, periodic table ----
+  { question: "The process that turns a liquid into a gas", choices: ["Condensation", "Evaporation", "Sublimation", "Freezing"], correct: 1, category: "mc" },
+  { question: "The process that turns a liquid into a solid", choices: ["Melting", "Freezing", "Sublimation", "Condensation"], correct: 1, category: "mc" },
+  { question: "The process that turns a solid into a liquid", choices: ["Evaporation", "Melting", "Freezing", "Condensation"], correct: 1, category: "mc" },
+  { question: "The process that turns a gas into a liquid", choices: ["Sublimation", "Evaporation", "Condensation", "Melting"], correct: 2, category: "mc" },
+  { question: "The process that turns a solid directly into a gas", choices: ["Evaporation", "Condensation", "Sublimation", "Freezing"], correct: 2, category: "mc" },
+  { question: "Definite shape and volume, particles tightly packed and vibrating slowly", choices: ["Solid", "Liquid", "Gas", "Plasma"], correct: 0, category: "mc" },
+  { question: "Definite volume but no definite shape, particles moving past each other freely", choices: ["Solid", "Liquid", "Gas", "Plasma"], correct: 1, category: "mc" },
+  { question: "No definite shape or volume, particles very far apart and moving very fast", choices: ["Solid", "Liquid", "Gas", "Crystal"], correct: 2, category: "mc" },
+  { question: "Horizontal rows on the periodic table organized by increasing atomic number", choices: ["Groups", "Families", "Periods", "Columns"], correct: 2, category: "mc" },
+  { question: "Vertical columns of elements with similar properties on the periodic table", choices: ["Periods", "Rows", "Groups (families)", "Stacks"], correct: 2, category: "mc" },
+  { question: "The atomic number of oxygen (O)", choices: ["6", "8", "10", "16"], correct: 1, category: "mc" },
+  { question: "The element with more protons than nickel (Ni = 28) but fewer than zinc (Zn = 30)", choices: ["Cobalt (Co)", "Copper (Cu)", "Gallium (Ga)", "Iron (Fe)"], correct: 1, category: "mc" }
+];
+
+// ============================================================
 // QUIZ REGISTRY — Array of quiz definitions. Each quiz declares
 // its content, supported sections, and metadata. Add new quizzes
 // by pushing additional entries with the same shape.
@@ -1854,6 +1978,19 @@ const QUIZ_REGISTRY = [
     mc: HEALTH_CH8_MC,
     matching: HEALTH_CH8_MATCHING,
     jeopardy: HEALTH_CH8_JEOPARDY,
+    enemies: null
+  },
+  {
+    id: 'science-matter',
+    subject: 'Science',
+    title: 'Matter & Elements',
+    grade: 5,
+    sections: ['vocab', 'mc', 'matching', 'gamequiz'],
+    study: SCIENCE_MATTER_STUDY,
+    vocab: SCIENCE_MATTER_VOCAB,
+    mc: SCIENCE_MATTER_MC,
+    matching: SCIENCE_MATTER_MATCHING,
+    jeopardy: SCIENCE_MATTER_JEOPARDY,
     enemies: null
   }
 ];
