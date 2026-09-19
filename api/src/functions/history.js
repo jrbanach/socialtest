@@ -1,5 +1,5 @@
 const { app } = require("@azure/functions");
-const { readBlob, writeBlob, deleteBlob } = require("../blobHelper");
+const { readBlob, updateBlob, deleteBlob } = require("../blobHelper");
 
 /** Resolve blob name from quiz query param. Backward compat: no param = legacy 'history.json'. */
 function historyBlobName(request) {
@@ -53,10 +53,23 @@ app.http("postHistory", {
       if (!record.playerId || !record.section || record.score === undefined) {
         return { status: 400, jsonBody: { error: "Record must include playerId, section, and score" } };
       }
-      const history = await readBlob(historyBlobName(request), []);
-      history.push(record);
-      await writeBlob(historyBlobName(request), history);
-      return { jsonBody: { ok: true, count: history.length } };
+      if (record.attemptId !== undefined && (typeof record.attemptId !== 'string' || record.attemptId.length > 120)) {
+        return { status: 400, jsonBody: { error: 'Invalid attemptId' } };
+      }
+      const outcome = await updateBlob(historyBlobName(request), [], (history) => {
+        if (!Array.isArray(history)) throw new Error('Invalid stored history');
+        // Support both new retry IDs and recovery of old browser-only records.
+        const duplicate = history.some(existing =>
+          (record.attemptId && existing.attemptId === record.attemptId) ||
+          (record.timestamp && existing.timestamp === record.timestamp &&
+            existing.playerId === record.playerId && existing.section === record.section &&
+            existing.score === record.score && existing.total === record.total &&
+            (existing.mode || null) === (record.mode || null))
+        );
+        const result = { ok: true, attemptId: record.attemptId || null, count: history.length + (duplicate ? 0 : 1) };
+        return { data: duplicate ? history : [...history, record], result, skipWrite: duplicate };
+      });
+      return { jsonBody: outcome };
     } catch (e) {
       context.error("Failed to write history:", e.message);
       return { status: 500, jsonBody: { error: "Failed to save history" } };

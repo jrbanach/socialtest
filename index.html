@@ -337,6 +337,13 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 .stt-tip:last-child { border-bottom: none; }
 .stt-device { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 2px; }
 .stt-box kbd { background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; border: 1px solid #ccc; }
+/* Optional, question-specific formula reference; no answers or substitutions. */
+.formula-hint-dialog { box-sizing:border-box; width:calc(100% - 32px); max-width:440px; max-height:calc(100dvh - 32px); margin:auto; padding:24px; border:0; border-radius:16px; color:#1a3a6b; box-shadow:0 12px 40px rgba(0,0,0,.3); }
+.formula-hint-dialog::backdrop { background:rgba(0,0,0,.5); }
+.formula-hint-dialog h2 { text-align:center; margin:0 0 16px; font-size:1.3rem; }
+.formula-hint-equation { text-align:center; font-size:clamp(1.4rem,5vw,2rem); font-weight:700; padding:24px 0; overflow-wrap:anywhere; }
+.formula-hint-legend { text-align:center; color:#555; font-size:1rem; margin:0 0 20px; }
+.formula-hint-button { min-height:44px; min-width:44px; font-size:1rem; }
 </style>
 </head>
 <body>
@@ -356,6 +363,8 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
     <button class="btn btn-primary" onclick="showScreen('study')">📝 Study Entry</button>
     <button class="btn btn-warning" onclick="openParentMode()">🔒 Parent</button>
   </div>
+
+  <div id="history-sync-status" role="status" aria-live="polite" style="display:none; padding:10px; margin-bottom:12px; border-radius:8px;"></div>
 
   <!-- Home Screen -->
   <div id="home" class="screen active">
@@ -474,6 +483,14 @@ h3 { color: #2a5aa0; margin: 12px 0 6px; font-size: 1.1rem; }
 </div>
 
 <!-- Speech-to-Text Tip Modal -->
+<!-- Formula reference: native modal keeps focus inside and supports Escape. -->
+<dialog id="formula-hint-modal" class="formula-hint-dialog" aria-labelledby="formula-hint-title" aria-describedby="formula-hint-equation formula-hint-legend">
+  <h2 id="formula-hint-title"></h2>
+  <div id="formula-hint-equation" class="formula-hint-equation"></div>
+  <p id="formula-hint-legend" class="formula-hint-legend"></p>
+  <button id="formula-hint-back" type="button" class="btn btn-primary btn-block formula-hint-button" onclick="closeFormulaHint()" autofocus>Back to Quiz</button>
+</dialog>
+
 <div class="stt-modal" id="stt-modal">
   <div class="stt-box">
     <h3>🎤 Pro Tip: Use Speech-to-Text!</h3>
@@ -1734,6 +1751,623 @@ const SCIENCE_MATTER_JEOPARDY = [
 // its content, supported sections, and metadata. Add new quizzes
 // by pushing additional entries with the same shape.
 // ============================================================
+// Grade 6 content reviewed by Jim; sources: metric notes.pdf and density notes.pdf.
+const METRIC_DENSITY_QUIZ = {
+  "id": "earth-science-metric-density",
+  "subject": "Earth Science",
+  "title": "Metric System & Density",
+  "grade": 6,
+  "sections": [
+    "vocab",
+    "matching",
+    "mc"
+  ],
+  "vocab": [
+    {
+      "term": "Length",
+      "definition": "The distance between two points."
+    },
+    {
+      "term": "Mass",
+      "definition": "The amount of matter in an object."
+    },
+    {
+      "term": "Volume",
+      "definition": "The amount of space an object occupies."
+    },
+    {
+      "term": "Temperature",
+      "definition": "A measure of the random motion of particles."
+    },
+    {
+      "term": "Density",
+      "definition": "The mass per unit volume of a substance."
+    }
+  ],
+  "mc": [
+    {
+      "id": "C01",
+      "question": "What is the base unit for length?",
+      "choices": [
+        "meter",
+        "gram",
+        "liter",
+        "degrees Celsius"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "C02",
+      "question": "What is the base unit for mass?",
+      "choices": [
+        "meter",
+        "gram",
+        "liter",
+        "degrees Celsius"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "C03",
+      "question": "What is the base unit for volume?",
+      "choices": [
+        "gram",
+        "meter",
+        "liter",
+        "degrees Celsius"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "C04",
+      "question": "What do you use to measure mass?",
+      "choices": [
+        "Meter stick",
+        "Metric ruler",
+        "Graduated cylinder",
+        "Triple beam balance"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "C05",
+      "question": "Which pair of tools can measure length?",
+      "choices": [
+        "Metric ruler and meter stick",
+        "Triple beam balance and graduated cylinder",
+        "Meter stick and triple beam balance",
+        "Graduated cylinder and metric ruler"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "C06",
+      "question": "How do you find the volume of a box?",
+      "choices": [
+        "Add length, width, and height; label cm",
+        "Measure length, width, and height in cm with a metric ruler; multiply them; label cm³",
+        "Multiply length and width only; label cm³",
+        "Divide mass by density and label the result g"
+      ],
+      "correct": 1,
+      "formulaHintId": "box-volume"
+    },
+    {
+      "id": "C07",
+      "question": "When starting the irregular-object volume procedure, what do you do?",
+      "choices": [
+        "Place the object in an empty cylinder and read its mass",
+        "Fill the cylinder after measuring the object with a balance",
+        "Fill the graduated cylinder to an even-numbered reading, such as 50 mL",
+        "Multiply the starting cylinder reading by the height of the object"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "C08",
+      "question": "Where should you read the meniscus before and after adding the object?",
+      "choices": [
+        "At the top",
+        "Halfway between the top and bottom",
+        "At the top before adding the object and the bottom afterward",
+        "At the bottom"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "C09",
+      "question": "After checking the starting meniscus, what comes next in the notes?",
+      "choices": [
+        "Gently slide the object into the graduated cylinder",
+        "Drop the object forcefully into the water",
+        "Remove all the water before adding the object",
+        "Record the starting reading as the object’s final volume"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "C10",
+      "question": "How do you find an irregular object’s volume from the two cylinder readings?",
+      "choices": [
+        "Subtract the new reading from the starting reading; label mL",
+        "Subtract the starting reading from the new reading; label mL",
+        "Add the two readings; label mL",
+        "Multiply the readings; label g"
+      ],
+      "correct": 1,
+      "formulaHintId": "displacement"
+    },
+    {
+      "id": "C11",
+      "question": "At what temperature does water freeze?",
+      "choices": [
+        "4°C",
+        "50°C",
+        "0°C",
+        "100°C"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "C12",
+      "question": "At what temperature does water boil?",
+      "choices": [
+        "0°C",
+        "4°C",
+        "50°C",
+        "100°C"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "C13",
+      "question": "What do D, m, and v represent in the density formulas?",
+      "choices": [
+        "D = density; m = mass; v = volume",
+        "D = volume; m = mass; v = density",
+        "D = density; m = volume; v = mass",
+        "D = mass; m = density; v = volume"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "C14",
+      "question": "Which formula finds density when mass and volume are known?",
+      "choices": [
+        "D = m × v",
+        "D = m/v",
+        "D = v/m",
+        "D = m + v"
+      ],
+      "correct": 1,
+      "formulaHintId": "density"
+    },
+    {
+      "id": "C15",
+      "question": "Which formula finds volume when mass and density are known?",
+      "choices": [
+        "v = D/m",
+        "v = m × D",
+        "v = m/D",
+        "v = m + D"
+      ],
+      "correct": 2,
+      "formulaHintId": "volume"
+    },
+    {
+      "id": "C16",
+      "question": "Which formula finds mass when density and volume are known?",
+      "choices": [
+        "m = D/v",
+        "m = v/D",
+        "m = D + v",
+        "m = D × v"
+      ],
+      "correct": 3,
+      "formulaHintId": "mass"
+    },
+    {
+      "id": "C17",
+      "question": "Why is density an identification property?",
+      "choices": [
+        "Every pure substance has its own unique density",
+        "A substance’s density always doubles when its sample doubles",
+        "Every pure substance has the same density as water",
+        "Density depends only on the size of the sample"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "C18",
+      "question": "One piece of aluminum has a mass of 810.0 g and a volume of 300.0 cm³; another has a mass of 405.0 g and a volume of 150.0 cm³. What do they demonstrate?",
+      "choices": [
+        "The larger sample has twice the density",
+        "Both have a density of 2.7 g/cm³; changing sample size does not change this substance’s density",
+        "The smaller sample has twice the density",
+        "Both have the same mass and volume"
+      ],
+      "correct": 1,
+      "formulaHintId": "density"
+    },
+    {
+      "id": "C19",
+      "question": "For the same mass, what arrangement represents greater density?",
+      "choices": [
+        "Matter spread out into a larger volume",
+        "Matter occupying the same volume with no change",
+        "Matter compacted into a smaller volume",
+        "Matter with a larger volume but unchanged mass"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "C20",
+      "question": "For the same mass, what arrangement represents lower density?",
+      "choices": [
+        "Matter compacted into a smaller volume",
+        "Matter occupying the same volume with no change",
+        "Matter with a smaller volume but unchanged mass",
+        "Matter spread out into a larger volume"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "C21",
+      "question": "What density relative to water’s 1.0 g/mL is associated with floating?",
+      "choices": [
+        "Less than 1.0 g/mL",
+        "Greater than 1.0 g/mL",
+        "Exactly 1.0 g/mL only",
+        "Always 2.7 g/mL"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "C22",
+      "question": "What density relative to water’s 1.0 g/mL is associated with sinking?",
+      "choices": [
+        "Less than 1.0 g/mL",
+        "Greater than 1.0 g/mL",
+        "Exactly 1.0 g/mL only",
+        "Always 0 g/mL"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "C23",
+      "question": "Faster sinking is associated with what?",
+      "choices": [
+        "Lower density",
+        "No density",
+        "Greater density",
+        "Exactly the same density as water"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "C24",
+      "question": "What can the water line on a floating object help you do?",
+      "choices": [
+        "Measure its mass directly in grams",
+        "Find its temperature in degrees Celsius",
+        "Determine its length directly in meters",
+        "Better estimate its density"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "C25",
+      "question": "In which state are substances generally densest?",
+      "choices": [
+        "Solid",
+        "Liquid",
+        "All states have the same density",
+        "The notes say density never depends on state"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "C26",
+      "question": "Why does ice float in liquid water?",
+      "choices": [
+        "Water contracts when solid; its particles become more compacted, making ice denser",
+        "Water expands when solid; its particles spread out, making ice less dense than liquid water",
+        "Ice and liquid water always have identical density",
+        "Solid water has no mass"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "C27",
+      "question": "At what temperature is water densest?",
+      "choices": [
+        "0°C",
+        "50°C",
+        "4°C",
+        "100°C"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "N01",
+      "question": "A box measures 4 cm long, 3 cm wide, and 2 cm high. What is its volume?",
+      "choices": [
+        "24.000 cm³",
+        "9.000 cm³",
+        "12.000 cm³",
+        "6.000 cm³"
+      ],
+      "correct": 0,
+      "formulaHintId": "box-volume",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N02",
+      "question": "A box measures 2.5 cm long, 1.2 cm wide, and 3 cm high. What is its volume?",
+      "choices": [
+        "6.700 cm³",
+        "9.000 cm³",
+        "3.000 cm³",
+        "0.900 cm³"
+      ],
+      "correct": 1,
+      "formulaHintId": "box-volume",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N03",
+      "question": "A graduated cylinder starts at 50 mL. After an object is gently added, the reading is 68 mL. What is the object’s volume?",
+      "choices": [
+        "118.000 mL",
+        "68.000 mL",
+        "18.000 mL",
+        "50.000 mL"
+      ],
+      "correct": 2,
+      "formulaHintId": "displacement",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N04",
+      "question": "A graduated cylinder starts at 40 mL. After an object is added, the reading is 53.6 mL. What is the object’s volume?",
+      "choices": [
+        "93.600 mL",
+        "53.600 mL",
+        "1.360 mL",
+        "13.600 mL"
+      ],
+      "correct": 3,
+      "formulaHintId": "displacement",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N05",
+      "question": "An aluminum sample has a mass of 810.0 g and volume of 300.0 cm³. What is its density?",
+      "choices": [
+        "2.700 g/cm³",
+        "0.370 g/cm³",
+        "27.000 g/cm³",
+        "510.000 g/cm³"
+      ],
+      "correct": 0,
+      "formulaHintId": "density",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N06",
+      "question": "An aluminum sample has a mass of 405.0 g and volume of 150.0 cm³. What is its density?",
+      "choices": [
+        "0.370 g/cm³",
+        "2.700 g/cm³",
+        "27.000 g/cm³",
+        "255.000 g/cm³"
+      ],
+      "correct": 1,
+      "formulaHintId": "density",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N07",
+      "question": "A sample has a mass of 25 g and volume of 7 cm³. What is its density?",
+      "choices": [
+        "3.572 g/cm³",
+        "0.280 g/cm³",
+        "3.571 g/cm³",
+        "175.000 g/cm³"
+      ],
+      "correct": 2,
+      "formulaHintId": "density",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N08",
+      "question": "A sample has a mass of 8 g and volume of 3 mL. What is its density?",
+      "choices": [
+        "2.667 g/mL",
+        "0.375 g/mL",
+        "24.000 g/mL",
+        "2.666 g/mL"
+      ],
+      "correct": 3,
+      "formulaHintId": "density",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N09",
+      "question": "A sample has a mass of 27 g and density of 2.7 g/cm³. What is its volume?",
+      "choices": [
+        "10.000 cm³",
+        "72.900 cm³",
+        "0.100 cm³",
+        "24.300 cm³"
+      ],
+      "correct": 0,
+      "formulaHintId": "volume",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N10",
+      "question": "A sample has a mass of 10 g and density of 3 g/mL. What is its volume?",
+      "choices": [
+        "3.334 mL",
+        "3.333 mL",
+        "0.300 mL",
+        "30.000 mL"
+      ],
+      "correct": 1,
+      "formulaHintId": "volume",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N11",
+      "question": "A sample has a density of 2.7 g/cm³ and volume of 12 cm³. What is its mass?",
+      "choices": [
+        "4.444 g",
+        "0.225 g",
+        "32.400 g",
+        "14.700 g"
+      ],
+      "correct": 2,
+      "formulaHintId": "mass",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    },
+    {
+      "id": "N12",
+      "question": "A sample has a density of 1.25 g/mL and volume of 3.333 mL. What is its mass?",
+      "choices": [
+        "4.167 g",
+        "2.666 g",
+        "0.375 g",
+        "4.166 g"
+      ],
+      "correct": 3,
+      "formulaHintId": "mass",
+      "instructions": "Calculator allowed. Show your work on paper, truncate to the thousandth without rounding, and circle your final answer before selecting it here."
+    }
+  ],
+  "matching": {
+    "instruction": "Match each unit to the quantity it measures.",
+    "buckets": [
+      {
+        "id": "length",
+        "label": "Length",
+        "emoji": "📏"
+      },
+      {
+        "id": "mass",
+        "label": "Mass",
+        "emoji": "⚖️"
+      },
+      {
+        "id": "volume",
+        "label": "Volume",
+        "emoji": "🧊"
+      },
+      {
+        "id": "temperature",
+        "label": "Temperature",
+        "emoji": "🌡️"
+      },
+      {
+        "id": "density",
+        "label": "Density",
+        "emoji": "🪨"
+      }
+    ],
+    "items": [
+      {
+        "text": "meter",
+        "bucket": "length"
+      },
+      {
+        "text": "kilometer",
+        "bucket": "length"
+      },
+      {
+        "text": "centimeter",
+        "bucket": "length"
+      },
+      {
+        "text": "millimeter",
+        "bucket": "length"
+      },
+      {
+        "text": "gram",
+        "bucket": "mass"
+      },
+      {
+        "text": "kilogram",
+        "bucket": "mass"
+      },
+      {
+        "text": "milligram",
+        "bucket": "mass"
+      },
+      {
+        "text": "liter",
+        "bucket": "volume"
+      },
+      {
+        "text": "mL",
+        "bucket": "volume"
+      },
+      {
+        "text": "cm³",
+        "bucket": "volume"
+      },
+      {
+        "text": "degrees Celsius (°C)",
+        "bucket": "temperature"
+      },
+      {
+        "text": "g/cm³",
+        "bucket": "density"
+      },
+      {
+        "text": "g/mL",
+        "bucket": "density"
+      },
+      {
+        "text": "kg/m³",
+        "bucket": "density"
+      },
+      {
+        "text": "kg/L",
+        "bucket": "density"
+      }
+    ]
+  },
+  "jeopardy": [],
+  "enemies": null,
+  "formulaHints": {
+    "box-volume": {
+      "title": "Volume of a Box",
+      "formula": "V = l × w × h",
+      "legend": "V = volume; l = length; w = width; h = height. Measure in cm; label volume cm³."
+    },
+    "displacement": {
+      "title": "Volume by Water Displacement",
+      "formula": "Object volume = final reading − starting reading",
+      "legend": "Read the bottom of the meniscus before and after adding the object. Label volume mL."
+    },
+    "density": {
+      "title": "Density",
+      "formula": "D = m ÷ v",
+      "legend": "D = density; m = mass; v = volume."
+    },
+    "volume": {
+      "title": "Volume from Mass and Density",
+      "formula": "v = m ÷ D",
+      "legend": "v = volume; m = mass; D = density."
+    },
+    "mass": {
+      "title": "Mass",
+      "formula": "m = D × v",
+      "legend": "m = mass; D = density; v = volume."
+    }
+  }
+};
+
 const QUIZ_REGISTRY = [
   {
     id: 'colonial-america-ch5-6',
@@ -1992,7 +2626,8 @@ const QUIZ_REGISTRY = [
     matching: SCIENCE_MATTER_MATCHING,
     jeopardy: SCIENCE_MATTER_JEOPARDY,
     enemies: null
-  }
+  },
+  METRIC_DENSITY_QUIZ
 ];
 
 // Active quiz — all engine code reads from this.
@@ -2726,6 +3361,7 @@ function saveProgress() {
 // SCREENS
 // ============================================================
 function showScreen(id) {
+  closeFormulaHint();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   updateDocumentTitle(id);
@@ -3153,7 +3789,34 @@ function getShuffleOrder(map, qi, numChoices) {
   return map[qi];
 }
 
+/** Only reviewed formulas explicitly attached to this question are available. */
+function getMCFormulaHint(quiz, question) {
+  if (!quiz || !question || typeof question.formulaHintId !== 'string') return null;
+  const hints = quiz.formulaHints;
+  if (!hints || !Object.prototype.hasOwnProperty.call(hints, question.formulaHintId)) return null;
+  const hint = hints[question.formulaHintId];
+  return hint && typeof hint.title === 'string' && typeof hint.formula === 'string' && typeof hint.legend === 'string' ? hint : null;
+}
+
+function openFormulaHint() {
+  const qi = getActiveMCIndices()[mcCurrentQ];
+  const hint = getMCFormulaHint(activeQuiz, mcData[qi]);
+  if (!hint) return;
+  const modal = document.getElementById('formula-hint-modal');
+  // textContent prevents hint metadata from becoming executable markup.
+  document.getElementById('formula-hint-title').textContent = hint.title;
+  document.getElementById('formula-hint-equation').textContent = hint.formula;
+  document.getElementById('formula-hint-legend').textContent = hint.legend;
+  if (!modal.open) modal.showModal();
+}
+
+function closeFormulaHint() {
+  const modal = document.getElementById('formula-hint-modal');
+  if (modal && modal.open) modal.close();
+}
+
 function renderMC() {
+  closeFormulaHint();
   const activeIndices = getActiveMCIndices();
   const qEl = document.getElementById('mc-questions');
   const resultsEl = document.getElementById('mc-results');
@@ -3174,6 +3837,8 @@ function renderMC() {
   let html = `<div class="mc-q">
     <div class="question-text" style="margin-bottom:4px;">Question ${mcCurrentQ + 1} of ${activeIndices.length}</div>
     <div class="question-text">${esc(q.question)}</div>
+    ${q.instructions ? `<p style="color:#555; font-size:0.9rem;">${esc(q.instructions)}</p>` : ''}
+    ${getMCFormulaHint(activeQuiz, q) ? '<button id="formula-hint-trigger" type="button" class="btn btn-primary formula-hint-button" aria-haspopup="dialog" aria-controls="formula-hint-modal" onclick="openFormulaHint()">Formula Hint</button>' : ''}
     ${getShuffleOrder(mcShuffleMap, qi, q.choices.length).map(origIdx => {
       const checked = selectedChoice === origIdx ? 'checked' : '';
       let labelClass = '';
@@ -6814,33 +7479,105 @@ function changePlayer() {
 // ============================================================
 
 /** Record a quiz attempt to API + localStorage. */
+const HISTORY_PENDING_KEY = 'socialtest_history_pending';
+const HISTORY_SYNCED_KEY = 'socialtest_history_synced';
+let historySyncInFlight = false;
+let historyRetryTimer = null;
+
+function historyList(key) {
+  const list = JSON.parse(localStorage.getItem(key) || '[]');
+  if (!Array.isArray(list)) throw new Error('Invalid saved history');
+  return list;
+}
+
+function showHistorySyncStatus(message, warning = false) {
+  const el = document.getElementById('history-sync-status');
+  if (!el) return;
+  el.textContent = message;
+  el.style.display = message ? 'block' : 'none';
+  el.style.background = warning ? '#fff3cd' : '#d4edda';
+  el.style.color = warning ? '#664d03' : '#155724';
+}
+
+/** Recover unconfirmed results from older app versions without deleting local history. */
+function queueUnconfirmedHistory() {
+  const history = historyList('socialtest_history');
+  const pending = historyList(HISTORY_PENDING_KEY);
+  const synced = new Set(historyList(HISTORY_SYNCED_KEY));
+  let changed = false;
+  for (const record of history) {
+    if (!record.timestamp || !record.playerId || !record.section || record.score === undefined) continue;
+    if (!record.attemptId) { record.attemptId = crypto.randomUUID(); changed = true; }
+    if (!record.quizId) { record.quizId = QUIZ_REGISTRY[0].id; changed = true; }
+    if (!synced.has(record.attemptId) && !pending.some(r => r.attemptId === record.attemptId)) pending.push(record);
+  }
+  if (changed) localStorage.setItem('socialtest_history', JSON.stringify(history));
+  localStorage.setItem(HISTORY_PENDING_KEY, JSON.stringify(pending));
+}
+
+/** Ack required before dequeue; retries use the same attempt ID and quiz ID. */
+async function flushPendingHistory() {
+  if (historySyncInFlight) return;
+  historySyncInFlight = true;
+  clearTimeout(historyRetryTimer);
+  let savedAny = false;
+  try {
+    let pending = historyList(HISTORY_PENDING_KEY);
+    while (pending.length) {
+      const record = pending[0];
+      showHistorySyncStatus(`☁️ Saving results to cloud (${pending.length} pending)…`);
+      const response = await fetch(API_URL + '/history?quiz=' + encodeURIComponent(record.quizId), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record), signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) throw new Error('History save failed');
+      const ack = await response.json();
+      if (!ack.ok || ack.attemptId !== record.attemptId) throw new Error('History save not confirmed');
+      const synced = new Set(historyList(HISTORY_SYNCED_KEY));
+      synced.add(record.attemptId);
+      localStorage.setItem(HISTORY_SYNCED_KEY, JSON.stringify([...synced]));
+      // Re-read so a result queued during this request is not lost.
+      pending = historyList(HISTORY_PENDING_KEY).filter(r => r.attemptId !== record.attemptId);
+      localStorage.setItem(HISTORY_PENDING_KEY, JSON.stringify(pending));
+      savedAny = true;
+    }
+    if (savedAny) showHistorySyncStatus('✅ Results saved to cloud');
+  } catch (e) {
+    showHistorySyncStatus('⚠️ Results waiting to sync. Keep this browser’s data; reconnect to save them to cloud.', true);
+    historyRetryTimer = setTimeout(flushPendingHistory, 30000);
+  } finally {
+    historySyncInFlight = false;
+  }
+}
+
 async function logAttempt(section, mode, score, total, duration) {
   const record = {
-    quizId: activeQuiz ? activeQuiz.id : null,
-    playerId: playerId || 'anonymous',
-    playerName: playerName || 'Anonymous',
-    section,
-    mode: mode || null,
-    score,
-    total,
+    attemptId: crypto.randomUUID(),
+    quizId: activeQuiz ? activeQuiz.id : QUIZ_REGISTRY[0].id,
+    playerId: playerId || 'anonymous', playerName: playerName || 'Anonymous',
+    section, mode: mode || null, score, total,
     percentage: Math.round((score / total) * 100),
-    timestamp: new Date().toISOString(),
-    duration: duration || 0,
+    timestamp: new Date().toISOString(), duration: duration || 0,
   };
-  // Save locally
-  const local = JSON.parse(localStorage.getItem('socialtest_history') || '[]');
-  local.push(record);
-  localStorage.setItem('socialtest_history', JSON.stringify(local));
-  // Save to API (fire and forget, no feedback to player)
-  const quizParam = activeQuiz ? `?quiz=${activeQuiz.id}` : '';
   try {
-    await fetch(API_URL + '/history' + quizParam, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(record),
-    });
-  } catch { /* silent */ }
+    const local = historyList('socialtest_history');
+    local.push(record);
+    localStorage.setItem('socialtest_history', JSON.stringify(local));
+    queueUnconfirmedHistory();
+    await flushPendingHistory();
+  } catch (e) {
+    // Do not label a result saved if browser storage itself failed.
+    showHistorySyncStatus('⚠️ Could not safely save this result. Keep this page open and ask a parent for help.', true);
+  }
 }
+
+window.addEventListener('online', () => flushPendingHistory());
+window.addEventListener('storage', event => {
+  if (event.key === HISTORY_PENDING_KEY) flushPendingHistory();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') flushPendingHistory();
+});
 
 /** Render history panel in parent mode — grouped by quiz. */
 async function renderHistoryPanel() {
@@ -7156,6 +7893,12 @@ function studySaveAndExit() {
   renderHome();
   initPlayer();
   renderHighScores();
+  try {
+    queueUnconfirmedHistory();
+    flushPendingHistory();
+  } catch (e) {
+    showHistorySyncStatus('⚠️ Could not read saved results. Do not clear browser data; ask a parent for help.', true);
+  }
 })();
 
 // Re-fetch settings when app becomes visible (picks up parent changes on other devices)

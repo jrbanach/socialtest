@@ -37,7 +37,7 @@ async function writeBlob(name, data) {
   const container = getClient().getContainerClient(CONTAINER);
   const blob = container.getBlockBlobClient(name);
   const body = JSON.stringify(data);
-  await blob.upload(body, body.length, {
+  await blob.upload(body, Buffer.byteLength(body, "utf8"), {
     blobHTTPHeaders: { blobContentType: "application/json" },
     overwrite: true,
   });
@@ -47,7 +47,7 @@ async function writeBlob(name, data) {
 async function streamToString(stream) {
   const chunks = [];
   for await (const chunk of stream) {
-    chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk));
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
   return Buffer.concat(chunks).toString("utf-8");
 }
@@ -65,4 +65,32 @@ async function deleteBlob(name) {
   }
 }
 
-module.exports = { readBlob, writeBlob, deleteBlob };
+/** Atomic read/modify/write using ETags; retry competing writers, never overwrite them. */
+async function updateBlob(name, defaultValue, update) {
+  const blob = getClient().getContainerClient(CONTAINER).getBlockBlobClient(name);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let current = defaultValue;
+    let etag = null;
+    try {
+      const response = await blob.download(0);
+      current = JSON.parse(await streamToString(response.readableStreamBody));
+      etag = response.etag;
+    } catch (e) {
+      if (e.statusCode !== 404) throw e;
+    }
+    const next = update(current);
+    if (next.skipWrite) return next.result;
+    const body = JSON.stringify(next.data);
+    try {
+      await blob.upload(body, Buffer.byteLength(body, "utf8"), {
+        blobHTTPHeaders: { blobContentType: "application/json" },
+        conditions: etag ? { ifMatch: etag } : { ifNoneMatch: "*" },
+      });
+      return next.result;
+    } catch (e) {
+      if (![409, 412].includes(e.statusCode) || attempt === 4) throw e;
+    }
+  }
+}
+
+module.exports = { readBlob, writeBlob, deleteBlob, updateBlob };

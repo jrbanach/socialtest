@@ -1,5 +1,21 @@
 # Social Studies Quiz — Work & Decision Log
 
+## Pending release — Grade 6 Metric & Density + Formula Hint
+
+- Added Jim-reviewed Earth Science: Metric System & Density content: 5 vocabulary definitions, 15 matching items, 27 concept MC questions and 12 calculation MC questions. Sources are the supplied single-page metric and density notes; Jim authorized new numerical practice values. C28 was removed in his review.
+- This quiz enables only vocabulary, matching and multiple choice. Existing quizzes and their Capybara Quest content remain unchanged.
+- Added question-specific **Formula Hint** buttons for relevant questions. They open a centered native dialog with a title, centered formula, variable legend and **Back to Quiz** button. No numerical substitutions or worked answers are shown.
+- Hint access is optional and does not change the selected answer, choice order, score or saved progress. Back to Quiz and Escape return to the question; changing questions/screens closes stale hints. Formula content uses textContent; prompts/instructions remain escaped. No new production dependencies.
+- Calculations permit a calculator and instruct Parker to show work on paper, truncate to the thousandth without rounding, and circle the final answer. The app grades only the selected choice.
+- Added `tests/metric-density-browser.mjs`, a Node 22+ / installed-Chromium integration test with no npm dependencies. It serves localhost-only test content and rejects all API calls locally; no production storage is contacted.
+- Verification: existing tests.html 256/256; 64 real-browser integration checks and 10 backend persistence tests passed. Coverage includes all 18 question-to-hint mappings, state preservation, old quiz/history preservation, keyboard behavior, a 390×844 mobile layout, HTTP save failure, reload recovery, and vocabulary/matching/MC cloud-save flows. Actual iPhone Safari testing remains pending.
+- Completed results now use durable local pending records and stable attempt IDs. Only an HTTP success with a matching acknowledgement marks a record synced. Failures show a warning and retry on a timer, reconnect, visibility change, and reload. Older unconfirmed browser history is recovered without duplicating its existing cloud record. Unfinished answers remain browser-local, as requested.
+- History append operations use Blob ETag conditions and bounded conflict retries to prevent concurrent writers from losing results. Uploads use UTF-8 byte lengths, including formula symbols. Implementation references: https://learn.microsoft.com/azure/storage/blobs/concurrency-manage and https://learn.microsoft.com/javascript/api/@azure/storage-blob/blockblobclient .
+- Backend test command: `node --test tests/history-persistence.test.cjs`. Tests use explicit in-memory Azure SDK fixtures and exercise the actual handlers/helper; they are not a claim of production storage verification.
+- Run: `CHROME_BIN=/path/to/chromium node tests/metric-density-browser.mjs`. Optional `SCREENSHOT_PATH` captures the mobile modal. On this VM, `/snap/bin/chromium` works with its sandbox; the cached Chrome-for-Testing binary cannot initialize its sandbox. No sandbox settings were changed.
+- Pre-deployment snapshot: captured all 22 read-only API responses (registered quiz questions/history, legacy questions/history, settings, players) in a private local JSON backup. Direct Blob credentials and access permissions were not changed.
+- Deployment plan approved by Jim: after verifying deployment, persist the new quiz and missing bundled-only older quiz content through the existing API; set visible and active quiz to `earth-science-metric-density`, preserving other settings and all old results. Verify persistence by independent fresh GETs. Use an isolated verification quiz for save smoke tests so Parker’s actual scores remain clean.
+
 ## Project Overview
 A mobile-friendly study quiz for 5th grade social studies (Chapters 5 & 6 — Colonial America). Built as a standalone HTML file deployed to Azure Static Web Apps with Azure Blob Storage backend for cross-device persistence.
 
