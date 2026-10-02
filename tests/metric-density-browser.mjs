@@ -138,7 +138,8 @@ try {
   const oldHistory = await evaluate('localStorage.getItem("socialtest_history")');
   await goto('/index.html');
   await waitFor('typeof METRIC_DENSITY_QUIZ !== "undefined" && document.getElementById("quiz-subject-header").textContent.length > 0');
-  assert.equal(await evaluate("JSON.stringify(QUIZ_REGISTRY.filter(q=>q.id!=='earth-science-metric-density'))"), oldQuizzes, 'Old quiz data changed');
+  const priorQuizIds = JSON.parse(oldQuizzes).map(q => q.id);
+  assert.equal(await evaluate(`JSON.stringify(QUIZ_REGISTRY.filter(q=>${JSON.stringify(priorQuizIds)}.includes(q.id)))`), oldQuizzes, 'Old quiz data changed');
   assertions.push('All old quiz definitions unchanged');
   await check('Grade 6 content counts and modes', `METRIC_DENSITY_QUIZ.grade===6 && METRIC_DENSITY_QUIZ.vocab.length===5 && METRIC_DENSITY_QUIZ.matching.items.length===15 && METRIC_DENSITY_QUIZ.mc.length===39 && JSON.stringify(METRIC_DENSITY_QUIZ.sections)===JSON.stringify(['vocab','matching','mc']) && METRIC_DENSITY_QUIZ.jeopardy.length===0`);
   await check('MC options valid and C28 absent', `METRIC_DENSITY_QUIZ.mc.every(q=>q.choices.length===4 && new Set(q.choices).size===4 && Number.isInteger(q.correct) && q.correct>=0 && q.correct<4) && !METRIC_DENSITY_QUIZ.mc.some(q=>q.id==='C28')`);
@@ -230,6 +231,37 @@ try {
   const settingsRequest = apiRequests.filter(r=>r.method!=='GET' && r.path!=='/api/history');
   assert.equal(settingsRequest.length,0);
   assertions.push('No question, settings, player or production API writes');
+  // Grade 6 Social Studies uses the unchanged engine and cloud-result paths.
+  await check('Social Studies data and modes', `SOCIAL_CH1_QUIZ.grade===6 && SOCIAL_CH1_QUIZ.vocab.length===21 && SOCIAL_CH1_QUIZ.mc.length===57 && SOCIAL_CH1_QUIZ.matching.items.length===8 && SOCIAL_CH1_QUIZ.jeopardy.length===0 && JSON.stringify(SOCIAL_CH1_QUIZ.sections)===JSON.stringify(['vocab','matching','mc'])`);
+  await check('Social Studies unique valid question choices', `new Set(SOCIAL_CH1_QUIZ.mc.map(q=>q.id)).size===57 && new Set(SOCIAL_CH1_QUIZ.vocab.map(v=>v.term)).size===21 && SOCIAL_CH1_QUIZ.mc.every(q=>new Set(q.choices).size===4 && Number.isInteger(q.correct) && q.correct>=0 && q.correct<4)`);
+  await check('Approved ziggurat and Hanging Gardens definitions retained', `SOCIAL_CH1_QUIZ.vocab.find(v=>v.term==='Ziggurat').definition==='A large, stepped temple tower built in ancient Mesopotamian cities for religious purposes.' && SOCIAL_CH1_QUIZ.vocab.find(v=>v.term==='Hanging Gardens').definition==='Famous gardens planted on raised terraces, said to have been in Babylon. They were considered one of the Seven Wonders of the Ancient World.'`);
+  await check('Parker definitions and Neolithic context preserved', `SOCIAL_CH1_QUIZ.vocab.find(v=>v.term==='Fossil').definition==='The trace or imprint of a plant or animal that has been preserved in a rock.' && SOCIAL_CH1_QUIZ.vocab.find(v=>v.term==='Cuneiform').definition==='A Sumerian system of writing made up of wedge-shaped markings.' && SOCIAL_CH1_QUIZ.vocab.some(v=>v.term==='Neolithic Revolution')`);
+  await evaluate(`switchQuiz('social-ch1-early-humans-mesopotamia'); showScreen('vocab')`);
+  await check('Social Studies vocabulary renders on phone without horizontal overflow', `document.querySelectorAll('#word-bank .word-chip').length===21 && document.documentElement.scrollWidth<=innerWidth`);
+  await check('Social Studies shows no game navigation', `Array.from(document.querySelectorAll('.nav button')).find(b=>b.getAttribute('onclick').includes('gamequiz')).style.display==='none'`);
+  await evaluate(`vocabAnswers=Object.fromEntries(vocabData.map((q,i)=>[i,q.term])); submitVocab()`);
+  await waitFor(`!historySyncInFlight && historyList(HISTORY_PENDING_KEY).length===0`);
+  await evaluate(`showScreen('matching')`);
+  await check('Social-class matching buckets render', `document.getElementById('matching-questions').innerText.includes('Upper Class') && document.getElementById('matching-questions').innerText.includes('Middle Class') && document.getElementById('matching-questions').innerText.includes('Lower Class')`);
+  await evaluate(`matchingAnswers=Object.fromEntries(matchingData.items.map((q,i)=>[i,q.bucket])); submitMatching()`);
+  await waitFor(`!historySyncInFlight && historyList(HISTORY_PENDING_KEY).length===0`);
+  await evaluate(`showScreen('mc')`);
+  await check('No irrelevant formula hint appears in Social Studies', `!document.getElementById('formula-hint-trigger') && !document.getElementById('formula-hint-modal').open`);
+  await check('Each Social Studies MC question renders four choices', `SOCIAL_CH1_QUIZ.mc.every((q,i)=>{mcCurrentQ=i;renderMC();return document.querySelectorAll('#mc-questions input[type=radio]').length===4;})`);
+  if (process.env.SOCIAL_SCREENSHOT_PATH) {
+    await evaluate(`mcCurrentQ=0; renderMC()`);
+    const shot=await send('Page.captureScreenshot',{format:'png'});
+    await writeFile(process.env.SOCIAL_SCREENSHOT_PATH,Buffer.from(shot.data,'base64'));
+  }
+  await evaluate(`mcResults=Object.fromEntries(mcData.map((q,i)=>[i,true]));mcCurrentQ=mcData.length;renderMC()`);
+  await waitFor(`!historySyncInFlight && historyList(HISTORY_PENDING_KEY).length===0`);
+  const socialRecords=fixtureHistory.get('social-ch1-early-humans-mesopotamia');
+  assert.deepEqual(socialRecords.map(r=>[r.section,r.total]),[['vocab',21],['matching',8],['mc',57]]);
+  assertions.push('All Social Studies modes persist correct cloud totals');
+  assert.equal(fixtureHistory.get('earth-science-metric-density').length,3);
+  assertions.push('Social Studies results do not alter Earth Science history');
+  assert.equal(runtimeErrors.length,0,JSON.stringify(runtimeErrors));
+  assertions.push('No browser exceptions through both complete quizzes');
   console.log(JSON.stringify({integrationChecksPassed:assertions.length,checks:assertions,legacyTests:legacy.total},null,2));
 } finally {
   socket?.close();

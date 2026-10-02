@@ -1,5 +1,15 @@
 # Social Studies Quiz — Work & Decision Log
 
+## Grade 6 Social Studies — Chapter 1: Early Humans & Mesopotamia
+
+- Quiz ID: `social-ch1-early-humans-mesopotamia`; 21 vocabulary entries, 8 Sumer social-class matching items, 57 multiple-choice questions. Modes: vocabulary, matching, MC only; no game quiz or formula hints.
+- Sources: Parker’s two handwritten Chapter 1 review pages plus the two supplied typed Mesopotamia/Sumer note pages. Preserve his readable definitions with light spelling/grammar cleanup. “Revolution” is qualified as “Neolithic Revolution” to keep his farming/domestication answer in context; the date range follows his sheet.
+- Jim explicitly approved researched definitions of ziggurat, Hanging Gardens, and fossilized-footprint evidence. No other outside material is used. Approved references: https://www.britannica.com/technology/ziggurat ; https://www.britannica.com/place/Hanging-Gardens-of-Babylon ; https://www.nps.gov/whsa/learn/nature/fossilized-footprints.htm .
+- Coverage includes all readable vocabulary, early-human tools/fire/farming, the supplied Ötzi facts, Mesopotamian rivers/geography/climate/government, Sumerian city-states/religion/housing/classes/roles/inventions, Sargon, Hammurabi and Babylon. No individual laws or punishments from unsupplied textbook pages 24–25 were added.
+- Validation: 256 existing browser tests, 76 actual-Chromium integration checks, and 10 backend persistence tests passed. Checked all MC items render four distinct choices, approved definitions, the 390×844 layout, no game/formula controls, completed-result persistence for all three modes, and preservation of prior quiz data. Actual iPhone Safari remains a user smoke test.
+- Pre-deployment backup captured 24 read-only API endpoints, including old and new quiz questions/history, legacy endpoints, players, and settings. Cloud content publication uses only the new quiz endpoint; old quiz payloads and histories are not modified.
+- Deployment plan: activate the new Social Studies quiz, add it to the existing visible quiz list (retaining Earth Science), leave older hidden quizzes hidden, save the full quiz through the existing Blob-backed API, and verify with fresh reads and an isolated production-result test.
+
 ## Pending release — Grade 6 Metric & Density + Formula Hint
 
 - Added Jim-reviewed Earth Science: Metric System & Density content: 5 vocabulary definitions, 15 matching items, 27 concept MC questions and 12 calculation MC questions. Sources are the supplied single-page metric and density notes; Jim authorized new numerical practice values. C28 was removed in his review.
